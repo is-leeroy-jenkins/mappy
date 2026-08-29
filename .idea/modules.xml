@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Mappy.iml" filepath="$PROJECT_DIR$/.idea/Mappy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/mappy.iml" filepath="$PROJECT_DIR$/.idea/mappy.iml" />
     </modules>
   </component>
 </project>
