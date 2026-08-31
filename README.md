@@ -45,23 +45,45 @@ enrichment.
 
 ![](https://github.com/is-leeroy-jenkins/Mappy/blob/master/resources/images/mappy-demo.gif)
 
-## 🧱 Databricks
+---
 
-[![Mappy](https://img.shields.io/badge/Databricks-Mappy-FF3621?logo=databricks\&logoColor=white)](https://dbc-a0c21f80-7bb3.cloud.databricks.com/browse/folders/3169291152437594?o=7474645703081351)
 
-Databricks provides a collaborative data engineering, analytics, and artificial intelligence
-workspace for the Mappy notebook and codebase.
+## ☁️ Cloud
 
-## 🔥 Streamlit 
+<table>
+<tr>
+<td align="center">
+<img width="190" height="1" alt=""><br>
+<a href="https://mappy.wonderfulsand-c318f361.eastus.azurecontainerapps.io">
+<img src="https://img.shields.io/badge/Docker-App-2496ED?logo=docker&logoColor=white" alt="Docker App">
+</a>
+</td>
 
-[![Streamlit App](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit\&logoColor=white)](https://mappy-py.streamlit.app/)
+<td align="center">
+<img width="190" height="1" alt=""><br>
+<a href="https://mappy-py.streamlit.app/">
+<img src="https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit App">
+</a>
+</td>
 
-The Streamlit deployment exposes Mappy as a dynamic, interactive web application for geospatial,
-environmental, astronomical, geological, and web-data workflows.
+<td align="center">
+<img width="190" height="1" alt=""><br>
+<a href="https://dbc-a0c21f80-7bb3.cloud.databricks.com/browse/folders/3169291152437594?o=7474645703081351">
+<img src="https://img.shields.io/badge/Databricks%20Repo-Cutey--Py-FF3621?logo=databricks&logoColor=white" alt="Databricks Notebook">
+</a>
+</td>
 
-## 🧊 Azure
+<td align="center">
+<a href="https://leeroy.usw-16.palantirfoundry.com/shares/links/whekw4rty33cw">
+<img width="190" height="1" alt=""><br>
+<img src="https://img.shields.io/badge/Palantir%20Foundry-Repository-101113?logo=palantir&logoColor=white" alt="Palantir Repo">
+</a>
+</td>
+</tr>
+</table>
 
-[![Containerized](https://img.shields.io/badge/Docker-App-2496ED?logo=docker&logoColor=white)](https://mappy.wonderfulsand-c318f361.eastus.azurecontainerapps.io)
+
+
 
 ## ✨ Features
 
