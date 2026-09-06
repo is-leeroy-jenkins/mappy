@@ -27,7 +27,7 @@
 ___
 
 
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/Mappy/)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/mappy/)
 
 `mappy` is a lightweight Python geospatial framework and Streamlit application for mapping,
 location enrichment, environmental data retrieval, astronomical data access, web scraping, and
