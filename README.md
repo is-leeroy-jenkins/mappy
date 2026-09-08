@@ -47,7 +47,6 @@ enrichment.
 
 ---
 
-
 ## ☁️ Cloud
 
 <table>
@@ -81,9 +80,6 @@ enrichment.
 </td>
 </tr>
 </table>
-
-
-
 
 ## ✨ Features
 
