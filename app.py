@@ -3938,7 +3938,7 @@ bootstrap_browser_geolocation( geocoder )
 # GEOCODING MODE
 # ==============================================================================
 if mode == 'Geocoding':
-	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
+	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 	with center:
 		st.subheader( 'Geocoding' )
 		st.divider( )
