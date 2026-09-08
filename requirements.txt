@@ -42,6 +42,8 @@ playwright
 xai-sdk
 sentence-transformers
 chromadb
+pinecone
+pyreadline3; sys_platform == "win32"
 llama-cpp-python
 unstructured
 mkdocs
@@ -50,4 +52,3 @@ mkdocstrings[python]
 mkdocs-autorefs
 pymdown-extensions
 black
-pinecone

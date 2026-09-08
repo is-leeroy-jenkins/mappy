@@ -14,13 +14,11 @@
 '''
 from __future__ import annotations
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone
 
 
 def throw_if( name: str, value: object ) -> None:
@@ -123,14 +121,15 @@ class PineconeStore( ):
 	index_name: str
 	namespace: str
 	api_key: str
-	client: Pinecone | None
-	vector_store: PineconeVectorStore | None
+	client: Any
+	vector_store: Any
 
 	def __init__( self ) -> None:
 		"""Initialize Pinecone storage state.
 
 		Purpose:
-			Initializes reusable Pinecone storage state.
+			Initializes reusable Pinecone storage state without importing Pinecone until the
+			managed vector backend is selected.
 
 		Args:
 			None.
@@ -147,12 +146,12 @@ class PineconeStore( ):
 		self.vector_store = None
 
 	def create( self, documents: List[ Document ], embedder: Embeddings, index_name: str,
-		namespace: str, api_key: str ) -> PineconeVectorStore:
+		namespace: str, api_key: str ) -> Any:
 		"""Populate an existing Pinecone index.
 
 		Purpose:
-			Validates the configured Pinecone index and stores the current chunk documents using
-			the same LangChain embedding implementation used by Mappy's embedding step.
+			Lazily imports Pinecone only when the managed backend is selected, validates the
+			configured index, and stores the current chunk documents with the active embedder.
 
 		Args:
 			documents (List[Document]): Chunk documents to persist.
@@ -162,7 +161,7 @@ class PineconeStore( ):
 			api_key (str): Pinecone API key from environment configuration.
 
 		Returns:
-			PineconeVectorStore: Populated LangChain Pinecone vector store.
+			Any: Populated LangChain Pinecone vector store.
 		"""
 		throw_if( 'documents', documents )
 		throw_if( 'embedder', embedder )
@@ -173,6 +172,10 @@ class PineconeStore( ):
 		self.index_name = index_name
 		self.namespace = namespace
 		self.api_key = api_key
+
+		from langchain_pinecone import PineconeVectorStore
+		from pinecone import Pinecone
+
 		self.client = Pinecone( api_key=self.api_key )
 
 		if not self.client.indexes.exists( self.index_name ):
