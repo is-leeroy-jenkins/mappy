@@ -44,9 +44,7 @@ sentence-transformers
 chromadb
 pinecone
 llama-cpp-python
-pypdf
-python-docx
-python-pptx
+unstructured
 mkdocs
 mkdocs-material
 mkdocstrings[python]
