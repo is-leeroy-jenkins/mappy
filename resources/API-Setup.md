@@ -1,5 +1,5 @@
 
-![](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/images/mappy-apikeys.png)
+![](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/images/mappy-apikeys.png)
 
 ___
 

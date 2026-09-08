@@ -94,11 +94,9 @@ enrichment.
 * 🗄️ **SQLite Data Management** – Browse, insert, update, delete, geocode, profile, and query local
   tables.
 * 🌦️ **Weather Data** – Query Google Weather, OpenWeather/Open-Meteo, historical weather, climate
-  data,
-  tides, and current data.
+  data, tides, and current data.
 * 🌫️ **Environmental Data** – Query air quality, UV index, EPA EnviroFacts, PurpleAir, NASA FIRMS,
-  and
-  NASA EONET data.
+  and NASA EONET data.
 * 🌌 **Astronomical Data** – Access naval observatory, space weather, star chart, satellite, catalog,
   AstroQuery/SIMBAD, and star map functionality.
 * 🌎 **Geological Data** – Query USGS earthquakes, water data, national map data, and global imagery.
@@ -140,7 +138,7 @@ The application sidebar provides the main operating controls.
 
 ## 🔑 API Set-up
 
-- [Science APIs](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/API-Setup.md) 
+- [Science APIs](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/API-Setup.md) 
 - [OpenAI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/environments.md) 
 - [Gemini AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/gemini.md) 
 - [Grok AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/xai.md) 
