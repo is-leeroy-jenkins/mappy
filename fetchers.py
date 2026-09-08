@@ -64,6 +64,7 @@ from bs4 import BeautifulSoup
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from google import genai
 from grokipedia_api import GrokipediaClient
+from langchain_community.document_loaders import UnstructuredURLLoader
 from langchain_community.retrievers import ArxivRetriever, WikipediaRetriever
 from langchain_core.documents import Document
 from langchain_core.tools import Tool
@@ -436,47 +437,51 @@ class WebFetcher( Fetcher ):
 			Logger( ).write( exception )
 			raise exception
 	
-	def fetch( self, url: str, time: int = 10 ) -> Result | None:
-		"""Execute the configured fetch request.
+	def fetch( self, url: str, time: int = 10 ) -> List[ Document ]:
+		"""Load a web resource into LangChain documents.
 		
 		Purpose:
-			Runs the active WebFetcher retrieval mode, populates request and response state, and
-			returns normalized provider data.
+			Loads the requested URL with LangChain's UnstructuredURLLoader and returns document
+			objects that can flow directly into chunking, embedding, and vector storage.
 		
 		Args:
-			url: Provider endpoint or resource URL.
-			time: Time setting for the provider request, parser, filter, or response shaper.
+			url: Web resource URL to load.
+			time: Retained request-timeout setting for WebFetcher API compatibility.
 		
 		Returns:
-			Result | None: Normalized payload, records, metadata, schema information, or status data
-				for fetch.
+			List[Document]: LangChain documents produced from the requested URL.
 		
 		Raises:
-			Error: Raised after validation, request execution, parsing, or response normalization
-				fails."""
+			Error: Raised after validation or document loading fails.
+		"""
 		try:
 			self.url = self.validate_required_string( 'url', url )
 			self.timeout = self.validate_positive_integer( 'time', time )
-			
-			self.response = requests.get(
-				url=self.url,
-				headers=self.headers,
-				timeout=self.timeout
+			loader = UnstructuredURLLoader(
+				urls=[ self.url ],
+				continue_on_failure=False,
+				mode='single',
+				show_progress_bar=False,
 			)
-			self.response.raise_for_status( )
-			self.html = self.response.text or ''
-			self.soup = BeautifulSoup( self.html, 'html.parser' )
-			self.result = Result( self.response )
-			return self.result
+			documents = loader.load( )
+			if not documents:
+				raise ValueError( f'No document content was returned for URL: {self.url}' )
+
+			for document in documents:
+				document.metadata = dict( document.metadata or { } )
+				document.metadata[ 'source' ] = document.metadata.get( 'source', self.url )
+				document.metadata[ 'url' ] = document.metadata.get( 'url', self.url )
+
+			return documents
 		
 		except Exception as exc:
 			exception = Error( exc )
 			exception.module = 'fetchers'
 			exception.cause = 'WebFetcher'
-			exception.method = 'fetch( self, url: str, time: int=10 ) -> Result | None'
+			exception.method = 'fetch( self, url: str, time: int=10 ) -> List[ Document ]'
 			Logger( ).write( exception )
 			raise exception
-	
+
 	def html_to_text( self, html: str ) -> str:
 		"""Convert HTML into normalized text.
 		

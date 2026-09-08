@@ -27,7 +27,7 @@
 ___
 
 
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/Mappy/)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/mappy/)
 
 `mappy` is a lightweight Python geospatial framework and Streamlit application for mapping,
 location enrichment, environmental data retrieval, astronomical data access, web scraping, and
@@ -68,14 +68,14 @@ enrichment.
 <td align="center">
 <img width="190" height="1" alt=""><br>
 <a href="https://dbc-a0c21f80-7bb3.cloud.databricks.com/browse/folders/3169291152437594?o=7474645703081351">
-<img src="https://img.shields.io/badge/Databricks%20Repo-Cutey--Py-FF3621?logo=databricks&logoColor=white" alt="Databricks Notebook">
+<img src="https://img.shields.io/badge/Databricks%20Repo-Mappy--Py-FF3621?logo=databricks&logoColor=white" alt="Databricks Notebook">
 </a>
 </td>
 
 <td align="center">
 <a href="https://leeroy.usw-16.palantirfoundry.com/shares/links/whekw4rty33cw">
 <img width="190" height="1" alt=""><br>
-<img src="https://img.shields.io/badge/Palantir%20Foundry-Repository-101113?logo=palantir&logoColor=white" alt="Palantir Repo">
+<img src="https://img.shields.io/badge/Palantir%20Foundry-Repo-101113?logo=palantir&logoColor=white" alt="Palantir Repo">
 </a>
 </td>
 </tr>
