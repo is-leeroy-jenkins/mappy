@@ -43,6 +43,7 @@ xai-sdk
 sentence-transformers
 chromadb
 pinecone
+pyreadline3; sys_platform == "win32"
 llama-cpp-python
 unstructured
 mkdocs
