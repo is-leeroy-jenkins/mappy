@@ -14,22 +14,19 @@
      Permission is hereby granted, free of charge, to any person obtaining a copy
      of this software and associated documentation files (the “Software”),
      to deal in the Software without restriction,
-     including without limitation the rights to use,
-     copy, modify, merge, publish, distribute, sublicense,
-     and/or sell copies of the Software,
-     and to permit persons to whom the Software is furnished to do so,
-     subject to the following conditions:
+     including without limitation the rights to use, copy, modify, merge, publish,
+     distribute, sublicense, and/or sell copies of the Software, and to permit persons
+     to whom the Software is furnished to do so, subject to the following conditions:
 
      The above copyright notice and this permission notice shall be included in all
      copies or substantial portions of the Software.
 
      THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-     INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-     FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-     IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-     DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-     ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-     DEALINGS IN THE SOFTWARE.
+     INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+     PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+     CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+     OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
     </copyright>
     <summary>
@@ -42,10 +39,6 @@ from pathlib import Path
 from typing import Any, List
 
 from langchain_core.embeddings import Embeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_mistralai import MistralAIEmbeddings
-from langchain_openai import OpenAIEmbeddings
 
 
 def throw_if( name: str, value: object ) -> None:
@@ -190,7 +183,7 @@ class EmbeddingFactory( ):
 		"""Initialize embedding provider state.
 
 		Purpose:
-			Initializes reusable provider and model state.
+			Initializes reusable provider and model state without importing optional provider SDKs.
 
 		Args:
 			None.
@@ -206,8 +199,8 @@ class EmbeddingFactory( ):
 		"""Create the selected LangChain embedding implementation.
 
 		Purpose:
-			Resolves hosted OpenAI, Google Generative AI, Mistral AI, Hugging Face, or local GGUF
-			embeddings behind one common LangChain Embeddings interface.
+			Lazily resolves hosted OpenAI, Google Generative AI, Mistral AI, Hugging Face, or local
+			GGUF embeddings behind one common LangChain Embeddings interface.
 
 		Args:
 			provider (str): Embedding provider selected by the user.
@@ -224,18 +217,22 @@ class EmbeddingFactory( ):
 
 		if self.provider == 'OpenAI':
 			throw_if( 'model', self.model )
+			from langchain_openai import OpenAIEmbeddings
 			return OpenAIEmbeddings( model=self.model )
 
 		if self.provider == 'Google Generative AI':
 			throw_if( 'model', self.model )
+			from langchain_google_genai import GoogleGenerativeAIEmbeddings
 			return GoogleGenerativeAIEmbeddings( model=self.model )
 
 		if self.provider == 'Mistral AI':
 			throw_if( 'model', self.model )
+			from langchain_mistralai import MistralAIEmbeddings
 			return MistralAIEmbeddings( model=self.model )
 
 		if self.provider == 'Hugging Face':
 			throw_if( 'model', self.model )
+			from langchain_huggingface import HuggingFaceEmbeddings
 			return HuggingFaceEmbeddings( model_name=self.model )
 
 		if self.provider == 'Local GGUF':
