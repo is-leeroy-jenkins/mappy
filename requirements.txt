@@ -42,7 +42,6 @@ playwright
 xai-sdk
 sentence-transformers
 chromadb
-pinecone
 llama-cpp-python
 unstructured
 mkdocs
@@ -51,3 +50,4 @@ mkdocstrings[python]
 mkdocs-autorefs
 pymdown-extensions
 black
+pinecone
