@@ -168,33 +168,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-```
-
-## 🔑 Configuration
-
-`mappy` can read configuration values from `config.py`, Streamlit session state, or environment
-variables depending on how the application is deployed.
-
-Common keys include:
-
-| Key                       | Purpose                                 |
-| ------------------------- | --------------------------------------- |
-| `GOOGLE_API_KEY`          | General Google API access.              |
-| `GOOGLE_CSE_ID`           | Google Custom Search Engine identifier. |
-| `GOOGLEMAPS_API_KEY`      | Google Maps API access.                 |
-| `GEOCODING_API_KEY`       | Geocoding API access.                   |
-| `GOOGLE_CLOUD_PROJECT_ID` | Google Cloud project identifier.        |
-| `GOOGLE_CLOUD_LOCATION`   | Google Cloud location/region.           |
-| `GOOGLE_WEATHER_API_KEY`  | Google Weather API access.              |
-| `GOVINFO_API_KEY`         | GovInfo API access.                     |
-| `NASA_API_KEY`            | NASA API access.                        |
-| `NASA_EARTHDATA_TOKEN`    | NASA Earthdata token.                   |
-| `AIRNOW_API_KEY`          | AirNow API access.                      |
-| `OPENAQ_API_KEY`          | OpenAQ API access.                      |
-| `FIRMS_MAP_KEY`           | NASA FIRMS map key.                     |
-| `OPENSKY_API_CLIENT_ID`   | OpenSky client identifier.              |
-| `OPENSKY_API_CREDENTIALS` | OpenSky credential payload.             |
-| `PURPLEAIR_API_KEY`       | PurpleAir API access.                   |
+``
 
 ## 🚀 Running the Streamlit App
 
