@@ -5,13 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a01d879c-895e-45a1-98d8-ea8a00b4aec0" name="Changes" comment="update">
-      <change afterPath="$PROJECT_DIR$/resources/API-Setup.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/resources/images/mappy-apikeys.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/setup/claude.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/setup/mistral.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stores/sqlite/data.db-shm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/stores/sqlite/data.db-wal" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,7 +78,7 @@
     "SHELLCHECK.PATH": "C:\\Users\\terry\\AppData\\Roaming\\JetBrains\\PyCharm2025.2\\plugins\\Shell Script\\shellcheck.exe",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/terry/source/repos/mappy/resources/images",
+    "last_opened_file_path": "C:/Users/terry/source/repos/mappy/resources/setup",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.jshint": "true",
     "node.js.detected.package.tslint": "true",
@@ -95,6 +92,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\terry\source\repos\mappy\resources\setup" />
       <recent name="C:\Users\terry\source\repos\mappy\resources\images" />
     </key>
   </component>
@@ -123,7 +121,7 @@
       <workItem from="1788136742902" duration="617000" />
       <workItem from="1788191371602" duration="30000" />
       <workItem from="1788191849061" duration="1012000" />
-      <workItem from="1788893097779" duration="4208000" />
+      <workItem from="1788893097779" duration="4528000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <option name="closed" value="true" />
@@ -317,7 +315,15 @@
       <option name="project" value="LOCAL" />
       <updated>1788900236697</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="update">
+      <option name="closed" value="true" />
+      <created>1788902322558</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1788902322558</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

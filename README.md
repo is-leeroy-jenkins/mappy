@@ -138,6 +138,16 @@ The application sidebar provides the main operating controls.
 | **🏛️ Data**          | Load, inspect, and manage data sources used by the current mode.                                                   |
 | **🔒 Credentials**    | Provide API keys for Google, Google Maps, Geocoding, NASA, AirNow, OpenAQ, FIRMS, PurpleAir, and related services. |
 
+## 🔑 API Set-up
+
+- [Science APIs](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/API-Setup.md) 
+- [OpenAI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/environments.md) 
+- [Gemini AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/gemini.md) 
+- [Grok AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/xai.md) 
+- [Mistral AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/mistral.md) 
+- [Claude AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/claude.md) 
+
+
 ## 📦 Installation
 
 Clone the repository and install dependencies.
