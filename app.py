@@ -6,6 +6,7 @@ from collections import deque, Counter
 from exceptions import NotFound
 import html as html_lib
 import json
+import math
 import os
 from typing import Optional
 import matplotlib
@@ -33,6 +34,9 @@ from staticmaps import StaticMap
 from excel import Excel
 from caches import InMemoryCache, SQLiteCache
 from generators import Chat, Claude, Grok, Mistral, Gemini
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from embedders import EmbeddingFactory
+from stores.vector import ChromaStore, PineconeStore
 from fetchers import (
 	GoogleWeather,
 	OpenWeather,
@@ -4367,308 +4371,306 @@ elif mode == 'Time Zones':
 elif mode == 'Web Scraper':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
-		st.subheader( f'🕷️ Web Scraping' )
+		st.subheader( '🕷️ Web Document Processing' )
 		st.divider( )
 		
-		if 'webscrape_clear_request' not in st.session_state:
-			st.session_state[ 'webscrape_clear_request' ] = False
+		defaults = {
+			'web_documents': [ ],
+			'web_document_url': '',
+			'web_chunks': [ ],
+			'web_embeddings': [ ],
+			'web_embedder': None,
+			'web_vector_store': None,
+			'web_chunk_size_used': 0,
+			'web_chunk_overlap_used': 0,
+			'web_embedding_provider_used': '',
+			'web_embedding_model_used': '',
+			'web_embedding_model_path_used': '',
+		}
+		for key, value in defaults.items( ):
+			if key not in st.session_state:
+				st.session_state[ key ] = value
+
+		embedding_models = {
+			'OpenAI': [ 'text-embedding-3-small', 'text-embedding-3-large' ],
+			'Google Generative AI': [ 'gemini-embedding-2-preview' ],
+			'Mistral AI': [ 'mistral-embed' ],
+			'Hugging Face': [
+				'sentence-transformers/all-MiniLM-L6-v2',
+				'sentence-transformers/all-mpnet-base-v2',
+			],
+			'Local GGUF': [ 'Local GGUF' ],
+		}
 		
-		if 'webscrape_results' not in st.session_state:
-			st.session_state[ 'webscrape_results' ] = [ ]
+		control_col, output_col = st.columns( [ 0.42, 0.58 ], border=True, gap='small' )
 		
-		if 'webscrape_summary' not in st.session_state:
-			st.session_state[ 'webscrape_summary' ] = { }
-		
-		if st.session_state.get( 'webscrape_clear_request', False ):
-			st.session_state[ 'webfetcher_url' ] = ''
-			st.session_state[ 'webscrape_results' ] = [ ]
-			st.session_state[ 'webscrape_summary' ] = { }
-			st.session_state[ 'webscrape_clear_request' ] = False
-		
-		def clear_webscrape_state( ) -> None:
-			"""Clear the webscrape state state.
-			
-			Purpose:
-				Supports the Mappy Streamlit application by executing the clear webscrape state
-				workflow. The function preserves the existing UI behavior, session-state
-				interactions, dataframe handling, database access, and service integrations
-				defined by the application code.
-			"""
-			st.session_state[ 'webscrape_clear_request' ] = True
-		
-		col_left, col_right = st.columns( [ 1, 2 ], border=True )
-		
-		with col_left:
+		with control_col:
+			st.markdown( '##### Source' )
 			target_url = st.text_input(
-				'Enter Target URL',
+				'Target URL',
 				placeholder='https://example.com',
-				key='webfetcher_url' )
-			
-			st.markdown( '##### Core Output' )
-			
-			include_title = st.checkbox(
-				'Page Title',
-				value=True,
-				key='wf_page_title' )
-			
-			include_basic_text = st.checkbox(
-				'Basic Text',
-				value=True,
-				key='wf_basic_text' )
-			
-			include_raw_html = st.checkbox(
-				'Raw HTML',
-				value=False,
-				key='wf_raw_html' )
-			
-			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
-			
-			st.markdown( '##### Structured Extraction' )
-			
-			method_c1, method_c2 = st.columns( [ 0.5, 0.5 ] )
-			
-			registry_labels = {
-					'scrape_headings': 'Headings',
-					'scrape_paragraphs': 'Paragraphs',
-					'scrape_lists': 'Lists',
-					'scrape_tables': 'Tables',
-					'scrape_articles': 'Articles',
-					'scrape_sections': 'Sections',
-					'scrape_divisions': 'Divisions',
-					'scrape_blockquotes': 'Blockquotes',
-					'scrape_hyperlinks': 'Hyperlinks',
-					'scrape_images': 'Images',
-			}
-			
-			selected_methods = [ ]
-			registry_items = list( registry_labels.items( ) )
-			
-			with method_c1:
-				for method_name, label in registry_items[ :5 ]:
-					if st.checkbox( label, key=f'wf_{method_name}' ):
-						selected_methods.append( method_name )
-			
-			with method_c2:
-				for method_name, label in registry_items[ 5: ]:
-					if st.checkbox( label, key=f'wf_{method_name}' ):
-						selected_methods.append( method_name )
-			
-			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
-			
-			st.markdown( '##### Crawl Controls' )
-			
-			enable_recursive = st.checkbox(
-				'Recursive Crawl',
-				value=False,
-				key='wf_recursive' )
-			
-			max_depth = st.number_input(
-				'Max Depth',
-				min_value=0,
-				max_value=10,
-				value=1,
-				step=1,
-				key='wf_max_depth',
-				disabled=(not enable_recursive) )
-			
-			max_pages = st.number_input(
-				'Max Pages',
-				min_value=1,
-				max_value=500,
-				value=10,
-				step=1,
-				key='wf_max_pages' )
-			
-			same_domain_only = st.checkbox(
-				'Same Domain Only',
-				value=True,
-				key='wf_same_domain_only',
-				disabled=(not enable_recursive) )
-			
-			request_timeout = st.number_input(
+				key='web_document_url_input' )
+			request_timeout = st.slider(
 				'Request Timeout',
 				min_value=1,
 				max_value=120,
 				value=10,
 				step=1,
-				key='wf_request_timeout' )
-			
-			delay_seconds = st.number_input(
-				'Delay Between Pages',
-				min_value=0.0,
-				max_value=10.0,
-				value=0.25,
-				step=0.25,
-				format='%.2f',
-				key='wf_delay_seconds',
-				disabled=(not enable_recursive) )
-			
-			max_bytes = st.number_input(
-				'Max Bytes Per Page',
-				min_value=1000,
-				max_value=10000000,
-				value=1000000,
-				step=1000,
-				key='wf_max_bytes' )
-			
-			use_playwright = st.checkbox(
-				'Use Playwright Renderer',
-				value=False,
-				help=(
-						'Use only when the page requires JavaScript rendering. '
-						'This requires Playwright and installed browser binaries.'
-				),
-				key='wf_use_playwright' )
-			
-			button_c1, button_c2 = st.columns( 2 )
-			
-			with button_c1:
-				run_scraper = st.button(
-					'Run Scraper',
-					key='webfetcher_run' )
-			
-			with button_c2:
-				st.button(
+				key='web_document_timeout' )
+
+			fetch_col, clear_col = st.columns( 2 )
+			with fetch_col:
+				fetch_document = st.button(
+					'Fetch',
+					icon='🌐',
+					key='web_document_fetch',
+					use_container_width=True )
+			with clear_col:
+				clear_document = st.button(
 					'Clear',
-					key='webfetcher_clear',
-					on_click=clear_webscrape_state )
-		
-		with col_right:
-			if run_scraper:
+					key='web_document_clear',
+					use_container_width=True )
+			
+			if clear_document:
+				for key, value in defaults.items( ):
+					st.session_state[ key ] = value
+				st.rerun( )
+			
+			if fetch_document:
 				try:
 					if not target_url or not target_url.strip( ):
 						raise ValueError( 'A target URL is required.' )
-					
-					crawler = WebCrawler( use_playwright=bool( use_playwright ) )
-					result = crawler.crawl( seed_url=target_url.strip( ),
-						include_title=bool( include_title ),
-						include_basic_text=bool( include_basic_text ),
-						include_raw_html=bool( include_raw_html ),
-						selected_methods=selected_methods,
-						recursive=bool( enable_recursive ),
-						max_depth=int( max_depth ),
-						max_pages=int( max_pages ),
-						same_domain_only=bool( same_domain_only ),
-						request_timeout=int( request_timeout ),
-						delay_seconds=float( delay_seconds ),
-						max_bytes=int( max_bytes ) )
-					
-					st.session_state[ 'webscrape_results' ] = result.get( 'pages', [ ] )
-					st.session_state[ 'webscrape_summary' ] = result.get( 'summary', { } )
-					st.rerun( )
-				
+					fetcher = WebFetcher( )
+					documents = fetcher.fetch(
+						target_url.strip( ),
+						time=int( request_timeout ) )
+					st.session_state.web_documents = documents
+					st.session_state.web_document_url = target_url.strip( )
+					st.session_state.web_chunks = [ ]
+					st.session_state.web_embeddings = [ ]
+					st.session_state.web_embedder = None
+					st.session_state.web_vector_store = None
+					st.success( f'Loaded {len( documents ):,} LangChain document(s).' )
 				except Exception as exc:
 					st.error( str( exc ) )
 			
-			summary = st.session_state.get( 'webscrape_summary', { } )
-			results = st.session_state.get( 'webscrape_results', [ ] )
-			renderer = WebFetcher( )
+			set_blue_divider( )
+			st.markdown( '##### Chunking' )
+			chunk_col1, chunk_col2 = st.columns( 2 )
+			with chunk_col1:
+				chunk_size = st.slider(
+					'Chunk Size',
+					min_value=100,
+					max_value=4000,
+					value=1000,
+					step=100,
+					key='web_chunk_size' )
+			with chunk_col2:
+				chunk_overlap = st.slider(
+					'Chunk Overlap',
+					min_value=0,
+					max_value=1000,
+					value=200,
+					step=50,
+					key='web_chunk_overlap' )
+
+			if st.button( 'Chunk', key='web_chunk_run', use_container_width=True ):
+				if not st.session_state.web_documents:
+					st.warning( 'Fetch a web document before chunking.' )
+				elif chunk_overlap >= chunk_size:
+					st.error( 'Chunk Overlap must be smaller than Chunk Size.' )
+				else:
+					splitter = RecursiveCharacterTextSplitter(
+						chunk_size=int( chunk_size ),
+						chunk_overlap=int( chunk_overlap ) )
+					chunks = splitter.split_documents( st.session_state.web_documents )
+					for index, document in enumerate( chunks, start=1 ):
+						document.metadata = dict( document.metadata or { } )
+						document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
+					st.session_state.web_chunks = chunks
+					st.session_state.web_chunk_size_used = int( chunk_size )
+					st.session_state.web_chunk_overlap_used = int( chunk_overlap )
+					st.session_state.web_embeddings = [ ]
+					st.session_state.web_embedder = None
+					st.session_state.web_vector_store = None
+					st.success( f'Created {len( chunks ):,} chunk(s).' )
 			
-			if summary:
-				st.subheader( 'Summary' )
-				
-				metric_c1, metric_c2, metric_c3, metric_c4 = st.columns( 4 )
-				
-				with metric_c1:
-					st.metric( 'Pages', summary.get( 'pages_processed', 0 ) )
-				
-				with metric_c2:
-					st.metric( 'Errors', summary.get( 'errors', 0 ) )
-				
-				with metric_c3:
-					st.metric( 'Bytes', summary.get( 'total_content_bytes', 0 ) )
-				
-				with metric_c4:
-					st.metric( 'Seconds', summary.get( 'elapsed_seconds', 0 ) )
-				
-				with st.expander( 'Crawl Summary JSON', expanded=False ):
-					st.json( summary )
+			set_blue_divider( )
+			st.markdown( '##### Embeddings' )
+			embed_col1, embed_col2 = st.columns( 2 )
+			with embed_col1:
+				provider = st.selectbox(
+					'Embedding Provider',
+					options=list( embedding_models.keys( ) ),
+					index=list( embedding_models.keys( ) ).index( 'Hugging Face' ),
+					key='web_embedding_provider' )
+			with embed_col2:
+				model = st.selectbox(
+					'Embedding Model',
+					options=embedding_models[ provider ],
+					key='web_embedding_model' )
+
+			model_path = ''
+			if provider == 'Local GGUF':
+				model_path = st.text_input(
+					'Local GGUF Model Path',
+					value='',
+					placeholder=r'C:\models\embedding-model.gguf',
+					key='web_embedding_model_path' )
+
+			if st.button( 'Embed', key='web_embed_run', use_container_width=True ):
+				if not st.session_state.web_chunks:
+					st.warning( 'Chunk the web document before embedding.' )
+				elif (
+					int( chunk_size ) != st.session_state.web_chunk_size_used
+					or int( chunk_overlap ) != st.session_state.web_chunk_overlap_used
+				):
+					st.warning( 'Chunk settings changed. Run Chunk again before embedding.' )
+				else:
+					try:
+						factory = EmbeddingFactory( )
+						embedder = factory.create( provider, model, model_path )
+						texts = [ document.page_content for document in st.session_state.web_chunks ]
+						vectors = embedder.embed_documents( texts )
+						if len( vectors ) != len( st.session_state.web_chunks ):
+							raise RuntimeError( 'Embedding count does not match the chunk count.' )
+						dimensions = { len( vector ) for vector in vectors }
+						if len( dimensions ) != 1:
+							raise RuntimeError( 'Embedding vectors do not have a consistent dimension.' )
+						for vector in vectors:
+							if not all( math.isfinite( float( value ) ) for value in vector ):
+								raise RuntimeError( 'Embedding vectors contain non-finite values.' )
+						st.session_state.web_embedder = embedder
+						st.session_state.web_embeddings = vectors
+						st.session_state.web_embedding_provider_used = provider
+						st.session_state.web_embedding_model_used = model
+						st.session_state.web_embedding_model_path_used = model_path
+						st.session_state.web_vector_store = None
+						st.success( f'Created {len( vectors ):,} embedding vector(s).' )
+					except Exception as exc:
+						st.error( str( exc ) )
 			
-			if not results:
-				st.info( 'No results.' )
-			
+			set_blue_divider( )
+			st.markdown( '##### Vector Storage' )
+			store_col1, store_col2 = st.columns( 2 )
+			with store_col1:
+				vector_backend = st.selectbox(
+					'Vector Store',
+					options=[ 'Chroma', 'Pinecone' ],
+					key='web_vector_backend' )
+			with store_col2:
+				if vector_backend == 'Chroma':
+					vector_target = st.text_input(
+						'Collection Name',
+						value='mappy-web-documents',
+						key='web_chroma_collection' )
+				else:
+					vector_target = st.text_input(
+						'Index Name',
+						value='',
+						key='web_pinecone_index' )
+
+			if vector_backend == 'Chroma':
+				persist_directory = st.text_input(
+					'Persistence Directory',
+					value='stores/chroma',
+					key='web_chroma_directory' )
+				namespace = ''
 			else:
-				st.subheader( 'Results' )
-				
-				for idx, page in enumerate( results, start=1 ):
-					title = page.get( 'title', '' ) or page.get( 'url', f'Page {idx}' )
-					depth = page.get( 'depth', 0 )
-					
-					with st.expander( f'Page {idx} [Depth {depth}]: {title}',
-							expanded=(idx == 1) ):
-						meta_col1, meta_col2 = st.columns( 2 )
-						
-						with meta_col1:
-							st.markdown( f"**URL:** {page.get( 'url', '' )}" )
-							st.markdown( f"**Status Code:** {page.get( 'status_code', '' )}" )
-							st.markdown( f"**Depth:** {page.get( 'depth', 0 )}" )
-							st.markdown( f"**Bytes:** {page.get( 'content_bytes', 0 )}" )
-						
-						with meta_col2:
-							st.markdown( f"**Encoding:** {page.get( 'encoding', '' )}" )
-							st.markdown( f"**Title:** {page.get( 'title', '' )}" )
-							st.markdown(
-								f"**Links Discovered:** "
-								f"{len( page.get( 'links_discovered', [ ] ) or [ ] )}" )
-							st.markdown(
-								f"**Truncated:** "
-								f"{bool( page.get( 'truncated_by_max_bytes', False ) )}" )
-						
-						page_errors = page.get( 'errors', [ ] ) or [ ]
-						if page_errors:
-							st.warning( 'This page completed with one or more warnings/errors.' )
-							st.json( page_errors )
-						
-						plain_text = page.get( 'plain_text', '' )
-						if isinstance( plain_text, str ) and plain_text.strip( ):
-							st.subheader( 'Basic Text' )
-							st.text_area(
-								label='',
-								value=renderer.truncate_text( plain_text, limit=12000 ),
-								height=280,
-								key=f'webscrape_plain_text_{idx}' )
-						
-						raw_html = page.get( 'raw_html', '' )
-						if isinstance( raw_html, str ) and raw_html.strip( ):
-							st.subheader( 'Raw HTML' )
-							st.text_area(
-								label='',
-								value=renderer.truncate_text( raw_html, limit=12000 ),
-								height=240,
-								key=f'webscrape_raw_html_{idx}' )
-						
-						discovered_links = page.get( 'links_discovered', [ ] ) or [ ]
-						if discovered_links:
-							with st.expander(
-									f'Links Discovered ({len( discovered_links )})',
-									expanded=False ):
-								st.text_area(
-									label='',
-									value=renderer.truncate_text(
-										'\n'.join( discovered_links ),
-										limit=12000 ),
-									height=240,
-									key=f'webscrape_links_{idx}' )
-						
-						data = page.get( 'data', { } ) or { }
-						if data:
-							st.subheader( 'Structured Data' )
-						
-						for label, items in data.items( ):
-							values = renderer.coerce_items( items )
-							
-							with st.expander( f'{label} ({len( values )})', expanded=False ):
-								if not values:
-									st.info( 'No results returned.' )
-									continue
-								
-								st.text_area(
-									label='',
-									value=renderer.truncate_text(
-										'\n'.join( values ),
-										limit=12000 ),
-									height=240,
-									key=f'webscrape_{idx}_{label}' )
+				persist_directory = ''
+				namespace = st.text_input(
+					'Namespace',
+					value='',
+					key='web_pinecone_namespace' )
+
+			if st.button( 'Store', key='web_store_run', use_container_width=True ):
+				current_model_path = model_path if provider == 'Local GGUF' else ''
+				if not st.session_state.web_chunks:
+					st.warning( 'Chunk the web document before storage.' )
+				elif st.session_state.web_embedder is None or not st.session_state.web_embeddings:
+					st.warning( 'Embed the current chunks before storage.' )
+				elif (
+					provider != st.session_state.web_embedding_provider_used
+					or model != st.session_state.web_embedding_model_used
+					or current_model_path != st.session_state.web_embedding_model_path_used
+				):
+					st.warning( 'Embedding settings changed. Run Embed again before storage.' )
+				else:
+					try:
+						if vector_backend == 'Chroma':
+							store = ChromaStore( )
+							st.session_state.web_vector_store = store.create(
+								st.session_state.web_chunks,
+								st.session_state.web_embedder,
+								vector_target,
+								persist_directory )
+						else:
+							api_key = getattr( cfg, 'PINECONE_API_KEY', '' ) or os.getenv( 'PINECONE_API_KEY', '' )
+							store = PineconeStore( )
+							st.session_state.web_vector_store = store.create(
+								st.session_state.web_chunks,
+								st.session_state.web_embedder,
+								vector_target,
+								namespace,
+								api_key )
+						st.success( f'Stored {len( st.session_state.web_chunks ):,} chunk(s) in {vector_backend}.' )
+					except Exception as exc:
+						st.error( str( exc ) )
+
+		with output_col:
+			document_tab, chunks_tab, embeddings_tab = st.tabs( [
+				'📄 Document',
+				'✂️ Chunks',
+				'🧠 Embeddings',
+			] )
+
+			with document_tab:
+				if not st.session_state.web_documents:
+					st.info( 'Fetch a URL to display LangChain documents.' )
+				else:
+					document_rows = [ ]
+					for index, document in enumerate( st.session_state.web_documents, start=1 ):
+						document_rows.append( {
+							'Document': index,
+							'Source': ( document.metadata or { } ).get( 'source', '' ),
+							'Characters': len( document.page_content ),
+							'Metadata': document.metadata or { },
+							'Text': document.page_content,
+						} )
+					st.dataframe( pd.DataFrame( document_rows ), use_container_width=True, hide_index=True )
+
+			with chunks_tab:
+				if not st.session_state.web_chunks:
+					st.info( 'Run Chunk to display document chunks.' )
+				else:
+					chunk_rows = [ ]
+					for index, document in enumerate( st.session_state.web_chunks, start=1 ):
+						chunk_rows.append( {
+							'Chunk': index,
+							'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
+							'Source': ( document.metadata or { } ).get( 'source', '' ),
+							'Characters': len( document.page_content ),
+							'Text': document.page_content,
+						} )
+					st.dataframe( pd.DataFrame( chunk_rows ), use_container_width=True, hide_index=True )
+
+			with embeddings_tab:
+				if not st.session_state.web_embeddings:
+					st.info( 'Run Embed to display embedding vectors.' )
+				else:
+					embedding_rows = [ ]
+					for index, vector in enumerate( st.session_state.web_embeddings ):
+						document = st.session_state.web_chunks[ index ]
+						embedding_rows.append( {
+							'Chunk': index + 1,
+							'Provider': st.session_state.web_embedding_provider_used,
+							'Model': st.session_state.web_embedding_model_path_used or st.session_state.web_embedding_model_used,
+							'Dimensions': len( vector ),
+							'Source': ( document.metadata or { } ).get( 'source', '' ),
+							'Text': document.page_content,
+							'Vector': vector,
+						} )
+					st.dataframe( pd.DataFrame( embedding_rows ), use_container_width=True, hide_index=True )
 
 # ==============================================================================
 # WEATHER MODE
