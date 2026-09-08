@@ -26,6 +26,35 @@ jobs:
       - name: Apply targeted refactor
         run: python .github/refactor_web_documents.py
 
+      - name: Normalize whitespace on changed lines
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          result = subprocess.run(
+              [ 'git', 'diff', '--check' ],
+              capture_output=True,
+              text=True,
+              check=False,
+          )
+          targets = { }
+          for line in result.stdout.splitlines( ):
+              match = re.match( r'^(.+?):(\d+): trailing whitespace\.$', line )
+              if match:
+                  targets.setdefault( match.group( 1 ), set( ) ).add( int( match.group( 2 ) ) )
+
+          for filename, line_numbers in targets.items( ):
+              path = Path( filename )
+              lines = path.read_text( encoding='utf-8' ).splitlines( keepends=True )
+              for line_number in line_numbers:
+                  index = line_number - 1
+                  newline = '\n' if lines[ index ].endswith( '\n' ) else ''
+                  lines[ index ] = lines[ index ].rstrip( '\r\n' ).rstrip( ' \t' ) + newline
+              path.write_text( ''.join( lines ), encoding='utf-8' )
+          PY
+
       - name: Validate syntax
         run: python -m py_compile app.py fetchers.py embedders.py stores/vector.py
 
