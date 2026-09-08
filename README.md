@@ -142,8 +142,8 @@ The application sidebar provides the main operating controls.
 - [OpenAI](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/setup/environments.md) 
 - [Gemini AI](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/setup/gemini.md) 
 - [Grok AI](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/setup/xai.md) 
-- [Mistral AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/mistral.md) 
-- [Claude AI](https://github.com/is-leeroy-jenkins/mappy/blob/main/resources/setup/claude.md) 
+- [Mistral AI](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/setup/mistral.md) 
+- [Claude AI](https://github.com/is-leeroy-jenkins/mappy/blob/master/resources/setup/claude.md) 
 
 
 ## 📦 Installation
