@@ -35,7 +35,10 @@ from excel import Excel
 from caches import InMemoryCache, SQLiteCache
 from generators import Chat, Claude, Grok, Mistral, Gemini
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from document_processing import render_document_processing, render_web_document_processing
+from document_processing import (
+	render_web_document_processing,
+	render_mode_processing_controls,
+	render_mode_document_tabs )
 from embedders import EmbeddingFactory
 from stores.vector import ChromaStore, PineconeStore
 from fetchers import (
@@ -4370,10 +4373,8 @@ elif mode == 'Time Zones':
 # SCRAPING MODE
 # ==============================================================================
 elif mode == 'Web Scraper':
-	render_web_document_processing()
+	render_web_document_processing( )
 
-# ==============================================================================
-# WEATHER MODE
 # ==============================================================================
 elif mode == 'Weather':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -4904,51 +4905,11 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
-		
-		with weather_c2:
-			# ------------------------------------------------------------------
-			# WEATHER RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Weather Results' )
-			
-			weather_source = st.session_state.get( 'weather_last_source', '' )
-			weather_result = st.session_state.get( 'weather_last_result', { } )
-			weather_latitude = st.session_state.get( 'weather_last_latitude', None )
-			weather_longitude = st.session_state.get( 'weather_last_longitude', None )
-			
-			if not weather_result:
-				st.info( 'No weather results available. Run one of the Weather expanders.' )
-			
-			else:
-				if weather_source:
-					st.caption( f'Source: {weather_source}' )
-				
-				if weather_latitude is not None and weather_longitude is not None:
-					try:
-						lat_value = float( weather_latitude )
-						lng_value = float( weather_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin(
-							lat=lat_value,
-							lng=lng_value,
-							zoom=8,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				st.json( weather_result )
+			render_mode_processing_controls( 'weather', 'weather_last_result', 'weather_last_source' )
 
-# ==============================================================================
-# ENVIRONMENTAL MODE
+		with weather_c2:
+			render_mode_document_tabs( 'weather', '📄 Loaded' )
+
 # ==============================================================================
 elif mode == 'Environmental':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -5981,65 +5942,11 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
-		
-		with enviro_c2:
-			# ------------------------------------------------------------------
-			# ENVIRONMENTAL RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Environmental Results' )
-			env_source = st.session_state.get( 'env_last_source', '' )
-			env_result = st.session_state.get( 'env_last_result', { } )
-			env_latitude = st.session_state.get( 'env_last_latitude', None )
-			env_longitude = st.session_state.get( 'env_last_longitude', None )
-			if not env_result:
-				st.info(
-					'No environmental results available. Run one of the Environmental expanders.' )
-			else:
-				if env_source:
-					st.caption( f'Source: {env_source}' )
-				
-				summary = env_result.get( 'summary', None ) if isinstance( env_result,
-					dict ) else None
-				rows = env_result.get( 'rows', None ) if isinstance( env_result, dict ) else None
-				if isinstance( summary, dict ) and summary:
-					st.markdown( '##### Summary' )
-					st.data_editor( pd.DataFrame( [ summary ] ), key='env_summary_table',
-						use_container_width=True, disabled=True )
-				if env_latitude is not None and env_longitude is not None:
-					try:
-						lat_value = float( env_latitude )
-						lng_value = float( env_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin(
-							lat=lat_value,
-							lng=lng_value,
-							zoom=8,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				if isinstance( rows, list ) and rows:
-					st.markdown( '##### Rows' )
-					st.data_editor(
-						pd.DataFrame( rows ),
-						key='env_rows_table',
-						use_container_width=True,
-						disabled=True )
-				
-				st.markdown( '##### Raw Result' )
-				st.json( env_result )
+			render_mode_processing_controls( 'env', 'env_last_result', 'env_last_source' )
 
-# ==============================================================================
-# ASTRONOMICAL MODE
+		with enviro_c2:
+			render_mode_document_tabs( 'env', '📄 Loaded' )
+
 # ==============================================================================
 elif mode == 'Astronomical':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -7310,91 +7217,11 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
-		
-		with astro_c2:
-			# ------------------------------------------------------------------
-			# ASTRONOMICAL RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Astronomical Results' )
-			
-			astro_source = st.session_state.get( 'astro_last_source', '' )
-			astro_result = st.session_state.get( 'astro_last_result', { } )
-			astro_latitude = st.session_state.get( 'astro_last_latitude', None )
-			astro_longitude = st.session_state.get( 'astro_last_longitude', None )
-			astro_url = st.session_state.get( 'astro_last_url', '' )
-			
-			if not astro_result:
-				st.info( 'No astronomical results available.' )
-			
-			else:
-				if astro_source:
-					st.caption( f'Source: {astro_source}' )
-				
-				if astro_latitude is not None and astro_longitude is not None:
-					try:
-						lat_value = float( astro_latitude )
-						lng_value = float( astro_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin(
-							lat=lat_value,
-							lng=lng_value,
-							zoom=6,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				if astro_url:
-					st.markdown( '##### Generated Link' )
-					st.markdown( f'[Open Generated Astronomical Resource]({astro_url})' )
-					
-					try:
-						ext = [ '.png', '.jpg', '.jpeg' ]
-						if any( astro_url.lower( ).endswith( ext ) for ext in ext ):
-							st.image( astro_url )
-					except Exception:
-						pass
-				
-				summary = astro_result.get( 'summary', None ) if isinstance( astro_result,
-					dict ) else None
-				
-				if isinstance( summary, dict ) and summary:
-					st.markdown( '##### Summary' )
-					st.data_editor(
-						pd.DataFrame( [ summary ] ),
-						key='astro_summary_table',
-						use_container_width=True,
-						disabled=True )
-				
-				columns = astro_result.get( 'columns', None ) if isinstance( astro_result,
-					dict ) else None
-				rows = astro_result.get( 'rows', None ) if isinstance( astro_result,
-					dict ) else None
-				
-				if isinstance( rows, list ) and rows:
-					st.markdown( '##### Rows' )
-					
-					if isinstance( columns, list ) and columns:
-						df_astro_rows = pd.DataFrame( rows, columns=columns )
-					else:
-						df_astro_rows = pd.DataFrame( rows )
-					
-					st.data_editor( df_astro_rows, key='astro_rows_table',
-						use_container_width=True, disabled=True )
-				
-				st.markdown( '##### Raw Result' )
-				st.json( astro_result )
+			render_mode_processing_controls( 'astro', 'astro_last_result', 'astro_last_source' )
 
-# ==============================================================================
-# CELESTIAL MAP MODE
+		with astro_c2:
+			render_mode_document_tabs( 'astro', '📄 Loaded' )
+
 # ==============================================================================
 elif mode == 'Celestial Map':
 	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
@@ -8336,69 +8163,11 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_latitude' ] = None
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
-		
-		with geo_c2:
-			# ------------------------------------------------------------------
-			# GEOLOGICAL RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Geological Results' )
-			
-			geo_source = st.session_state.get( 'geo_last_source', '' )
-			geo_result = st.session_state.get( 'geo_last_result', { } )
-			geo_latitude = st.session_state.get( 'geo_last_latitude', None )
-			geo_longitude = st.session_state.get( 'geo_last_longitude', None )
-			geo_image_path = st.session_state.get( 'geo_last_image_path', '' )
-			
-			if not geo_result:
-				st.info( 'No geological results available.' )
-			
-			else:
-				if geo_source:
-					st.caption( f'Source: {geo_source}' )
-				
-				if geo_image_path and os.path.exists( geo_image_path ):
-					st.markdown( '##### Image Output' )
-					st.image( geo_image_path )
-				
-				summary = geo_result.get( 'summary', None ) if isinstance( geo_result,
-					dict ) else None
-				rows = geo_result.get( 'rows', None ) if isinstance( geo_result, dict ) else None
-				
-				if isinstance( summary, dict ) and summary:
-					st.markdown( '##### Summary' )
-					st.data_editor( pd.DataFrame( [ summary ] ), key='geo_summary_table',
-						use_container_width=True, disabled=True )
-				
-				if geo_latitude is not None and geo_longitude is not None:
-					try:
-						lat_value = float( geo_latitude )
-						lng_value = float( geo_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=5,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				if isinstance( rows, list ) and rows:
-					st.markdown( '##### Rows' )
-					df_geo_rows = pd.DataFrame( rows )
-					st.data_editor( df_geo_rows, key='geo_rows_table', use_container_width=True,
-						disabled=True )
-				
-				st.markdown( '##### Raw Result' )
-				st.json( geo_result )
+			render_mode_processing_controls( 'geo', 'geo_last_result', 'geo_last_source' )
 
-# ==============================================================================
-# TEXT GENERATION MODE
+		with geo_c2:
+			render_mode_document_tabs( 'geo', '📄 Loaded' )
+
 # ==============================================================================
 elif mode == 'Generative':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -10057,7 +9826,90 @@ elif mode == 'Generative':
 # DATA UPLOAD MODE
 # ==============================================================================
 elif mode == 'Data Upload':
-	render_document_processing( cache )
+	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
+	with center:
+		st.subheader( 'Excel / CSV' )
+		st.divider( )
+
+		uploaded = st.file_uploader( 'Upload CSV or XLSX', type=[ 'csv', 'xlsx' ],
+			key='data_upload_file' )
+
+		enrichment_mode = st.selectbox( 'Enrichment Mode',
+			options=[ 'City / State / Country', 'Address Column' ],
+			key='data_upload_enrichment_mode' )
+
+		if enrichment_mode == 'City / State / Country':
+			city_col = st.text_input( 'City Column', value='City', key='data_upload_city_col' )
+			state_col = st.text_input( 'State Column', value='State', key='data_upload_state_col' )
+			country_col = st.text_input( 'Country Column', value='Country',
+				key='data_upload_country_col' )
+			address_col = ''
+
+		else:
+			address_col = st.text_input( 'Address Column', value='Address',
+				key='data_upload_address_col' )
+			country_col = st.text_input(
+				'Country Bias Column',
+				value='Country',
+				help='Optional. Leave as-is if the uploaded file has no country-bias column.',
+				key='data_upload_address_country_col' )
+			city_col = ''
+			state_col = ''
+
+		sheet_name = st.text_input( 'Worksheet', value='Sheet1',
+			help='Used for Excel files. For CSV files this value is ignored.',
+			key='data_upload_sheet_name' )
+
+		if uploaded:
+			input_path = f'_input_{uploaded.name}'
+			output_path = f'_output_{uploaded.name}'
+
+			with open( input_path, 'wb' ) as f:
+				f.write( uploaded.read( ) )
+
+			if st.button( 'Enrich File', key='data_upload_enrich' ):
+				try:
+					excel = Excel( api=cfg.GOOGLE_API_KEY, cache=cache )
+					sheet_value = sheet_name if input_path.lower( ).endswith( '.xlsx' ) else None
+
+					if enrichment_mode == 'City / State / Country':
+						excel.enrich( inpath=input_path, outpath=output_path, city=city_col,
+							state=state_col, cntry=country_col,
+							sheet=sheet_value )
+
+					else:
+						excel.enrich_from_address( inpath=input_path, outpath=output_path,
+							address=address_col, sheet=sheet_value,
+							cntry=country_col )
+
+					if output_path.lower( ).endswith( '.csv' ):
+						df_output = pd.read_csv( output_path )
+					else:
+						df_output = pd.read_excel( output_path )
+
+					st.data_editor( df_output, key='data_upload_enriched_preview',
+						use_container_width=True, disabled=True )
+
+					with open( output_path, 'rb' ) as f:
+						output_bytes = f.read( )
+
+					st.download_button(
+						'Download Enriched File',
+						data=output_bytes,
+						file_name=Path( output_path ).name,
+						key='data_upload_download' )
+
+				except Exception as e:
+					st.error( f'Enrichment failed: {e}' )
+
+				finally:
+					try:
+						if os.path.exists( input_path ):
+							os.remove( input_path )
+						if os.path.exists( output_path ):
+							os.remove( output_path )
+					except Exception:
+						pass
 
 # ==============================================================================
 # DATA MANAGEMENT MODE
