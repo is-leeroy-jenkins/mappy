@@ -35,6 +35,7 @@ from excel import Excel
 from caches import InMemoryCache, SQLiteCache
 from generators import Chat, Claude, Grok, Mistral, Gemini
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from document_processing import render_document_processing
 from embedders import EmbeddingFactory
 from stores.vector import ChromaStore, PineconeStore
 from fetchers import (
@@ -10357,6 +10358,7 @@ elif mode == 'Generative':
 # DATA UPLOAD MODE
 # ==============================================================================
 elif mode == 'Data Upload':
+	render_document_processing()
 	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
 	with center:
 		st.subheader( 'Excel / CSV' )
