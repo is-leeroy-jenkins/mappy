@@ -4373,6 +4373,8 @@ elif mode == 'Web Scraper':
 	render_web_document_processing()
 
 # ==============================================================================
+# WEATHER MODE
+# ==============================================================================
 elif mode == 'Weather':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
@@ -10057,6 +10059,8 @@ elif mode == 'Generative':
 elif mode == 'Data Upload':
 	render_document_processing( cache )
 
+# ==============================================================================
+# DATA MANAGEMENT MODE
 # ==============================================================================
 elif mode == 'Data Management':
 	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
