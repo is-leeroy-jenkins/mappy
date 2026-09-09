@@ -2,7 +2,8 @@ name: Correct Document Modes
 
 on:
   push:
-    branches: [ fix/api-mode-document-processing ]
+    branches:
+      - fix/api-mode-document-processing
 
 permissions:
   contents: write
@@ -16,248 +17,9 @@ jobs:
         with:
           ref: fix/api-mode-document-processing
           fetch-depth: 0
-
-      - name: Patch document modes
-        shell: python
-        run: |
-          from pathlib import Path
-          import subprocess
-
-          doc_path = Path('document_processing.py')
-          doc = doc_path.read_text(encoding='utf-8')
-          if 'import json\n' not in doc:
-              doc = doc.replace('import math\n', 'import json\nimport math\n', 1)
-
-          marker = 'def initialize_mode_document_state( prefix: str ) -> None:'
-          if marker not in doc:
-              doc += r'''
-
-
-def initialize_mode_document_state( prefix: str ) -> None:
-    """Initialize per-mode document state."""
-    defaults = {
-        f'{prefix}_documents': [ ], f'{prefix}_chunks': [ ], f'{prefix}_embeddings': [ ],
-        f'{prefix}_embedder': None, f'{prefix}_document_signature': '',
-        f'{prefix}_embedding_provider_used': '', f'{prefix}_embedding_model_used': '',
-        f'{prefix}_embedding_model_path_used': '',
-    }
-    for key, value in defaults.items( ):
-        if key not in st.session_state:
-            st.session_state[ key ] = value
-
-
-def serialize_mode_result( result: object ) -> str:
-    """Serialize a structured API result as document text."""
-    if isinstance( result, pd.DataFrame ):
-        return result.to_json( orient='records', indent=2, default_handler=str )
-    if isinstance( result, str ):
-        return result
-    return json.dumps( result, indent=2, sort_keys=True, default=str )
-
-
-def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
-    """Synchronize the latest API result into a LangChain Document."""
-    initialize_mode_document_state( prefix )
-    result = st.session_state.get( result_key )
-    if result is None or result == { } or result == [ ] or result == '':
-        return
-    text = serialize_mode_result( result )
-    source = str( st.session_state.get( source_key, '' ) or prefix.title( ) )
-    signature = f'{source}\n{text}'
-    if signature == st.session_state[ f'{prefix}_document_signature' ]:
-        return
-    st.session_state[ f'{prefix}_documents' ] = [
-        Document( page_content=text, metadata={ 'source': source, 'mode': prefix } ) ]
-    st.session_state[ f'{prefix}_chunks' ] = [ ]
-    st.session_state[ f'{prefix}_embeddings' ] = [ ]
-    st.session_state[ f'{prefix}_embedder' ] = None
-    st.session_state[ f'{prefix}_document_signature' ] = signature
-
-
-def render_mode_processing_controls( prefix: str, result_key: str, source_key: str ) -> None:
-    """Render Foo-style chunking and embedding expanders for one API mode."""
-    sync_mode_document( prefix, result_key, source_key )
-    models = {
-        'OpenAI': [ 'text-embedding-3-small', 'text-embedding-3-large' ],
-        'Google Generative AI': [ 'gemini-embedding-2-preview' ],
-        'Mistral AI': [ 'mistral-embed' ],
-        'Hugging Face': [ 'sentence-transformers/all-MiniLM-L6-v2', 'sentence-transformers/all-mpnet-base-v2' ],
-        'Local GGUF': [ 'Local GGUF' ],
-    }
-
-    with st.expander( '✂️ Chunking', expanded=False ):
-        c1, c2 = st.columns( 2 )
-        with c1:
-            chunk_size = st.slider( 'Chunk Size', 100, 4000, 1000, 100,
-                key=f'{prefix}_document_chunk_size' )
-        with c2:
-            chunk_overlap = st.slider( 'Chunk Overlap', 0, 1000, 200, 50,
-                key=f'{prefix}_document_chunk_overlap' )
-        if st.button( 'Chunk', key=f'{prefix}_document_chunk_run', use_container_width=True ):
-            documents = st.session_state[ f'{prefix}_documents' ]
-            if not documents:
-                st.warning( 'Run a source request before chunking.' )
-            elif chunk_overlap >= chunk_size:
-                st.error( 'Chunk Overlap must be smaller than Chunk Size.' )
-            else:
-                splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=int( chunk_size ), chunk_overlap=int( chunk_overlap ) )
-                chunks = splitter.split_documents( documents )
-                for index, document in enumerate( chunks, start=1 ):
-                    document.metadata = dict( document.metadata or { } )
-                    document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
-                st.session_state[ f'{prefix}_chunks' ] = chunks
-                st.session_state[ f'{prefix}_embeddings' ] = [ ]
-                st.session_state[ f'{prefix}_embedder' ] = None
-                st.success( f'Created {len( chunks ):,} chunk(s).' )
-
-    with st.expander( '🧠 Embeddings', expanded=False ):
-        e1, e2 = st.columns( 2 )
-        with e1:
-            provider = st.selectbox( 'Embedding Provider', list( models.keys( ) ),
-                index=list( models.keys( ) ).index( 'Hugging Face' ),
-                key=f'{prefix}_document_embedding_provider' )
-        with e2:
-            model = st.selectbox( 'Embedding Model', models[ provider ],
-                key=f'{prefix}_document_embedding_model' )
-        model_path = ''
-        if provider == 'Local GGUF':
-            model_path = st.text_input( 'Local GGUF Model Path',
-                placeholder=r'C:\models\embedding-model.gguf',
-                key=f'{prefix}_document_embedding_model_path' )
-        if st.button( 'Embed', key=f'{prefix}_document_embed_run', use_container_width=True ):
-            chunks = st.session_state[ f'{prefix}_chunks' ]
-            if not chunks:
-                st.warning( 'Chunk the loaded result before embedding.' )
-            else:
-                try:
-                    embedder = EmbeddingFactory( ).create( provider, model, model_path )
-                    vectors = embedder.embed_documents( [ d.page_content for d in chunks ] )
-                    if len( vectors ) != len( chunks ):
-                        raise RuntimeError( 'Embedding count does not match the chunk count.' )
-                    dimensions = { len( vector ) for vector in vectors }
-                    if len( dimensions ) != 1:
-                        raise RuntimeError( 'Embedding vectors do not have a consistent dimension.' )
-                    for vector in vectors:
-                        if not all( math.isfinite( float( value ) ) for value in vector ):
-                            raise RuntimeError( 'Embedding vectors contain non-finite values.' )
-                    st.session_state[ f'{prefix}_embedder' ] = embedder
-                    st.session_state[ f'{prefix}_embeddings' ] = vectors
-                    st.session_state[ f'{prefix}_embedding_provider_used' ] = provider
-                    st.session_state[ f'{prefix}_embedding_model_used' ] = model
-                    st.session_state[ f'{prefix}_embedding_model_path_used' ] = model_path
-                    st.success( f'Created {len( vectors ):,} embedding vector(s).' )
-                except Exception as exc:
-                    st.error( str( exc ) )
-
-
-def render_mode_document_tabs( prefix: str, loaded_label: str = '📄 Loaded' ) -> None:
-    """Render Loaded, Chunks, and Embeddings tabs for one API mode."""
-    initialize_mode_document_state( prefix )
-    loaded_tab, chunks_tab, embeddings_tab = st.tabs(
-        [ loaded_label, '✂️ Chunks', '🧠 Embeddings' ] )
-    with loaded_tab:
-        documents = st.session_state[ f'{prefix}_documents' ]
-        if not documents:
-            st.info( 'Run a source request to load a document.' )
-        else:
-            rows = [ {
-                'Document': index,
-                'Source': ( document.metadata or { } ).get( 'source', '' ),
-                'Characters': len( document.page_content ),
-                'Metadata': document.metadata or { },
-                'Text': document.page_content,
-            } for index, document in enumerate( documents, start=1 ) ]
-            st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-    with chunks_tab:
-        chunks = st.session_state[ f'{prefix}_chunks' ]
-        if not chunks:
-            st.info( 'Run Chunk to display document chunks.' )
-        else:
-            rows = [ {
-                'Chunk': index,
-                'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
-                'Source': ( document.metadata or { } ).get( 'source', '' ),
-                'Characters': len( document.page_content ),
-                'Text': document.page_content,
-            } for index, document in enumerate( chunks, start=1 ) ]
-            st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-    with embeddings_tab:
-        vectors = st.session_state[ f'{prefix}_embeddings' ]
-        chunks = st.session_state[ f'{prefix}_chunks' ]
-        if not vectors:
-            st.info( 'Run Embed to display embedding vectors.' )
-        else:
-            rows = [ ]
-            for index, vector in enumerate( vectors ):
-                document = chunks[ index ]
-                rows.append( {
-                    'Chunk': index + 1,
-                    'Provider': st.session_state[ f'{prefix}_embedding_provider_used' ],
-                    'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] or st.session_state[ f'{prefix}_embedding_model_used' ],
-                    'Dimensions': len( vector ),
-                    'Source': ( document.metadata or { } ).get( 'source', '' ),
-                    'Text': document.page_content,
-                    'Vector': vector,
-                } )
-            st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-'''
-          doc_path.write_text(doc, encoding='utf-8', newline='')
-
-          app_path = Path('app.py')
-          app = app_path.read_text(encoding='utf-8')
-          old_import = 'from document_processing import render_document_processing, render_web_document_processing\n'
-          new_import = (
-              'from document_processing import (\n'
-              '\trender_web_document_processing,\n'
-              '\trender_mode_processing_controls,\n'
-              '\trender_mode_document_tabs )\n'
-          )
-          if old_import not in app:
-              raise RuntimeError('document_processing import anchor not found.')
-          app = app.replace(old_import, new_import, 1)
-
-          def bounds(source: str, mode: str, next_mode: str) -> tuple[int, int]:
-              start = source.index(f"elif mode == '{mode}':")
-              next_index = source.index(f"elif mode == '{next_mode}':", start)
-              end = source.rfind('# =============================================================================', start, next_index)
-              return start, end if end > start else next_index
-
-          original = subprocess.check_output(
-              [ 'git', 'show', '17999643f008d3ae48dd9fa8d44c39f67de15f9b:app.py' ], text=True )
-          old_start, old_end = bounds(original, 'Data Upload', 'Data Management')
-          new_start, new_end = bounds(app, 'Data Upload', 'Data Management')
-          app = app[:new_start] + original[old_start:old_end] + app[new_end:]
-
-          web_start, web_end = bounds(app, 'Web Scraper', 'Weather')
-          app = app[:web_start] + "elif mode == 'Web Scraper':\n\trender_web_document_processing( )\n\n" + app[web_end:]
-
-          specs = [
-              ('Weather', 'Environmental', 'weather_c2', 'weather', 'weather_last_result', 'weather_last_source'),
-              ('Environmental', 'Geological', 'enviro_c2', 'env', 'env_last_result', 'env_last_source'),
-              ('Geological', 'Astronomical', 'geo_c2', 'geo', 'geo_last_result', 'geo_last_source'),
-              ('Astronomical', 'Celestial Map', 'astro_c2', 'astro', 'astro_last_result', 'astro_last_source'),
-          ]
-          for mode, next_mode, right_col, prefix, result_key, source_key in specs:
-              start, end = bounds(app, mode, next_mode)
-              block = app[start:end]
-              token = f'\t\twith {right_col}:'
-              if block.count(token) != 1:
-                  raise RuntimeError(f'Right-column anchor missing for {mode}.')
-              right_start = block.index(token)
-              left = block[:right_start].rstrip()
-              block = (
-                  left
-                  + f"\n\t\t\trender_mode_processing_controls( '{prefix}', '{result_key}', '{source_key}' )\n\n"
-                  + f"\t\twith {right_col}:\n"
-                  + f"\t\t\trender_mode_document_tabs( '{prefix}', '📄 Loaded' )\n\n"
-              )
-              app = app[:start] + block + app[end:]
-
-          app_path.write_text(app, encoding='utf-8', newline='')
-
-      - name: Validate and commit
-        shell: bash
+      - name: Apply correction
+        run: python .github/correct_document_modes.py
+      - name: Validate
         run: |
           python -m py_compile app.py document_processing.py loaders.py embedders.py stores/vector.py
           git diff --check
@@ -267,9 +29,11 @@ def render_mode_document_tabs( prefix: str, loaded_label: str = '📄 Loaded' ) 
           grep -q "render_mode_processing_controls( 'geo'" app.py
           grep -q "render_mode_processing_controls( 'astro'" app.py
           if grep -A5 "elif mode == 'Data Upload':" app.py | grep -q 'render_document_processing'; then exit 1; fi
-          rm .github/workflows/correct-document-modes.yml
+      - name: Commit correction
+        run: |
+          rm .github/correct_document_modes.py .github/workflows/correct-document-modes.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app.py document_processing.py .github/workflows/correct-document-modes.yml
+          git add app.py document_processing.py .github/correct_document_modes.py .github/workflows/correct-document-modes.yml
           git commit -m "Apply Foo processing to API modes"
           git push origin HEAD:fix/api-mode-document-processing
