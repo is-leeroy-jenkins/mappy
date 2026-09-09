@@ -14,6 +14,7 @@
 '''
 from __future__ import annotations
 
+import json
 import math
 import os
 import tempfile
@@ -639,3 +640,164 @@ def render_web_document_processing( ) -> None:
 						st.error( str( exc ) )
 	with right:
 		render_document_tabs( 'web_documents', 'web_chunks', 'web_embeddings', '🌐 Scraped' )
+
+
+
+def initialize_mode_document_state( prefix: str ) -> None:
+	"""Initialize per-mode document state."""
+	defaults = {
+		f'{prefix}_documents': [ ], f'{prefix}_chunks': [ ], f'{prefix}_embeddings': [ ],
+		f'{prefix}_embedder': None, f'{prefix}_document_signature': '',
+		f'{prefix}_embedding_provider_used': '', f'{prefix}_embedding_model_used': '',
+		f'{prefix}_embedding_model_path_used': '',
+	}
+	for key, value in defaults.items( ):
+		if key not in st.session_state:
+			st.session_state[ key ] = value
+
+
+def serialize_mode_result( result: object ) -> str:
+	"""Serialize a structured API result as document text."""
+	if isinstance( result, pd.DataFrame ):
+		return result.to_json( orient='records', indent=2, default_handler=str )
+	if isinstance( result, str ):
+		return result
+	return json.dumps( result, indent=2, sort_keys=True, default=str )
+
+
+def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
+	"""Synchronize the latest API result into a LangChain Document."""
+	initialize_mode_document_state( prefix )
+	result = st.session_state.get( result_key )
+	if result is None or result == { } or result == [ ] or result == '':
+		return
+	text = serialize_mode_result( result )
+	source = str( st.session_state.get( source_key, '' ) or prefix.title( ) )
+	signature = f'{source}\n{text}'
+	if signature == st.session_state[ f'{prefix}_document_signature' ]:
+		return
+	st.session_state[ f'{prefix}_documents' ] = [
+		Document( page_content=text, metadata={ 'source': source, 'mode': prefix } ) ]
+	st.session_state[ f'{prefix}_chunks' ] = [ ]
+	st.session_state[ f'{prefix}_embeddings' ] = [ ]
+	st.session_state[ f'{prefix}_embedder' ] = None
+	st.session_state[ f'{prefix}_document_signature' ] = signature
+
+
+def render_mode_processing_controls( prefix: str, result_key: str, source_key: str ) -> None:
+	"""Render Foo-style chunking and embedding expanders for one API mode."""
+	sync_mode_document( prefix, result_key, source_key )
+	models = {
+		'OpenAI': [ 'text-embedding-3-small', 'text-embedding-3-large' ],
+		'Google Generative AI': [ 'gemini-embedding-2-preview' ],
+		'Mistral AI': [ 'mistral-embed' ],
+		'Hugging Face': [ 'sentence-transformers/all-MiniLM-L6-v2', 'sentence-transformers/all-mpnet-base-v2' ],
+		'Local GGUF': [ 'Local GGUF' ],
+	}
+	with st.expander( '✂️ Chunking', expanded=False ):
+		c1, c2 = st.columns( 2 )
+		with c1:
+			chunk_size = st.slider( 'Chunk Size', 100, 4000, 1000, 100,
+				key=f'{prefix}_document_chunk_size' )
+		with c2:
+			chunk_overlap = st.slider( 'Chunk Overlap', 0, 1000, 200, 50,
+				key=f'{prefix}_document_chunk_overlap' )
+		if st.button( 'Chunk', key=f'{prefix}_document_chunk_run', use_container_width=True ):
+			documents = st.session_state[ f'{prefix}_documents' ]
+			if not documents:
+				st.warning( 'Run a source request before chunking.' )
+			elif chunk_overlap >= chunk_size:
+				st.error( 'Chunk Overlap must be smaller than Chunk Size.' )
+			else:
+				splitter = RecursiveCharacterTextSplitter(
+					chunk_size=int( chunk_size ), chunk_overlap=int( chunk_overlap ) )
+				chunks = splitter.split_documents( documents )
+				for index, document in enumerate( chunks, start=1 ):
+					document.metadata = dict( document.metadata or { } )
+					document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
+				st.session_state[ f'{prefix}_chunks' ] = chunks
+				st.session_state[ f'{prefix}_embeddings' ] = [ ]
+				st.session_state[ f'{prefix}_embedder' ] = None
+	with st.expander( '🧠 Embeddings', expanded=False ):
+		e1, e2 = st.columns( 2 )
+		with e1:
+			provider = st.selectbox( 'Embedding Provider', list( models.keys( ) ),
+				index=list( models.keys( ) ).index( 'Hugging Face' ),
+				key=f'{prefix}_document_embedding_provider' )
+		with e2:
+			model = st.selectbox( 'Embedding Model', models[ provider ],
+				key=f'{prefix}_document_embedding_model' )
+		model_path = ''
+		if provider == 'Local GGUF':
+			model_path = st.text_input( 'Local GGUF Model Path',
+				placeholder=r'C:\models\embedding-model.gguf',
+				key=f'{prefix}_document_embedding_model_path' )
+		if st.button( 'Embed', key=f'{prefix}_document_embed_run', use_container_width=True ):
+			chunks = st.session_state[ f'{prefix}_chunks' ]
+			if not chunks:
+				st.warning( 'Chunk the loaded result before embedding.' )
+			else:
+				try:
+					embedder = EmbeddingFactory( ).create( provider, model, model_path )
+					vectors = embedder.embed_documents( [ d.page_content for d in chunks ] )
+					if len( vectors ) != len( chunks ):
+						raise RuntimeError( 'Embedding count does not match the chunk count.' )
+					if len( { len( vector ) for vector in vectors } ) != 1:
+						raise RuntimeError( 'Embedding vectors do not have a consistent dimension.' )
+					for vector in vectors:
+						if not all( math.isfinite( float( value ) ) for value in vector ):
+							raise RuntimeError( 'Embedding vectors contain non-finite values.' )
+					st.session_state[ f'{prefix}_embedder' ] = embedder
+					st.session_state[ f'{prefix}_embeddings' ] = vectors
+					st.session_state[ f'{prefix}_embedding_provider_used' ] = provider
+					st.session_state[ f'{prefix}_embedding_model_used' ] = model
+					st.session_state[ f'{prefix}_embedding_model_path_used' ] = model_path
+				except Exception as exc:
+					st.error( str( exc ) )
+
+
+def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) -> None:
+	"""Render Loaded, Chunks, and Embeddings tabs for one API mode."""
+	initialize_mode_document_state( prefix )
+	loaded_tab, chunks_tab, embeddings_tab = st.tabs(
+		[ loaded_label, '✂️ Chunks', '🧠 Embeddings' ] )
+	with loaded_tab:
+		documents = st.session_state[ f'{prefix}_documents' ]
+		if not documents:
+			st.info( 'Run a source request to load a document.' )
+		else:
+			rows = [ {
+				'Document': index, 'Source': ( document.metadata or { } ).get( 'source', '' ),
+				'Characters': len( document.page_content ), 'Metadata': document.metadata or { },
+				'Text': document.page_content,
+			} for index, document in enumerate( documents, start=1 ) ]
+			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	with chunks_tab:
+		chunks = st.session_state[ f'{prefix}_chunks' ]
+		if not chunks:
+			st.info( 'Run Chunk to display document chunks.' )
+		else:
+			rows = [ {
+				'Chunk': index, 'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
+				'Source': ( document.metadata or { } ).get( 'source', '' ),
+				'Characters': len( document.page_content ), 'Text': document.page_content,
+			} for index, document in enumerate( chunks, start=1 ) ]
+			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	with embeddings_tab:
+		vectors = st.session_state[ f'{prefix}_embeddings' ]
+		chunks = st.session_state[ f'{prefix}_chunks' ]
+		if not vectors:
+			st.info( 'Run Embed to display embedding vectors.' )
+		else:
+			rows = [ ]
+			for index, vector in enumerate( vectors ):
+				document = chunks[ index ]
+				rows.append( {
+					'Chunk': index + 1,
+					'Provider': st.session_state[ f'{prefix}_embedding_provider_used' ],
+					'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] or st.session_state[ f'{prefix}_embedding_model_used' ],
+					'Dimensions': len( vector ),
+					'Source': ( document.metadata or { } ).get( 'source', '' ),
+					'Text': document.page_content, 'Vector': vector,
+				} )
+			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
