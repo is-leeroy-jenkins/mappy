@@ -22,6 +22,16 @@ jobs:
           sed -i "s/('Environmental', 'Geological'/('Environmental', 'Astronomical'/" .github/correct_document_modes.py
           sed -i "s/('Geological', 'Astronomical'/('Geological', 'Generative'/" .github/correct_document_modes.py
           python .github/correct_document_modes.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app.py')
+          source = path.read_text(encoding='utf-8')
+          start = source.index("elif mode == 'Data Upload':")
+          end = source.index("elif mode == 'Data Management':", start)
+          block = source[start:end]
+          block = '\n'.join(line.rstrip() for line in block.split('\n'))
+          path.write_text(source[:start] + block + source[end:], encoding='utf-8', newline='')
+          PY
       - name: Validate
         run: |
           python -m py_compile app.py document_processing.py loaders.py embedders.py stores/vector.py
