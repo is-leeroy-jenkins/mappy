@@ -519,7 +519,7 @@ def render_web_document_processing( ) -> None:
 	st.divider( )
 	left, right = st.columns( [ 0.4, 0.6 ], gap='xxsmall', border=True )
 	with left:
-		with st.expander( label='Web Loader', icon='🌐', expanded=True ):
+		with st.expander( label='Web Processing', icon='🌐', expanded=True ):
 			target_url = st.text_input( 'Target URL', placeholder='https://example.com',
 				key='web_document_url_input' )
 			request_timeout = st.slider( 'Request Timeout', min_value=1, max_value=120,
@@ -548,7 +548,6 @@ def render_web_document_processing( ) -> None:
 				except Exception as exc:
 					st.error( str( exc ) )
 
-		with st.expander( label='Chunking', icon='✂️', expanded=False ):
 			chunk_col, overlap_col = st.columns( 2 )
 			with chunk_col:
 				chunk_size = st.slider( 'Chunk Size', min_value=1, max_value=5000, value=1000,
@@ -572,7 +571,6 @@ def render_web_document_processing( ) -> None:
 				except Exception as exc:
 					st.error( str( exc ) )
 
-		with st.expander( label='Embeddings', icon='🧠', expanded=False ):
 			provider_col, model_col = st.columns( 2 )
 			with provider_col:
 				provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
@@ -605,7 +603,6 @@ def render_web_document_processing( ) -> None:
 					except Exception as exc:
 						st.error( str( exc ) )
 
-		with st.expander( label='Vector Storage', icon='🗄️', expanded=False ):
 			store_col, target_col = st.columns( 2 )
 			with store_col:
 				vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
@@ -684,76 +681,103 @@ def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
 	st.session_state[ f'{prefix}_document_signature' ] = signature
 
 
-def render_mode_processing_controls( prefix: str, result_key: str, source_key: str ) -> None:
-	"""Render Foo-style chunking and embedding expanders for one API mode."""
-	sync_mode_document( prefix, result_key, source_key )
-	models = {
-		'OpenAI': [ 'text-embedding-3-small', 'text-embedding-3-large' ],
-		'Google Generative AI': [ 'gemini-embedding-2-preview' ],
-		'Mistral AI': [ 'mistral-embed' ],
-		'Hugging Face': [ 'sentence-transformers/all-MiniLM-L6-v2', 'sentence-transformers/all-mpnet-base-v2' ],
-		'Local GGUF': [ 'Local GGUF' ],
-	}
-	with st.expander( '✂️ Chunking', expanded=False ):
-		c1, c2 = st.columns( 2 )
-		with c1:
-			chunk_size = st.slider( 'Chunk Size', 100, 4000, 1000, 100,
-				key=f'{prefix}_document_chunk_size' )
-		with c2:
-			chunk_overlap = st.slider( 'Chunk Overlap', 0, 1000, 200, 50,
-				key=f'{prefix}_document_chunk_overlap' )
-		if st.button( 'Chunk', key=f'{prefix}_document_chunk_run', use_container_width=True ):
-			documents = st.session_state[ f'{prefix}_documents' ]
-			if not documents:
-				st.warning( 'Run a source request before chunking.' )
-			elif chunk_overlap >= chunk_size:
-				st.error( 'Chunk Overlap must be smaller than Chunk Size.' )
-			else:
-				splitter = RecursiveCharacterTextSplitter(
-					chunk_size=int( chunk_size ), chunk_overlap=int( chunk_overlap ) )
-				chunks = splitter.split_documents( documents )
-				for index, document in enumerate( chunks, start=1 ):
-					document.metadata = dict( document.metadata or { } )
-					document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
+def render_source_processing_controls( prefix: str, result_key: str, source_key: str,
+	source_name: str, key_prefix: str ) -> None:
+	"""Render Foo-style processing controls inside one source expander.
+
+	Purpose:
+		Keeps each API source, its processing configuration, and its Chunk/Embed/Store actions
+		together in the same expander while maintaining isolated document state per mode.
+
+	Args:
+		prefix: Per-mode session-state prefix.
+		result_key: Session-state key containing the latest structured API result.
+		source_key: Session-state key identifying the latest API source.
+		source_name: Source name represented by the containing expander.
+		key_prefix: Unique Streamlit widget-key prefix for this source.
+
+	Returns:
+		None: This function renders controls and updates session state.
+	"""
+	throw_if( 'prefix', prefix )
+	throw_if( 'result_key', result_key )
+	throw_if( 'source_key', source_key )
+	throw_if( 'source_name', source_name )
+	throw_if( 'key_prefix', key_prefix )
+	initialize_mode_document_state( prefix )
+	active_source = str( st.session_state.get( source_key, '' ) or '' )
+	if active_source == source_name:
+		sync_mode_document( prefix, result_key, source_key )
+
+	settings = render_processing_inputs( key_prefix )
+	chunk_col, embed_col, store_col = st.columns( 3 )
+	chunk_run = chunk_col.button( 'Chunk', icon='✂️', key=f'{key_prefix}_chunk_run',
+		use_container_width=True )
+	embed_run = embed_col.button( 'Embed', icon='🧬', key=f'{key_prefix}_embed_run',
+		use_container_width=True )
+	store_run = store_col.button( 'Store', icon='🗄️', key=f'{key_prefix}_store_run',
+		use_container_width=True )
+
+	if chunk_run:
+		if active_source != source_name:
+			st.warning( f'Run {source_name} before chunking.' )
+		else:
+			try:
+				documents = st.session_state[ f'{prefix}_documents' ]
+				chunks = chunk_documents( documents, settings[ 'chunk_size' ],
+					settings[ 'chunk_overlap' ] )
 				st.session_state[ f'{prefix}_chunks' ] = chunks
+				st.session_state[ f'{prefix}_chunk_size_used' ] = settings[ 'chunk_size' ]
+				st.session_state[ f'{prefix}_chunk_overlap_used' ] = settings[ 'chunk_overlap' ]
 				st.session_state[ f'{prefix}_embeddings' ] = [ ]
 				st.session_state[ f'{prefix}_embedder' ] = None
-	with st.expander( '🧠 Embeddings', expanded=False ):
-		e1, e2 = st.columns( 2 )
-		with e1:
-			provider = st.selectbox( 'Embedding Provider', list( models.keys( ) ),
-				index=list( models.keys( ) ).index( 'Hugging Face' ),
-				key=f'{prefix}_document_embedding_provider' )
-		with e2:
-			model = st.selectbox( 'Embedding Model', models[ provider ],
-				key=f'{prefix}_document_embedding_model' )
-		model_path = ''
-		if provider == 'Local GGUF':
-			model_path = st.text_input( 'Local GGUF Model Path',
-				placeholder=r'C:\models\embedding-model.gguf',
-				key=f'{prefix}_document_embedding_model_path' )
-		if st.button( 'Embed', key=f'{prefix}_document_embed_run', use_container_width=True ):
-			chunks = st.session_state[ f'{prefix}_chunks' ]
-			if not chunks:
-				st.warning( 'Chunk the loaded result before embedding.' )
-			else:
-				try:
-					embedder = EmbeddingFactory( ).create( provider, model, model_path )
-					vectors = embedder.embed_documents( [ d.page_content for d in chunks ] )
-					if len( vectors ) != len( chunks ):
-						raise RuntimeError( 'Embedding count does not match the chunk count.' )
-					if len( { len( vector ) for vector in vectors } ) != 1:
-						raise RuntimeError( 'Embedding vectors do not have a consistent dimension.' )
-					for vector in vectors:
-						if not all( math.isfinite( float( value ) ) for value in vector ):
-							raise RuntimeError( 'Embedding vectors contain non-finite values.' )
-					st.session_state[ f'{prefix}_embedder' ] = embedder
-					st.session_state[ f'{prefix}_embeddings' ] = vectors
-					st.session_state[ f'{prefix}_embedding_provider_used' ] = provider
-					st.session_state[ f'{prefix}_embedding_model_used' ] = model
-					st.session_state[ f'{prefix}_embedding_model_path_used' ] = model_path
-				except Exception as exc:
-					st.error( str( exc ) )
+				st.session_state[ f'{prefix}_vector_store' ] = None
+				st.success( f'Created {len( chunks ):,} chunk(s).' )
+			except Exception as exc:
+				st.error( str( exc ) )
+
+	if embed_run:
+		chunks = st.session_state[ f'{prefix}_chunks' ]
+		if active_source != source_name:
+			st.warning( f'Run and chunk {source_name} before embedding.' )
+		elif not chunks:
+			st.warning( 'Chunk the loaded result before embedding.' )
+		elif settings[ 'chunk_size' ] != st.session_state[ f'{prefix}_chunk_size_used' ] or \
+			settings[ 'chunk_overlap' ] != st.session_state[ f'{prefix}_chunk_overlap_used' ]:
+			st.warning( 'Chunk settings changed. Run Chunk again before embedding.' )
+		else:
+			try:
+				embedder, vectors = create_embeddings( chunks, settings[ 'provider' ],
+					settings[ 'model' ], settings[ 'model_path' ] )
+				st.session_state[ f'{prefix}_embedder' ] = embedder
+				st.session_state[ f'{prefix}_embeddings' ] = vectors
+				st.session_state[ f'{prefix}_embedding_provider_used' ] = settings[ 'provider' ]
+				st.session_state[ f'{prefix}_embedding_model_used' ] = settings[ 'model' ]
+				st.session_state[ f'{prefix}_embedding_model_path_used' ] = settings[ 'model_path' ]
+				st.session_state[ f'{prefix}_vector_store' ] = None
+				st.success( f'Created {len( vectors ):,} embedding vector(s).' )
+			except Exception as exc:
+				st.error( str( exc ) )
+
+	if store_run:
+		chunks = st.session_state[ f'{prefix}_chunks' ]
+		embedder = st.session_state[ f'{prefix}_embedder' ]
+		if active_source != source_name:
+			st.warning( f'Run, chunk, and embed {source_name} before storing.' )
+		elif not chunks or embedder is None:
+			st.warning( 'Create embeddings before storing vectors.' )
+		elif settings[ 'provider' ] != st.session_state[ f'{prefix}_embedding_provider_used' ] or \
+			settings[ 'model' ] != st.session_state[ f'{prefix}_embedding_model_used' ] or \
+			settings[ 'model_path' ] != st.session_state[ f'{prefix}_embedding_model_path_used' ]:
+			st.warning( 'Embedding settings changed. Run Embed again before storing.' )
+		else:
+			try:
+				vector_store = store_documents( chunks, embedder, settings[ 'vector_backend' ],
+					settings[ 'vector_target' ], settings[ 'persist_directory' ], settings[ 'namespace' ] )
+				st.session_state[ f'{prefix}_vector_store' ] = vector_store
+				st.success( f"Stored {len( chunks ):,} chunk(s) in {settings[ 'vector_backend' ]}." )
+			except Exception as exc:
+				st.error( str( exc ) )
 
 
 def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) -> None:

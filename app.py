@@ -37,7 +37,7 @@ from generators import Chat, Claude, Grok, Mistral, Gemini
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from document_processing import (
 	render_web_document_processing,
-	render_mode_processing_controls,
+	render_source_processing_controls,
 	render_mode_document_tabs )
 from embedders import EmbeddingFactory
 from stores.vector import ChromaStore, PineconeStore
@@ -4516,6 +4516,8 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Google Weather', 'weather_google_weather' )
 			# ------------------------------------------------------------------
 			# OPENWEATHER / OPEN-METEO
 			# ------------------------------------------------------------------
@@ -4653,6 +4655,8 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Historical Weather', 'weather_historical_weather' )
 			# ------------------------------------------------------------------
 			# CLIMATE DATA
 			# ------------------------------------------------------------------
@@ -4798,6 +4802,8 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Climate Data', 'weather_climate_data' )
 			# ------------------------------------------------------------------
 			# TIDES AND CURRENTS
 			# ------------------------------------------------------------------
@@ -4905,8 +4911,9 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
-			render_mode_processing_controls( 'weather', 'weather_last_result', 'weather_last_source' )
 
+				st.divider( )
+				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Tides & Currents', 'weather_tides_currents' )
 		with weather_c2:
 			render_mode_document_tabs( 'weather', '📄 Loaded' )
 
@@ -5065,6 +5072,8 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'AirNow', 'env_airnow' )
 			# ------------------------------------------------------------------
 			# UV INDEX
 			# ------------------------------------------------------------------
@@ -5173,6 +5182,8 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'UV Index', 'env_uv_index' )
 			# ------------------------------------------------------------------
 			# OPENAQ
 			# ------------------------------------------------------------------
@@ -5385,6 +5396,8 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'OpenAQ', 'env_openaq' )
 			# ------------------------------------------------------------------
 			# PURPLEAIR SENSORS
 			# ------------------------------------------------------------------
@@ -5545,6 +5558,8 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'PurpleAir', 'env_purpleair' )
 			# ------------------------------------------------------------------
 			# ENVIROFACTS
 			# ------------------------------------------------------------------
@@ -5614,6 +5629,8 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'EnviroFacts', 'env_envirofacts' )
 			# ------------------------------------------------------------------
 			# FIRMS FIRE / THERMAL ANOMALIES
 			# ------------------------------------------------------------------
@@ -5751,6 +5768,8 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'FIRMS', 'env_firms' )
 			# ------------------------------------------------------------------
 			# EONET NATURAL EVENTS
 			# ------------------------------------------------------------------
@@ -5942,8 +5961,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
-			render_mode_processing_controls( 'env', 'env_last_result', 'env_last_source' )
 
+				st.divider( )
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'EONET', 'env_eonet' )
 		with enviro_c2:
 			render_mode_document_tabs( 'env', '📄 Loaded' )
 
@@ -6123,6 +6143,8 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Naval Observatory', 'astro_naval_observatory' )
 			# ------------------------------------------------------------------
 			# SPACE WEATHER
 			# ------------------------------------------------------------------
@@ -6318,6 +6340,8 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Space Weather', 'astro_space_weather' )
 			# ------------------------------------------------------------------
 			# STAR CHART
 			# ------------------------------------------------------------------
@@ -6584,6 +6608,8 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Star Chart', 'astro_star_chart' )
 			# ------------------------------------------------------------------
 			# SATELLITE CENTER
 			# ------------------------------------------------------------------
@@ -6759,6 +6785,8 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Satellite Center', 'astro_satellite_center' )
 			# ------------------------------------------------------------------
 			# ASTRO CATALOG
 			# ------------------------------------------------------------------
@@ -6917,6 +6945,8 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Astro Catalog', 'astro_astro_catalog' )
 			# ------------------------------------------------------------------
 			# ASTROQUERY / SIMBAD
 			# ------------------------------------------------------------------
@@ -7007,6 +7037,8 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'AstroQuery / SIMBAD', 'astro_astroquery_simbad' )
 			# ------------------------------------------------------------------
 			# STAR MAP
 			# ------------------------------------------------------------------
@@ -7217,8 +7249,9 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
-			render_mode_processing_controls( 'astro', 'astro_last_result', 'astro_last_source' )
 
+				st.divider( )
+				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Star Map', 'astro_star_map' )
 		with astro_c2:
 			render_mode_document_tabs( 'astro', '📄 Loaded' )
 
@@ -7515,6 +7548,8 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'USGS Earthquakes', 'geo_usgs_earthquakes' )
 			# ------------------------------------------------------------------
 			# GLOBAL IMAGERY
 			# ------------------------------------------------------------------
@@ -7800,6 +7835,8 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'Global Imagery', 'geo_global_imagery' )
 			# ------------------------------------------------------------------
 			# USGS WATER DATA
 			# ------------------------------------------------------------------
@@ -7957,6 +7994,8 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 			
+				st.divider( )
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'USGS Water Data', 'geo_usgs_water_data' )
 			# ------------------------------------------------------------------
 			# USGS THE NATIONAL MAP
 			# ------------------------------------------------------------------
@@ -8163,8 +8202,9 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_latitude' ] = None
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
-			render_mode_processing_controls( 'geo', 'geo_last_result', 'geo_last_source' )
 
+				st.divider( )
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'USGS The National Map', 'geo_usgs_the_national_map' )
 		with geo_c2:
 			render_mode_document_tabs( 'geo', '📄 Loaded' )
 
