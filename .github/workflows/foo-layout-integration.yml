@@ -30,21 +30,27 @@ jobs:
               raise RuntimeError('Expected one document-processing import.')
           source = source.replace(old_import, new_import, 1)
 
-          web_start = "# ==============================================================================\n# SCRAPING MODE\n# ==============================================================================\nelif mode == 'Web Scraper':\n"
-          web_end = "# ==============================================================================\n# WEATHER MODE\n# ==============================================================================\n"
-          if source.count(web_start) != 1 or source.count(web_end) != 1:
-              raise RuntimeError('Web Scraper anchors not found exactly once.')
-          start = source.index(web_start)
-          end = source.index(web_end, start)
-          source = source[:start] + web_start + "\trender_web_document_processing()\n\n" + source[end:]
+          web_mode = "elif mode == 'Web Scraper':\n"
+          weather_mode = "elif mode == 'Weather':\n"
+          if source.count(web_mode) != 1 or source.count(weather_mode) != 1:
+              raise RuntimeError('Web Scraper mode anchors not found exactly once.')
+          start = source.index(web_mode)
+          weather_index = source.index(weather_mode, start)
+          end = source.rfind('# =============================================================================', start, weather_index)
+          if end < 0:
+              raise RuntimeError('Weather mode header was not found.')
+          source = source[:start] + web_mode + "\trender_web_document_processing()\n\n" + source[end:]
 
-          upload_start = "# ==============================================================================\n# DATA UPLOAD MODE\n# ==============================================================================\nelif mode == 'Data Upload':\n"
-          upload_end = "# ==============================================================================\n# DATA MANAGEMENT MODE\n# ==============================================================================\n"
-          if source.count(upload_start) != 1 or source.count(upload_end) != 1:
-              raise RuntimeError('Data Upload anchors not found exactly once.')
-          start = source.index(upload_start)
-          end = source.index(upload_end, start)
-          source = source[:start] + upload_start + "\trender_document_processing( cache )\n\n" + source[end:]
+          upload_mode = "elif mode == 'Data Upload':\n"
+          management_mode = "elif mode == 'Data Management':\n"
+          if source.count(upload_mode) != 1 or source.count(management_mode) != 1:
+              raise RuntimeError('Data Upload mode anchors not found exactly once.')
+          start = source.index(upload_mode)
+          management_index = source.index(management_mode, start)
+          end = source.rfind('# =============================================================================', start, management_index)
+          if end < 0:
+              raise RuntimeError('Data Management mode header was not found.')
+          source = source[:start] + upload_mode + "\trender_document_processing( cache )\n\n" + source[end:]
 
           path.write_text(source, encoding='utf-8', newline='')
 
