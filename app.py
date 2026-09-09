@@ -4585,6 +4585,8 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
+				st.divider( )
+				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'OpenWeather / Open-Meteo', 'weather_openweather_open_meteo' )
 			# ------------------------------------------------------------------
 			# HISTORICAL WEATHER
 			# ------------------------------------------------------------------
