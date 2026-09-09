@@ -35,7 +35,7 @@ from excel import Excel
 from caches import InMemoryCache, SQLiteCache
 from generators import Chat, Claude, Grok, Mistral, Gemini
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from document_processing import (
+from processing import (
 	render_web_document_processing,
 	render_source_processing_controls,
 	render_mode_document_tabs )

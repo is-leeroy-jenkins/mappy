@@ -98,17 +98,12 @@ class ChromaStore( ):
 		self.collection_name = collection_name
 		self.persist_directory = persist_directory
 		Path( self.persist_directory ).mkdir( parents=True, exist_ok=True )
-
-		self.vector_store = Chroma(
-			collection_name=self.collection_name,
-			embedding_function=self.embedder,
-			persist_directory=self.persist_directory,
-		)
+		
+		self.vector_store = Chroma( collection_name=self.collection_name,
+			embedding_function=self.embedder, persist_directory=self.persist_directory, )
 		self.vector_store.reset_collection( )
-		ids = [
-			str( ( document.metadata or { } ).get( 'chunk_id', f'chunk-{index:06d}' ) )
-			for index, document in enumerate( self.documents, start=1 )
-		]
+		ids = [ str( (document.metadata or { }).get( 'chunk_id', f'chunk-{index:06d}' ) ) for
+				index, document in enumerate( self.documents, start=1 ) ]
 		self.vector_store.add_documents( documents=self.documents, ids=ids )
 		return self.vector_store
 
