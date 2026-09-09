@@ -353,7 +353,7 @@ class Geocoder( ):
 			exception = Error( e )
 			exception.module = 'mappy'
 			exception.cause = 'Geocoder'
-			exception.method = 'reverse( self, latitude: float, longitude: float ) -> Dict[ str, Any ] | None'
+			exception.method = 'reverse( self, **kwargs ) -> Dict[ str, Any ] | None'
 			Logger( ).write( exception )
 			raise exception
 	

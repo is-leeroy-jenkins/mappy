@@ -183,20 +183,15 @@ class PineconeStore( ):
 			from pinecone import Pinecone
 
 			self.client = Pinecone( api_key=self.api_key )
-
+			
 			if not self.client.indexes.exists( self.index_name ):
 				raise ValueError( f'Pinecone index does not exist: {self.index_name}' )
-
+			
 			index = self.client.index( name=self.index_name )
-			self.vector_store = PineconeVectorStore(
-				index=index,
-				embedding=self.embedder,
-				namespace=self.namespace or None,
-			)
-			ids = [
-				str( ( document.metadata or { } ).get( 'chunk_id', f'chunk-{index:06d}' ) )
-				for index, document in enumerate( self.documents, start=1 )
-			]
+			self.vector_store = PineconeVectorStore( index=index, embedding=self.embedder,
+				namespace=self.namespace or None, )
+			ids = [ str( (document.metadata or { }).get( 'chunk_id', f'chunk-{index:06d}' ) ) for
+					index, document in enumerate( self.documents, start=1 ) ]
 			self.vector_store.add_documents( documents=self.documents, ids=ids )
 			return self.vector_store
 		except Exception as e:
