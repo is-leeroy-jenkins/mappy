@@ -18,7 +18,10 @@ jobs:
           ref: fix/api-mode-document-processing
           fetch-depth: 0
       - name: Apply correction
-        run: python .github/correct_document_modes.py
+        run: |
+          sed -i "s/('Environmental', 'Geological'/('Environmental', 'Astronomical'/" .github/correct_document_modes.py
+          sed -i "s/('Geological', 'Astronomical'/('Geological', 'Generative'/" .github/correct_document_modes.py
+          python .github/correct_document_modes.py
       - name: Validate
         run: |
           python -m py_compile app.py document_processing.py loaders.py embedders.py stores/vector.py
@@ -28,6 +31,10 @@ jobs:
           grep -q "render_mode_processing_controls( 'env'" app.py
           grep -q "render_mode_processing_controls( 'geo'" app.py
           grep -q "render_mode_processing_controls( 'astro'" app.py
+          grep -q "render_mode_document_tabs( 'weather'" app.py
+          grep -q "render_mode_document_tabs( 'env'" app.py
+          grep -q "render_mode_document_tabs( 'geo'" app.py
+          grep -q "render_mode_document_tabs( 'astro'" app.py
           if grep -A5 "elif mode == 'Data Upload':" app.py | grep -q 'render_document_processing'; then exit 1; fi
       - name: Commit correction
         run: |
