@@ -1,0 +1,43 @@
+name: Fix Wrapped Source Processing
+
+on:
+  push:
+    branches: [ fix/source-expander-processing ]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/source-expander-processing
+          fetch-depth: 0
+
+      - name: Apply wrapped-source fix
+        run: python .github/fix_wrapped_source_processing.py
+
+      - name: Validate
+        shell: bash
+        run: |
+          python -m py_compile app.py document_processing.py loaders.py embedders.py stores/vector.py
+          git diff --check
+          grep -q "OpenWeather / Open-Meteo', 'weather_openweather_open_meteo'" app.py
+          grep -q "render_source_processing_controls( 'weather'" app.py
+          grep -q "render_source_processing_controls( 'env'" app.py
+          grep -q "render_source_processing_controls( 'geo'" app.py
+          grep -q "render_source_processing_controls( 'astro'" app.py
+
+      - name: Commit
+        shell: bash
+        run: |
+          rm .github/fix_wrapped_source_processing.py
+          rm .github/workflows/fix-wrapped-source-processing.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.py .github/fix_wrapped_source_processing.py .github/workflows/fix-wrapped-source-processing.yml
+          git commit -m "Cover wrapped source expanders with processing controls"
+          git push origin HEAD:fix/source-expander-processing
