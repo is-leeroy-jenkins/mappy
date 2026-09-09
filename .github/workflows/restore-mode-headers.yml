@@ -1,0 +1,55 @@
+name: Restore Mode Headers
+
+on:
+  push:
+    branches:
+      - fix/foo-document-layout
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/foo-document-layout
+      - name: Restore preserved headers
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('app.py')
+          source = path.read_text(encoding='utf-8')
+
+          replacements = {
+              "# ==============================================================================\nelif mode == 'Weather':\n":
+                  "# ==============================================================================\n# WEATHER MODE\n# ==============================================================================\nelif mode == 'Weather':\n",
+              "# ==============================================================================\nelif mode == 'Data Management':\n":
+                  "# ==============================================================================\n# DATA MANAGEMENT MODE\n# ==============================================================================\nelif mode == 'Data Management':\n",
+          }
+
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise RuntimeError(f'Expected one mode-header anchor: {old!r}')
+              source = source.replace(old, new, 1)
+
+          path.write_text(source, encoding='utf-8', newline='')
+      - name: Validate
+        shell: bash
+        run: |
+          python -m py_compile app.py document_processing.py
+          git diff --check
+          grep -q "# WEATHER MODE" app.py
+          grep -q "# DATA MANAGEMENT MODE" app.py
+      - name: Commit and remove workflow
+        shell: bash
+        run: |
+          rm .github/workflows/restore-mode-headers.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.py .github/workflows/restore-mode-headers.yml
+          git commit -m "Restore mode header comments"
+          git push origin HEAD:fix/foo-document-layout
