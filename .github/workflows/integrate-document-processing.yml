@@ -1,0 +1,81 @@
+name: Integrate Document Processing
+
+on:
+  push:
+    branches:
+      - feature/integrate-document-processing
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/integrate-document-processing
+
+      - name: Patch app.py
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('app.py')
+          source = path.read_text(encoding='utf-8')
+
+          import_anchor = 'from langchain_text_splitters import RecursiveCharacterTextSplitter\n'
+          import_line = 'from document_processing import render_document_processing\n'
+          mode_anchor = "elif mode == 'Data Upload':\n"
+          render_call = '\trender_document_processing()\n'
+
+          if source.count(import_anchor) != 1:
+              raise RuntimeError('Expected exactly one text-splitter import anchor.')
+
+          if source.count(mode_anchor) != 1:
+              raise RuntimeError('Expected exactly one Data Upload mode anchor.')
+
+          if import_line in source:
+              raise RuntimeError('Document-processing import is already present.')
+
+          if render_call in source:
+              raise RuntimeError('Document-processing render call is already present.')
+
+          source = source.replace(
+              import_anchor,
+              import_anchor + import_line,
+              1,
+          )
+          source = source.replace(
+              mode_anchor,
+              mode_anchor + render_call,
+              1,
+          )
+
+          if source.count(import_line) != 1:
+              raise RuntimeError('Document-processing import insertion failed validation.')
+
+          if source.count(render_call) != 1:
+              raise RuntimeError('Document-processing render-call insertion failed validation.')
+
+          path.write_text(source, encoding='utf-8', newline='')
+
+      - name: Verify diff
+        shell: bash
+        run: |
+          git diff --check
+          test "$(git diff --numstat -- app.py | awk '{print $1}')" = "2"
+          test "$(git diff --numstat -- app.py | awk '{print $2}')" = "0"
+          git diff -- app.py
+
+      - name: Commit integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.py
+          git commit -m "Integrate document processing into Data Upload"
+          git push origin HEAD:feature/integrate-document-processing
