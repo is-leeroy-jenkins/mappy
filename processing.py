@@ -1,11 +1,11 @@
 '''
   ******************************************************************************************
       Assembly:                Mappy
-      Filename:                document_processing.py
+      Filename:                processing.py
       Author:                  Terry D. Eppler
       Created:                 09-08-2026
       Last Modified By:        Terry D. Eppler
-      Last Modified On:        09-08-2026
+      Last Modified On:        09-09-2026
   ******************************************************************************************
   <summary>
     Foo-style document loading, web scraping, chunking, embedding, and vector-storage UI.
@@ -27,6 +27,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config as cfg
+from boogr import Error, Logger
 from embedders import EmbeddingFactory
 from excel import Excel
 from fetchers import WebFetcher
@@ -152,139 +153,188 @@ def clear_web_state( ) -> None:
 
 def load_uploaded_document( loader_type: str, uploaded_file: object ) -> List[ Document ]:
 	"""Load an uploaded file into LangChain documents."""
-	throw_if( 'loader_type', loader_type )
-	throw_if( 'uploaded_file', uploaded_file )
-	factory = DocumentLoaderFactory( )
-	loader = factory.create( loader_type )
-	suffix = Path( uploaded_file.name ).suffix
-	temporary_path = ''
 	try:
-		with tempfile.NamedTemporaryFile( delete=False, suffix=suffix ) as handle:
-			handle.write( uploaded_file.getvalue( ) )
-			temporary_path = handle.name
-		documents = loader.load( temporary_path ) or [ ]
-		for document in documents:
-			document.metadata = dict( document.metadata or { } )
-			document.metadata[ 'source' ] = uploaded_file.name
-			document.metadata[ 'filename' ] = uploaded_file.name
-			document.metadata[ 'loader' ] = loader.__class__.__name__
-			document.metadata.pop( 'path', None )
-		return documents
-	finally:
-		if temporary_path and os.path.exists( temporary_path ):
-			os.remove( temporary_path )
+		throw_if( 'loader_type', loader_type )
+		throw_if( 'uploaded_file', uploaded_file )
+		factory = DocumentLoaderFactory( )
+		loader = factory.create( loader_type )
+		suffix = Path( uploaded_file.name ).suffix
+		temporary_path = ''
+		try:
+			with tempfile.NamedTemporaryFile( delete=False, suffix=suffix ) as handle:
+				handle.write( uploaded_file.getvalue( ) )
+				temporary_path = handle.name
+			documents = loader.load( temporary_path ) or [ ]
+			for document in documents:
+				document.metadata = dict( document.metadata or { } )
+				document.metadata[ 'source' ] = uploaded_file.name
+				document.metadata[ 'filename' ] = uploaded_file.name
+				document.metadata[ 'loader' ] = loader.__class__.__name__
+				document.metadata.pop( 'path', None )
+			return documents
+		finally:
+			if temporary_path and os.path.exists( temporary_path ):
+				os.remove( temporary_path )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'load_uploaded_document( loader_type: str, uploaded_file: object )'
+		Logger( ).write( exception )
+		raise exception
 
 
 def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 	"""Render Foo-style chunking, embedding, and vector-store controls."""
-	throw_if( 'key_prefix', key_prefix )
-	chunk_col, overlap_col = st.columns( 2 )
-	with chunk_col:
-		chunk_size = st.slider( 'Chunk Size', min_value=1, max_value=5000, value=1000,
-			step=1, key=f'{key_prefix}_chunk_size' )
-	with overlap_col:
-		chunk_overlap = st.slider( 'Chunk Overlap', min_value=0,
-			max_value=max( 0, int( chunk_size ) - 1 ), value=min( 200, max( 0, int( chunk_size ) - 1 ) ),
-			step=1, key=f'{key_prefix}_chunk_overlap' )
+	try:
+		throw_if( 'key_prefix', key_prefix )
+		chunk_col, overlap_col = st.columns( 2 )
+		with chunk_col:
+			chunk_size = st.slider( 'Chunk Size', min_value=1, max_value=5000, value=1000,
+				step=1, key=f'{key_prefix}_chunk_size' )
+		with overlap_col:
+			chunk_overlap = st.slider( 'Chunk Overlap', min_value=0,
+				max_value=max( 0, int( chunk_size ) - 1 ),
+				value=min( 200, max( 0, int( chunk_size ) - 1 ) ),
+				step=1, key=f'{key_prefix}_chunk_overlap' )
 
-	provider_col, model_col = st.columns( 2 )
-	with provider_col:
-		provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
-			index=list( EMBEDDING_MODELS.keys( ) ).index( 'Hugging Face' ),
-			key=f'{key_prefix}_embedding_provider' )
-	with model_col:
-		model = st.selectbox( 'Embedding Model', options=EMBEDDING_MODELS[ provider ],
-			key=f'{key_prefix}_embedding_model' )
+		provider_col, model_col = st.columns( 2 )
+		with provider_col:
+			provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
+				index=list( EMBEDDING_MODELS.keys( ) ).index( 'Hugging Face' ),
+				key=f'{key_prefix}_embedding_provider' )
+		with model_col:
+			model = st.selectbox( 'Embedding Model', options=EMBEDDING_MODELS[ provider ],
+				key=f'{key_prefix}_embedding_model' )
 
-	model_path = ''
-	if provider == 'Local GGUF':
-		model_path = st.text_input( 'Local GGUF Model Path',
-			placeholder=r'C:\models\embedding-model.gguf', key=f'{key_prefix}_embedding_model_path' )
+		model_path = ''
+		if provider == 'Local GGUF':
+			model_path = st.text_input( 'Local GGUF Model Path',
+				placeholder=r'C:\models\embedding-model.gguf', key=f'{key_prefix}_embedding_model_path' )
 
-	store_col, target_col = st.columns( 2 )
-	with store_col:
-		vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
-			key=f'{key_prefix}_vector_backend' )
-	with target_col:
+		store_col, target_col = st.columns( 2 )
+		with store_col:
+			vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
+				key=f'{key_prefix}_vector_backend' )
+		with target_col:
+			if vector_backend == 'Chroma':
+				vector_target = st.text_input( 'Collection Name', value='mappy-documents',
+					key=f'{key_prefix}_chroma_collection' )
+			else:
+				vector_target = st.text_input( 'Index Name', value='', key=f'{key_prefix}_pinecone_index' )
+
 		if vector_backend == 'Chroma':
-			vector_target = st.text_input( 'Collection Name', value='mappy-documents',
-				key=f'{key_prefix}_chroma_collection' )
+			persist_directory = st.text_input( 'Persistence Directory', value='stores/chroma',
+				key=f'{key_prefix}_chroma_directory' )
+			namespace = ''
 		else:
-			vector_target = st.text_input( 'Index Name', value='', key=f'{key_prefix}_pinecone_index' )
+			persist_directory = ''
+			namespace = st.text_input( 'Namespace', value='', key=f'{key_prefix}_pinecone_namespace' )
 
-	if vector_backend == 'Chroma':
-		persist_directory = st.text_input( 'Persistence Directory', value='stores/chroma',
-			key=f'{key_prefix}_chroma_directory' )
-		namespace = ''
-	else:
-		persist_directory = ''
-		namespace = st.text_input( 'Namespace', value='', key=f'{key_prefix}_pinecone_namespace' )
-
-	return {
-		'chunk_size': int( chunk_size ),
-		'chunk_overlap': int( chunk_overlap ),
-		'provider': provider,
-		'model': model,
-		'model_path': model_path,
-		'vector_backend': vector_backend,
-		'vector_target': vector_target,
-		'persist_directory': persist_directory,
-		'namespace': namespace,
-	}
+		return {
+			'chunk_size': int( chunk_size ),
+			'chunk_overlap': int( chunk_overlap ),
+			'provider': provider,
+			'model': model,
+			'model_path': model_path,
+			'vector_backend': vector_backend,
+			'vector_target': vector_target,
+			'persist_directory': persist_directory,
+			'namespace': namespace,
+		}
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]'
+		Logger( ).write( exception )
+		raise exception
 
 
 def chunk_documents( documents: List[ Document ], chunk_size: int, chunk_overlap: int ) -> List[ Document ]:
 	"""Split LangChain documents into retrieval chunks."""
-	throw_if( 'documents', documents )
-	if chunk_overlap >= chunk_size:
-		raise ValueError( 'Chunk Overlap must be smaller than Chunk Size.' )
-	splitter = RecursiveCharacterTextSplitter(
-		chunk_size=int( chunk_size ), chunk_overlap=int( chunk_overlap ) )
-	chunks = splitter.split_documents( documents )
-	for index, document in enumerate( chunks, start=1 ):
-		document.metadata = dict( document.metadata or { } )
-		document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
-	return chunks
+	try:
+		throw_if( 'documents', documents )
+		if chunk_overlap >= chunk_size:
+			raise ValueError( 'Chunk Overlap must be smaller than Chunk Size.' )
+		splitter = RecursiveCharacterTextSplitter(
+			chunk_size=int( chunk_size ), chunk_overlap=int( chunk_overlap ) )
+		chunks = splitter.split_documents( documents )
+		for index, document in enumerate( chunks, start=1 ):
+			document.metadata = dict( document.metadata or { } )
+			document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
+		return chunks
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'chunk_documents( documents: List[ Document ], chunk_size: int, chunk_overlap: int )'
+		Logger( ).write( exception )
+		raise exception
 
 
 def create_embeddings( chunks: List[ Document ], provider: str, model: str,
 	model_path: str ) -> tuple[ object, List[ List[ float ] ] ]:
 	"""Create and validate embeddings for document chunks."""
-	throw_if( 'chunks', chunks )
-	factory = EmbeddingFactory( )
-	embedder = factory.create( provider, model, model_path )
-	vectors = embedder.embed_documents( [ document.page_content for document in chunks ] )
-	if len( vectors ) != len( chunks ):
-		raise RuntimeError( 'Embedding count does not match the chunk count.' )
-	dimensions = { len( vector ) for vector in vectors }
-	if len( dimensions ) != 1:
-		raise RuntimeError( 'Embedding vectors do not have a consistent dimension.' )
-	for vector in vectors:
-		if not all( math.isfinite( float( value ) ) for value in vector ):
-			raise RuntimeError( 'Embedding vectors contain non-finite values.' )
-	return embedder, vectors
+	try:
+		throw_if( 'chunks', chunks )
+		factory = EmbeddingFactory( )
+		embedder = factory.create( provider, model, model_path )
+		vectors = embedder.embed_documents( [ document.page_content for document in chunks ] )
+		if len( vectors ) != len( chunks ):
+			raise RuntimeError( 'Embedding count does not match the chunk count.' )
+		dimensions = { len( vector ) for vector in vectors }
+		if len( dimensions ) != 1:
+			raise RuntimeError( 'Embedding vectors do not have a consistent dimension.' )
+		for vector in vectors:
+			if not all( math.isfinite( float( value ) ) for value in vector ):
+				raise RuntimeError( 'Embedding vectors contain non-finite values.' )
+		return embedder, vectors
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'create_embeddings( chunks: List[ Document ], provider: str, model: str, model_path: str )'
+		Logger( ).write( exception )
+		raise exception
 
 
 def store_documents( chunks: List[ Document ], embedder: object, vector_backend: str,
 	vector_target: str, persist_directory: str, namespace: str ) -> object:
 	"""Persist document chunks to Chroma or Pinecone."""
-	throw_if( 'chunks', chunks )
-	throw_if( 'embedder', embedder )
-	throw_if( 'vector_backend', vector_backend )
-	throw_if( 'vector_target', vector_target )
-	if vector_backend == 'Chroma':
-		store = ChromaStore( )
-		return store.create( chunks, embedder, vector_target, persist_directory )
-	api_key = getattr( cfg, 'PINECONE_API_KEY', '' ) or os.getenv( 'PINECONE_API_KEY', '' )
-	store = PineconeStore( )
-	return store.create( chunks, embedder, vector_target, namespace, api_key )
+	try:
+		throw_if( 'chunks', chunks )
+		throw_if( 'embedder', embedder )
+		throw_if( 'vector_backend', vector_backend )
+		throw_if( 'vector_target', vector_target )
+		if vector_backend == 'Chroma':
+			store = ChromaStore( )
+			return store.create( chunks, embedder, vector_target, persist_directory )
+		api_key = getattr( cfg, 'PINECONE_API_KEY', '' ) or os.getenv( 'PINECONE_API_KEY', '' )
+		store = PineconeStore( )
+		return store.create( chunks, embedder, vector_target, namespace, api_key )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'store_documents( **kwargs )'
+		Logger( ).write( exception )
+		raise exception
 
 
 def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ str, object ] ) -> None:
 	"""Render Chunk, Embed, and Store actions for one Foo-style loader expander."""
-	throw_if( 'loader_type', loader_type )
-	throw_if( 'key_prefix', key_prefix )
-	throw_if( 'settings', settings )
+	try:
+		throw_if( 'loader_type', loader_type )
+		throw_if( 'key_prefix', key_prefix )
+		throw_if( 'settings', settings )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
+		Logger( ).write( exception )
+		raise exception
 	chunk_col, embed_col, store_col = st.columns( 3 )
 	chunk_run = chunk_col.button( 'Chunk', key=f'{key_prefix}_chunk_run', use_container_width=True )
 	embed_run = embed_col.button( 'Embed', key=f'{key_prefix}_embed_run', use_container_width=True )
@@ -305,6 +355,11 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 				st.session_state[ 'document_vector_store' ] = None
 				st.success( f'Created {len( chunks ):,} chunk(s).' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'DocumentProcessing'
+				exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 	if embed_run:
@@ -325,6 +380,11 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 				st.session_state[ 'document_vector_store' ] = None
 				st.success( f'Created {len( vectors ):,} embedding vector(s).' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'DocumentProcessing'
+				exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 	if store_run:
@@ -342,13 +402,28 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 					settings[ 'persist_directory' ], settings[ 'namespace' ] )
 				st.success( f'Stored {len( st.session_state[ "document_chunks" ] ):,} chunk(s).' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'DocumentProcessing'
+				exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 
 def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) -> None:
 	"""Render one local Foo-style loader expander."""
-	loader_settings = DOCUMENT_LOADERS[ loader_type ]
-	key_prefix = str( loader_settings[ 'prefix' ] )
+	try:
+		throw_if( 'loader_type', loader_type )
+		throw_if( 'settings', settings )
+		loader_settings = DOCUMENT_LOADERS[ loader_type ]
+		key_prefix = str( loader_settings[ 'prefix' ] )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'render_loader_expander( loader_type: str, settings: Dict )'
+		Logger( ).write( exception )
+		raise exception
 	with st.expander( label=str( loader_settings[ 'label' ] ), icon=str( loader_settings[ 'icon' ] ),
 		expanded=False ):
 		uploaded_file = st.file_uploader( 'Upload File', type=loader_settings[ 'types' ],
@@ -384,6 +459,11 @@ def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) ->
 				st.session_state[ 'document_file_name' ] = uploaded_file.name
 				st.success( f'Loaded {len( documents ):,} LangChain document(s).' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'DocumentProcessing'
+				exception.method = 'render_loader_expander( loader_type: str, settings: Dict )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 		render_document_actions( loader_type, key_prefix, processing )
@@ -435,6 +515,11 @@ def render_enrichment_expander( cache: object ) -> None:
 				st.download_button( 'Download Enriched File', data=output_bytes,
 					file_name=Path( output_path ).name, key='data_upload_download' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'DocumentProcessing'
+				exception.method = 'render_enrichment_expander( cache: object ) -> None'
+				Logger( ).write( exception )
 				st.error( f'Enrichment failed: {exc}' )
 			finally:
 				for path in [ input_path, output_path ]:
@@ -445,55 +530,68 @@ def render_enrichment_expander( cache: object ) -> None:
 def render_document_tabs( documents_key: str, chunks_key: str, embeddings_key: str,
 	first_label: str ) -> None:
 	"""Render loaded/scraped, chunk, and embedding tabs."""
-	document_tab, chunks_tab, embeddings_tab = st.tabs( [ first_label, '✂️ Chunks', '🧠 Embeddings' ] )
-	with document_tab:
-		documents = st.session_state.get( documents_key ) or [ ]
-		if not documents:
-			st.info( 'No LangChain documents are loaded.' )
-		else:
-			rows = [ ]
-			for index, document in enumerate( documents, start=1 ):
-				rows.append( {
-					'Document': index,
-					'Source': ( document.metadata or { } ).get( 'source', '' ),
-					'Loader': ( document.metadata or { } ).get( 'loader', '' ),
-					'Characters': len( document.page_content or '' ),
-					'Metadata': document.metadata or { },
-					'Text': document.page_content or '',
-				} )
-			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-	with chunks_tab:
-		chunks = st.session_state.get( chunks_key ) or [ ]
-		if not chunks:
-			st.info( 'No document chunks are available.' )
-		else:
-			rows = [ ]
-			for index, document in enumerate( chunks, start=1 ):
-				rows.append( {
-					'Chunk': index,
-					'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
-					'Source': ( document.metadata or { } ).get( 'source', '' ),
-					'Characters': len( document.page_content or '' ),
-					'Text': document.page_content or '',
-				} )
-			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-	with embeddings_tab:
-		vectors = st.session_state.get( embeddings_key ) or [ ]
-		chunks = st.session_state.get( chunks_key ) or [ ]
-		if not vectors:
-			st.info( 'No embedding vectors are available.' )
-		else:
-			rows = [ ]
-			for index, vector in enumerate( vectors ):
-				document = chunks[ index ] if index < len( chunks ) else None
-				rows.append( {
-					'Chunk': index + 1,
-					'Dimensions': len( vector ),
-					'Source': ( document.metadata or { } ).get( 'source', '' ) if document else '',
-					'Text': document.page_content if document else '',
-					'Embedding': vector,
-				} )
-			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	try:
+		throw_if( 'documents_key', documents_key )
+		throw_if( 'chunks_key', chunks_key )
+		throw_if( 'embeddings_key', embeddings_key )
+		throw_if( 'first_label', first_label )
+		document_tab, chunks_tab, embeddings_tab = st.tabs(
+			[ first_label, '✂️ Chunks', '🧠 Embeddings' ] )
+		with document_tab:
+			documents = st.session_state.get( documents_key ) or [ ]
+			if not documents:
+				st.info( 'No LangChain documents are loaded.' )
+			else:
+				rows = [ ]
+				for index, document in enumerate( documents, start=1 ):
+					rows.append( {
+						'Document': index,
+						'Source': ( document.metadata or { } ).get( 'source', '' ),
+						'Loader': ( document.metadata or { } ).get( 'loader', '' ),
+						'Characters': len( document.page_content or '' ),
+						'Metadata': document.metadata or { },
+						'Text': document.page_content or '',
+					} )
+				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+		with chunks_tab:
+			chunks = st.session_state.get( chunks_key ) or [ ]
+			if not chunks:
+				st.info( 'No document chunks are available.' )
+			else:
+				rows = [ ]
+				for index, document in enumerate( chunks, start=1 ):
+					rows.append( {
+						'Chunk': index,
+						'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
+						'Source': ( document.metadata or { } ).get( 'source', '' ),
+						'Characters': len( document.page_content or '' ),
+						'Text': document.page_content or '',
+					} )
+				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+		with embeddings_tab:
+			vectors = st.session_state.get( embeddings_key ) or [ ]
+			chunks = st.session_state.get( chunks_key ) or [ ]
+			if not vectors:
+				st.info( 'No embedding vectors are available.' )
+			else:
+				rows = [ ]
+				for index, vector in enumerate( vectors ):
+					document = chunks[ index ] if index < len( chunks ) else None
+					rows.append( {
+						'Chunk': index + 1,
+						'Dimensions': len( vector ),
+						'Source': ( document.metadata or { } ).get( 'source', '' ) if document else '',
+						'Text': document.page_content if document else '',
+						'Embedding': vector,
+					} )
+				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'render_document_tabs( **kwargs )'
+		Logger( ).write( exception )
+		raise exception
 
 
 def render_document_processing( cache: object = None ) -> None:
@@ -546,6 +644,11 @@ def render_web_document_processing( ) -> None:
 					st.session_state[ 'web_vector_store' ] = None
 					st.success( f'Scraped {len( documents ):,} LangChain document(s).' )
 				except Exception as exc:
+					exception = Error( exc )
+					exception.module = 'mappy'
+					exception.cause = 'WebDocumentProcessing'
+					exception.method = 'render_web_document_processing( ) -> None'
+					Logger( ).write( exception )
 					st.error( str( exc ) )
 
 			chunk_col, overlap_col = st.columns( 2 )
@@ -569,6 +672,11 @@ def render_web_document_processing( ) -> None:
 					st.session_state[ 'web_vector_store' ] = None
 					st.success( f'Created {len( chunks ):,} chunk(s).' )
 				except Exception as exc:
+					exception = Error( exc )
+					exception.module = 'mappy'
+					exception.cause = 'WebDocumentProcessing'
+					exception.method = 'render_web_document_processing( ) -> None'
+					Logger( ).write( exception )
 					st.error( str( exc ) )
 
 			provider_col, model_col = st.columns( 2 )
@@ -601,6 +709,11 @@ def render_web_document_processing( ) -> None:
 						st.session_state[ 'web_vector_store' ] = None
 						st.success( f'Created {len( vectors ):,} embedding vector(s).' )
 					except Exception as exc:
+						exception = Error( exc )
+						exception.module = 'mappy'
+						exception.cause = 'WebDocumentProcessing'
+						exception.method = 'render_web_document_processing( ) -> None'
+						Logger( ).write( exception )
 						st.error( str( exc ) )
 
 			store_col, target_col = st.columns( 2 )
@@ -634,6 +747,11 @@ def render_web_document_processing( ) -> None:
 							vector_backend, vector_target, persist_directory, namespace )
 						st.success( f'Stored {len( st.session_state[ "web_chunks" ] ):,} chunk(s).' )
 					except Exception as exc:
+						exception = Error( exc )
+						exception.module = 'mappy'
+						exception.cause = 'WebDocumentProcessing'
+						exception.method = 'render_web_document_processing( ) -> None'
+						Logger( ).write( exception )
 						st.error( str( exc ) )
 	with right:
 		render_document_tabs( 'web_documents', 'web_chunks', 'web_embeddings', '🌐 Scraped' )
@@ -642,43 +760,72 @@ def render_web_document_processing( ) -> None:
 
 def initialize_mode_document_state( prefix: str ) -> None:
 	"""Initialize per-mode document state."""
-	defaults = {
-		f'{prefix}_documents': [ ], f'{prefix}_chunks': [ ], f'{prefix}_embeddings': [ ],
-		f'{prefix}_embedder': None, f'{prefix}_document_signature': '',
-		f'{prefix}_embedding_provider_used': '', f'{prefix}_embedding_model_used': '',
-		f'{prefix}_embedding_model_path_used': '',
-	}
-	for key, value in defaults.items( ):
-		if key not in st.session_state:
-			st.session_state[ key ] = value
+	try:
+		throw_if( 'prefix', prefix )
+		defaults = {
+			f'{prefix}_documents': [ ], f'{prefix}_chunks': [ ], f'{prefix}_embeddings': [ ],
+			f'{prefix}_embedder': None, f'{prefix}_document_signature': '',
+			f'{prefix}_embedding_provider_used': '', f'{prefix}_embedding_model_used': '',
+			f'{prefix}_embedding_model_path_used': '',
+		}
+		for key, value in defaults.items( ):
+			if key not in st.session_state:
+				st.session_state[ key ] = value
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'initialize_mode_document_state( prefix: str ) -> None'
+		Logger( ).write( exception )
+		raise exception
 
 
 def serialize_mode_result( result: object ) -> str:
 	"""Serialize a structured API result as document text."""
-	if isinstance( result, pd.DataFrame ):
-		return result.to_json( orient='records', indent=2, default_handler=str )
-	if isinstance( result, str ):
-		return result
-	return json.dumps( result, indent=2, sort_keys=True, default=str )
+	try:
+		throw_if( 'result', result )
+		if isinstance( result, pd.DataFrame ):
+			return result.to_json( orient='records', indent=2, default_handler=str )
+		if isinstance( result, str ):
+			return result
+		return json.dumps( result, indent=2, sort_keys=True, default=str )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'serialize_mode_result( result: object ) -> str'
+		Logger( ).write( exception )
+		raise exception
 
 
 def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
 	"""Synchronize the latest API result into a LangChain Document."""
-	initialize_mode_document_state( prefix )
-	result = st.session_state.get( result_key )
-	if result is None or result == { } or result == [ ] or result == '':
-		return
-	text = serialize_mode_result( result )
-	source = str( st.session_state.get( source_key, '' ) or prefix.title( ) )
-	signature = f'{source}\n{text}'
-	if signature == st.session_state[ f'{prefix}_document_signature' ]:
-		return
-	st.session_state[ f'{prefix}_documents' ] = [
-		Document( page_content=text, metadata={ 'source': source, 'mode': prefix } ) ]
-	st.session_state[ f'{prefix}_chunks' ] = [ ]
-	st.session_state[ f'{prefix}_embeddings' ] = [ ]
-	st.session_state[ f'{prefix}_embedder' ] = None
-	st.session_state[ f'{prefix}_document_signature' ] = signature
+	try:
+		throw_if( 'prefix', prefix )
+		throw_if( 'result_key', result_key )
+		throw_if( 'source_key', source_key )
+		initialize_mode_document_state( prefix )
+		result = st.session_state.get( result_key )
+		if result is None or result == { } or result == [ ] or result == '':
+			return
+		text = serialize_mode_result( result )
+		source = str( st.session_state.get( source_key, '' ) or prefix.title( ) )
+		signature = f'{source}\n{text}'
+		if signature == st.session_state[ f'{prefix}_document_signature' ]:
+			return
+		st.session_state[ f'{prefix}_documents' ] = [
+			Document( page_content=text, metadata={ 'source': source, 'mode': prefix } ) ]
+		st.session_state[ f'{prefix}_chunks' ] = [ ]
+		st.session_state[ f'{prefix}_embeddings' ] = [ ]
+		st.session_state[ f'{prefix}_embedder' ] = None
+		st.session_state[ f'{prefix}_document_signature' ] = signature
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'sync_mode_document( prefix: str, result_key: str, source_key: str )'
+		Logger( ).write( exception )
+		raise exception
 
 
 def render_source_processing_controls( prefix: str, result_key: str, source_key: str,
@@ -699,11 +846,19 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 	Returns:
 		None: This function renders controls and updates session state.
 	"""
-	throw_if( 'prefix', prefix )
-	throw_if( 'result_key', result_key )
-	throw_if( 'source_key', source_key )
-	throw_if( 'source_name', source_name )
-	throw_if( 'key_prefix', key_prefix )
+	try:
+		throw_if( 'prefix', prefix )
+		throw_if( 'result_key', result_key )
+		throw_if( 'source_key', source_key )
+		throw_if( 'source_name', source_name )
+		throw_if( 'key_prefix', key_prefix )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'render_source_processing_controls( **kwargs )'
+		Logger( ).write( exception )
+		raise exception
 	initialize_mode_document_state( prefix )
 	active_source = str( st.session_state.get( source_key, '' ) or '' )
 	if active_source == source_name:
@@ -734,6 +889,11 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 				st.session_state[ f'{prefix}_vector_store' ] = None
 				st.success( f'Created {len( chunks ):,} chunk(s).' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'ModeDocumentProcessing'
+				exception.method = 'render_source_processing_controls( **kwargs )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 	if embed_run:
@@ -757,6 +917,11 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 				st.session_state[ f'{prefix}_vector_store' ] = None
 				st.success( f'Created {len( vectors ):,} embedding vector(s).' )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'ModeDocumentProcessing'
+				exception.method = 'render_source_processing_controls( **kwargs )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 	if store_run:
@@ -777,51 +942,66 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 				st.session_state[ f'{prefix}_vector_store' ] = vector_store
 				st.success( f"Stored {len( chunks ):,} chunk(s) in {settings[ 'vector_backend' ]}." )
 			except Exception as exc:
+				exception = Error( exc )
+				exception.module = 'mappy'
+				exception.cause = 'ModeDocumentProcessing'
+				exception.method = 'render_source_processing_controls( **kwargs )'
+				Logger( ).write( exception )
 				st.error( str( exc ) )
 
 
 def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) -> None:
 	"""Render Loaded, Chunks, and Embeddings tabs for one API mode."""
-	initialize_mode_document_state( prefix )
-	loaded_tab, chunks_tab, embeddings_tab = st.tabs(
-		[ loaded_label, '✂️ Chunks', '🧠 Embeddings' ] )
-	with loaded_tab:
-		documents = st.session_state[ f'{prefix}_documents' ]
-		if not documents:
-			st.info( 'Run a source request to load a document.' )
-		else:
-			rows = [ {
-				'Document': index, 'Source': ( document.metadata or { } ).get( 'source', '' ),
-				'Characters': len( document.page_content ), 'Metadata': document.metadata or { },
-				'Text': document.page_content,
-			} for index, document in enumerate( documents, start=1 ) ]
-			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-	with chunks_tab:
-		chunks = st.session_state[ f'{prefix}_chunks' ]
-		if not chunks:
-			st.info( 'Run Chunk to display document chunks.' )
-		else:
-			rows = [ {
-				'Chunk': index, 'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
-				'Source': ( document.metadata or { } ).get( 'source', '' ),
-				'Characters': len( document.page_content ), 'Text': document.page_content,
-			} for index, document in enumerate( chunks, start=1 ) ]
-			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
-	with embeddings_tab:
-		vectors = st.session_state[ f'{prefix}_embeddings' ]
-		chunks = st.session_state[ f'{prefix}_chunks' ]
-		if not vectors:
-			st.info( 'Run Embed to display embedding vectors.' )
-		else:
-			rows = [ ]
-			for index, vector in enumerate( vectors ):
-				document = chunks[ index ]
-				rows.append( {
-					'Chunk': index + 1,
-					'Provider': st.session_state[ f'{prefix}_embedding_provider_used' ],
-					'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] or st.session_state[ f'{prefix}_embedding_model_used' ],
-					'Dimensions': len( vector ),
+	try:
+		throw_if( 'prefix', prefix )
+		throw_if( 'loaded_label', loaded_label )
+		initialize_mode_document_state( prefix )
+		loaded_tab, chunks_tab, embeddings_tab = st.tabs(
+			[ loaded_label, '✂️ Chunks', '🧠 Embeddings' ] )
+		with loaded_tab:
+			documents = st.session_state[ f'{prefix}_documents' ]
+			if not documents:
+				st.info( 'Run a source request to load a document.' )
+			else:
+				rows = [ {
+					'Document': index, 'Source': ( document.metadata or { } ).get( 'source', '' ),
+					'Characters': len( document.page_content ), 'Metadata': document.metadata or { },
+					'Text': document.page_content,
+				} for index, document in enumerate( documents, start=1 ) ]
+				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+		with chunks_tab:
+			chunks = st.session_state[ f'{prefix}_chunks' ]
+			if not chunks:
+				st.info( 'Run Chunk to display document chunks.' )
+			else:
+				rows = [ {
+					'Chunk': index, 'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
 					'Source': ( document.metadata or { } ).get( 'source', '' ),
-					'Text': document.page_content, 'Vector': vector,
-				} )
-			st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+					'Characters': len( document.page_content ), 'Text': document.page_content,
+				} for index, document in enumerate( chunks, start=1 ) ]
+				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+		with embeddings_tab:
+			vectors = st.session_state[ f'{prefix}_embeddings' ]
+			chunks = st.session_state[ f'{prefix}_chunks' ]
+			if not vectors:
+				st.info( 'Run Embed to display embedding vectors.' )
+			else:
+				rows = [ ]
+				for index, vector in enumerate( vectors ):
+					document = chunks[ index ]
+					rows.append( {
+						'Chunk': index + 1,
+						'Provider': st.session_state[ f'{prefix}_embedding_provider_used' ],
+						'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] or st.session_state[ f'{prefix}_embedding_model_used' ],
+						'Dimensions': len( vector ),
+						'Source': ( document.metadata or { } ).get( 'source', '' ),
+						'Text': document.page_content, 'Vector': vector,
+					} )
+				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'render_mode_document_tabs( prefix: str, loaded_label: str ) -> None'
+		Logger( ).write( exception )
+		raise exception

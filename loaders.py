@@ -5,7 +5,7 @@
       Author:                  Terry D. Eppler
       Created:                 09-08-2026
       Last Modified By:        Terry D. Eppler
-      Last Modified On:        09-08-2026
+      Last Modified On:        09-09-2026
   ******************************************************************************************
   <copyright file="loaders.py" company="Terry D. Eppler">
 
@@ -43,6 +43,8 @@ from pathlib import Path
 from typing import List
 
 from langchain_core.documents import Document
+
+from boogr import Error, Logger
 
 
 def throw_if( name: str, value: object ) -> None:
@@ -98,11 +100,19 @@ class Loader( ):
 		Returns:
 			str: Validated local document path.
 		"""
-		throw_if( 'file_path', file_path )
-		self.file_path = file_path
-		if not Path( self.file_path ).is_file( ):
-			raise FileNotFoundError( f'File not found: {self.file_path}' )
-		return self.file_path
+		try:
+			throw_if( 'file_path', file_path )
+			self.file_path = file_path
+			if not Path( self.file_path ).is_file( ):
+				raise FileNotFoundError( f'File not found: {self.file_path}' )
+			return self.file_path
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'Loader'
+			exception.method = 'verify_exists( self, file_path: str ) -> str'
+			Logger( ).write( exception )
+			raise exception
 
 	def set_metadata( self, loader_name: str ) -> List[ Document ]:
 		"""Apply consistent source metadata.
@@ -116,14 +126,22 @@ class Loader( ):
 		Returns:
 			List[Document]: Loaded LangChain documents with normalized metadata.
 		"""
-		throw_if( 'loader_name', loader_name )
-		for document in self.documents:
-			document.metadata = dict( document.metadata or { } )
-			document.metadata[ 'source' ] = document.metadata.get(
-				'source', Path( self.file_path ).name )
-			document.metadata[ 'path' ] = self.file_path
-			document.metadata[ 'loader' ] = loader_name
-		return self.documents
+		try:
+			throw_if( 'loader_name', loader_name )
+			for document in self.documents:
+				document.metadata = dict( document.metadata or { } )
+				document.metadata[ 'source' ] = document.metadata.get(
+					'source', Path( self.file_path ).name )
+				document.metadata[ 'path' ] = self.file_path
+				document.metadata[ 'loader' ] = loader_name
+			return self.documents
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'Loader'
+			exception.method = 'set_metadata( self, loader_name: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class TextLoader( Loader ):
@@ -141,13 +159,21 @@ class TextLoader( Loader ):
 		Returns:
 			List[Document]: Loaded text document.
 		"""
-		self.file_path = self.verify_exists( file_path )
-		text = Path( self.file_path ).read_text( encoding='utf-8', errors='ignore' )
-		self.documents = [ Document( page_content=text, metadata={
-			'source': Path( self.file_path ).name,
-			'path': self.file_path,
-			'loader': 'TextLoader' } ) ]
-		return self.documents
+		try:
+			self.file_path = self.verify_exists( file_path )
+			text = Path( self.file_path ).read_text( encoding='utf-8', errors='ignore' )
+			self.documents = [ Document( page_content=text, metadata={
+				'source': Path( self.file_path ).name,
+				'path': self.file_path,
+				'loader': 'TextLoader' } ) ]
+			return self.documents
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'TextLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class CsvLoader( Loader ):
@@ -165,11 +191,19 @@ class CsvLoader( Loader ):
 		Returns:
 			List[Document]: Loaded CSV row documents.
 		"""
-		from langchain_community.document_loaders import CSVLoader as LangChainCsvLoader
+		try:
+			from langchain_community.document_loaders import CSVLoader as LangChainCsvLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = LangChainCsvLoader( file_path=self.file_path ).load( )
-		return self.set_metadata( 'CsvLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = LangChainCsvLoader( file_path=self.file_path ).load( )
+			return self.set_metadata( 'CsvLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'CsvLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class PdfLoader( Loader ):
@@ -187,11 +221,19 @@ class PdfLoader( Loader ):
 		Returns:
 			List[Document]: Loaded PDF page documents.
 		"""
-		from langchain_community.document_loaders import PyPDFLoader
+		try:
+			from langchain_community.document_loaders import PyPDFLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = PyPDFLoader( file_path=self.file_path ).load( )
-		return self.set_metadata( 'PdfLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = PyPDFLoader( file_path=self.file_path ).load( )
+			return self.set_metadata( 'PdfLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'PdfLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class ExcelLoader( Loader ):
@@ -209,11 +251,19 @@ class ExcelLoader( Loader ):
 		Returns:
 			List[Document]: Loaded workbook documents.
 		"""
-		from langchain_community.document_loaders import UnstructuredExcelLoader
+		try:
+			from langchain_community.document_loaders import UnstructuredExcelLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = UnstructuredExcelLoader( self.file_path, mode='single' ).load( )
-		return self.set_metadata( 'ExcelLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = UnstructuredExcelLoader( self.file_path, mode='single' ).load( )
+			return self.set_metadata( 'ExcelLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'ExcelLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class WordLoader( Loader ):
@@ -231,11 +281,19 @@ class WordLoader( Loader ):
 		Returns:
 			List[Document]: Loaded Word documents.
 		"""
-		from langchain_community.document_loaders import Docx2txtLoader
+		try:
+			from langchain_community.document_loaders import Docx2txtLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = Docx2txtLoader( self.file_path ).load( )
-		return self.set_metadata( 'WordLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = Docx2txtLoader( self.file_path ).load( )
+			return self.set_metadata( 'WordLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'WordLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class MarkdownLoader( Loader ):
@@ -253,11 +311,19 @@ class MarkdownLoader( Loader ):
 		Returns:
 			List[Document]: Loaded Markdown documents.
 		"""
-		from langchain_community.document_loaders import UnstructuredMarkdownLoader
+		try:
+			from langchain_community.document_loaders import UnstructuredMarkdownLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = UnstructuredMarkdownLoader( self.file_path, mode='single' ).load( )
-		return self.set_metadata( 'MarkdownLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = UnstructuredMarkdownLoader( self.file_path, mode='single' ).load( )
+			return self.set_metadata( 'MarkdownLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'MarkdownLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class HtmlLoader( Loader ):
@@ -275,11 +341,19 @@ class HtmlLoader( Loader ):
 		Returns:
 			List[Document]: Loaded HTML documents.
 		"""
-		from langchain_community.document_loaders import UnstructuredHTMLLoader
+		try:
+			from langchain_community.document_loaders import UnstructuredHTMLLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = UnstructuredHTMLLoader( self.file_path, mode='single' ).load( )
-		return self.set_metadata( 'HtmlLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = UnstructuredHTMLLoader( self.file_path, mode='single' ).load( )
+			return self.set_metadata( 'HtmlLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'HtmlLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class JsonLoader( Loader ):
@@ -297,14 +371,22 @@ class JsonLoader( Loader ):
 		Returns:
 			List[Document]: Loaded JSON documents.
 		"""
-		from langchain_community.document_loaders import JSONLoader as LangChainJsonLoader
+		try:
+			from langchain_community.document_loaders import JSONLoader as LangChainJsonLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = LangChainJsonLoader(
-			file_path=self.file_path,
-			jq_schema='.',
-			text_content=False ).load( )
-		return self.set_metadata( 'JsonLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = LangChainJsonLoader(
+				file_path=self.file_path,
+				jq_schema='.',
+				text_content=False ).load( )
+			return self.set_metadata( 'JsonLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'JsonLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class PowerPointLoader( Loader ):
@@ -322,11 +404,19 @@ class PowerPointLoader( Loader ):
 		Returns:
 			List[Document]: Loaded presentation documents.
 		"""
-		from langchain_community.document_loaders import UnstructuredPowerPointLoader
+		try:
+			from langchain_community.document_loaders import UnstructuredPowerPointLoader
 
-		self.file_path = self.verify_exists( file_path )
-		self.documents = UnstructuredPowerPointLoader( self.file_path, mode='single' ).load( )
-		return self.set_metadata( 'PowerPointLoader' )
+			self.file_path = self.verify_exists( file_path )
+			self.documents = UnstructuredPowerPointLoader( self.file_path, mode='single' ).load( )
+			return self.set_metadata( 'PowerPointLoader' )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'PowerPointLoader'
+			exception.method = 'load( self, file_path: str ) -> List[ Document ]'
+			Logger( ).write( exception )
+			raise exception
 
 
 class DocumentLoaderFactory( ):
@@ -357,19 +447,27 @@ class DocumentLoaderFactory( ):
 		Returns:
 			Loader: Configured local-document loader instance.
 		"""
-		throw_if( 'loader_type', loader_type )
-		self.loader_type = loader_type
-		loaders = {
-			'Text': TextLoader,
-			'CSV': CsvLoader,
-			'PDF': PdfLoader,
-			'Excel': ExcelLoader,
-			'Word': WordLoader,
-			'Markdown': MarkdownLoader,
-			'HTML': HtmlLoader,
-			'JSON': JsonLoader,
-			'PowerPoint': PowerPointLoader,
-		}
-		if self.loader_type not in loaders:
-			raise ValueError( f'Unsupported document loader: {self.loader_type}' )
-		return loaders[ self.loader_type ]( )
+		try:
+			throw_if( 'loader_type', loader_type )
+			self.loader_type = loader_type
+			loaders = {
+				'Text': TextLoader,
+				'CSV': CsvLoader,
+				'PDF': PdfLoader,
+				'Excel': ExcelLoader,
+				'Word': WordLoader,
+				'Markdown': MarkdownLoader,
+				'HTML': HtmlLoader,
+				'JSON': JsonLoader,
+				'PowerPoint': PowerPointLoader,
+			}
+			if self.loader_type not in loaders:
+				raise ValueError( f'Unsupported document loader: {self.loader_type}' )
+			return loaders[ self.loader_type ]( )
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'DocumentLoaderFactory'
+			exception.method = 'create( self, loader_type: str ) -> Loader'
+			Logger( ).write( exception )
+			raise exception

@@ -5,7 +5,7 @@
       Author:                  Terry D. Eppler
       Created:                 09-08-2026
       Last Modified By:        Terry D. Eppler
-      Last Modified On:        09-08-2026
+      Last Modified On:        09-09-2026
     ******************************************************************************************
     <summary>
         LangChain vector-storage implementations for Mappy document chunks.
@@ -19,6 +19,8 @@ from typing import Any, List
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+
+from boogr import Error, Logger
 
 
 def throw_if( name: str, value: object ) -> None:
@@ -89,23 +91,31 @@ class ChromaStore( ):
 		Returns:
 			Chroma: Populated Chroma vector store.
 		"""
-		throw_if( 'documents', documents )
-		throw_if( 'embedder', embedder )
-		throw_if( 'collection_name', collection_name )
-		throw_if( 'persist_directory', persist_directory )
-		self.documents = list( documents )
-		self.embedder = embedder
-		self.collection_name = collection_name
-		self.persist_directory = persist_directory
-		Path( self.persist_directory ).mkdir( parents=True, exist_ok=True )
-		
-		self.vector_store = Chroma( collection_name=self.collection_name,
-			embedding_function=self.embedder, persist_directory=self.persist_directory, )
-		self.vector_store.reset_collection( )
-		ids = [ str( (document.metadata or { }).get( 'chunk_id', f'chunk-{index:06d}' ) ) for
-				index, document in enumerate( self.documents, start=1 ) ]
-		self.vector_store.add_documents( documents=self.documents, ids=ids )
-		return self.vector_store
+		try:
+			throw_if( 'documents', documents )
+			throw_if( 'embedder', embedder )
+			throw_if( 'collection_name', collection_name )
+			throw_if( 'persist_directory', persist_directory )
+			self.documents = list( documents )
+			self.embedder = embedder
+			self.collection_name = collection_name
+			self.persist_directory = persist_directory
+			Path( self.persist_directory ).mkdir( parents=True, exist_ok=True )
+
+			self.vector_store = Chroma( collection_name=self.collection_name,
+				embedding_function=self.embedder, persist_directory=self.persist_directory, )
+			self.vector_store.reset_collection( )
+			ids = [ str( (document.metadata or { }).get( 'chunk_id', f'chunk-{index:06d}' ) ) for
+					index, document in enumerate( self.documents, start=1 ) ]
+			self.vector_store.add_documents( documents=self.documents, ids=ids )
+			return self.vector_store
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'ChromaStore'
+			exception.method = 'create( self, **kwargs )'
+			Logger( ).write( exception )
+			raise exception
 
 
 class PineconeStore( ):
@@ -158,33 +168,41 @@ class PineconeStore( ):
 		Returns:
 			Any: Populated LangChain Pinecone vector store.
 		"""
-		throw_if( 'documents', documents )
-		throw_if( 'embedder', embedder )
-		throw_if( 'index_name', index_name )
-		throw_if( 'api_key', api_key )
-		self.documents = list( documents )
-		self.embedder = embedder
-		self.index_name = index_name
-		self.namespace = namespace
-		self.api_key = api_key
+		try:
+			throw_if( 'documents', documents )
+			throw_if( 'embedder', embedder )
+			throw_if( 'index_name', index_name )
+			throw_if( 'api_key', api_key )
+			self.documents = list( documents )
+			self.embedder = embedder
+			self.index_name = index_name
+			self.namespace = namespace
+			self.api_key = api_key
 
-		from langchain_pinecone import PineconeVectorStore
-		from pinecone import Pinecone
+			from langchain_pinecone import PineconeVectorStore
+			from pinecone import Pinecone
 
-		self.client = Pinecone( api_key=self.api_key )
+			self.client = Pinecone( api_key=self.api_key )
 
-		if not self.client.indexes.exists( self.index_name ):
-			raise ValueError( f'Pinecone index does not exist: {self.index_name}' )
+			if not self.client.indexes.exists( self.index_name ):
+				raise ValueError( f'Pinecone index does not exist: {self.index_name}' )
 
-		index = self.client.index( name=self.index_name )
-		self.vector_store = PineconeVectorStore(
-			index=index,
-			embedding=self.embedder,
-			namespace=self.namespace or None,
-		)
-		ids = [
-			str( ( document.metadata or { } ).get( 'chunk_id', f'chunk-{index:06d}' ) )
-			for index, document in enumerate( self.documents, start=1 )
-		]
-		self.vector_store.add_documents( documents=self.documents, ids=ids )
-		return self.vector_store
+			index = self.client.index( name=self.index_name )
+			self.vector_store = PineconeVectorStore(
+				index=index,
+				embedding=self.embedder,
+				namespace=self.namespace or None,
+			)
+			ids = [
+				str( ( document.metadata or { } ).get( 'chunk_id', f'chunk-{index:06d}' ) )
+				for index, document in enumerate( self.documents, start=1 )
+			]
+			self.vector_store.add_documents( documents=self.documents, ids=ids )
+			return self.vector_store
+		except Exception as e:
+			exception = Error( e )
+			exception.module = 'mappy'
+			exception.cause = 'PineconeStore'
+			exception.method = 'create( self, **kwargs )'
+			Logger( ).write( exception )
+			raise exception
