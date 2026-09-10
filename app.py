@@ -4366,7 +4366,7 @@ elif mode == 'Time Zones':
 # SCRAPING MODE
 # ==============================================================================
 elif mode == 'Web Scraper':
-	from processing import render_web_document_processing
+	from processing import render_mode_document_tabs, render_source_processing_controls
 
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
@@ -4382,10 +4382,14 @@ elif mode == 'Web Scraper':
 		if 'webscrape_summary' not in st.session_state:
 			st.session_state[ 'webscrape_summary' ] = { }
 
+		if 'webscrape_source' not in st.session_state:
+			st.session_state[ 'webscrape_source' ] = ''
+
 		if st.session_state.get( 'webscrape_clear_request', False ):
 			st.session_state[ 'webfetcher_url' ] = ''
 			st.session_state[ 'webscrape_results' ] = [ ]
 			st.session_state[ 'webscrape_summary' ] = { }
+			st.session_state[ 'webscrape_source' ] = ''
 			st.session_state[ 'webscrape_clear_request' ] = False
 
 		def clear_webscrape_state( ) -> None:
@@ -4536,7 +4540,12 @@ elif mode == 'Web Scraper':
 					key='webfetcher_clear',
 					on_click=clear_webscrape_state )
 
+			render_source_processing_controls( 'webscrape', 'webscrape_results',
+				'webscrape_source', 'Web Scraper', 'webscrape_processing' )
+
 		with col_right:
+			render_mode_document_tabs( 'webscrape', '📄 Source Document' )
+
 			if run_scraper:
 				try:
 					if not target_url or not target_url.strip( ):
@@ -4558,6 +4567,7 @@ elif mode == 'Web Scraper':
 
 					st.session_state[ 'webscrape_results' ] = result.get( 'pages', [ ] )
 					st.session_state[ 'webscrape_summary' ] = result.get( 'summary', { } )
+					st.session_state[ 'webscrape_source' ] = 'Web Scraper'
 					st.rerun( )
 
 				except Exception as exc:
@@ -4673,12 +4683,12 @@ elif mode == 'Web Scraper':
 									height=240,
 									key=f'webscrape_{idx}_{label}' )
 
-	render_web_document_processing( )
-
 # ==============================================================================
 # WEATHER MODE
 # ==============================================================================
 elif mode == 'Weather':
+	from processing import render_mode_document_tabs, render_source_processing_controls
+
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
 		st.subheader( 'Weather Data' )
@@ -4819,6 +4829,9 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
+
+				render_source_processing_controls( 'weather', 'weather_last_result',
+					'weather_last_source', 'Google Weather', 'weather_google_processing' )
 			
 			# ------------------------------------------------------------------
 			# OPENWEATHER / OPEN-METEO
@@ -4886,6 +4899,10 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
+
+				render_source_processing_controls( 'weather', 'weather_last_result',
+					'weather_last_source', 'OpenWeather / Open-Meteo',
+					'weather_open_processing' )
 			
 			# ------------------------------------------------------------------
 			# HISTORICAL WEATHER
@@ -4956,6 +4973,10 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
+
+				render_source_processing_controls( 'weather', 'weather_last_result',
+					'weather_last_source', 'Historical Weather',
+					'weather_historical_processing' )
 			
 			# ------------------------------------------------------------------
 			# CLIMATE DATA
@@ -5101,6 +5122,9 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
+
+				render_source_processing_controls( 'weather', 'weather_last_result',
+					'weather_last_source', 'Climate Data', 'weather_climate_processing' )
 			
 			# ------------------------------------------------------------------
 			# TIDES AND CURRENTS
@@ -5210,7 +5234,12 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 
+				render_source_processing_controls( 'weather', 'weather_last_result',
+					'weather_last_source', 'Tides & Currents', 'weather_tides_processing' )
+
 		with weather_c2:
+			render_mode_document_tabs( 'weather', '📄 Source Document' )
+
 			# ------------------------------------------------------------------
 			# WEATHER RESULTS
 			# ------------------------------------------------------------------
@@ -5252,15 +5281,12 @@ elif mode == 'Weather':
 
 				st.json( weather_result )
 
-	with st.expander( label='Weather RAG', icon='🧠', expanded=False ):
-		from processing import render_mode_processing_controls
-		render_mode_processing_controls( 'weather', 'weather_last_result',
-			'weather_last_source', 'weather_rag' )
-
 # ==============================================================================
 # ENVIRONMENTAL MODE
 # ==============================================================================
 elif mode == 'Environmental':
+	from processing import render_mode_document_tabs, render_source_processing_controls
+
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
 		st.subheader( 'Environmental Data' )
@@ -5413,6 +5439,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
+
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'AirNow', 'env_airnow_processing' )
 			
 			# ------------------------------------------------------------------
 			# UV INDEX
@@ -5521,6 +5550,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
+
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'UV Index', 'env_uv_processing' )
 			
 			# ------------------------------------------------------------------
 			# OPENAQ
@@ -5733,6 +5765,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
+
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'OpenAQ', 'env_openaq_processing' )
 			
 			# ------------------------------------------------------------------
 			# PURPLEAIR SENSORS
@@ -5893,6 +5928,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
+
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'PurpleAir', 'env_purple_processing' )
 			
 			# ------------------------------------------------------------------
 			# ENVIROFACTS
@@ -5962,6 +6000,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
+
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'EnviroFacts', 'env_envirofacts_processing' )
 			
 			# ------------------------------------------------------------------
 			# FIRMS FIRE / THERMAL ANOMALIES
@@ -6099,6 +6140,9 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
+
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'FIRMS', 'env_firms_processing' )
 			
 			# ------------------------------------------------------------------
 			# EONET NATURAL EVENTS
@@ -6292,7 +6336,12 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 
+				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source',
+					'EONET', 'env_eonet_processing' )
+
 		with enviro_c2:
+			render_mode_document_tabs( 'env', '📄 Source Document' )
+
 			# ------------------------------------------------------------------
 			# ENVIRONMENTAL RESULTS
 			# ------------------------------------------------------------------
@@ -6348,15 +6397,12 @@ elif mode == 'Environmental':
 				st.markdown( '##### Raw Result' )
 				st.json( env_result )
 
-	with st.expander( label='Environmental RAG', icon='🧠', expanded=False ):
-		from processing import render_mode_processing_controls
-		render_mode_processing_controls( 'env', 'env_last_result', 'env_last_source',
-			'environmental_rag' )
-
 # ==============================================================================
 # ASTRONOMICAL MODE
 # ==============================================================================
 elif mode == 'Astronomical':
+	from processing import render_mode_document_tabs, render_source_processing_controls
+
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
 		st.subheader( 'Astronomical Data' )
@@ -6530,6 +6576,9 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
+
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'Naval Observatory', 'astro_naval_processing' )
 			
 			# ------------------------------------------------------------------
 			# SPACE WEATHER
@@ -6725,6 +6774,9 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
+
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'Space Weather', 'astro_space_processing' )
 			
 			# ------------------------------------------------------------------
 			# STAR CHART
@@ -6991,6 +7043,9 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
+
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'Star Chart', 'astro_chart_processing' )
 			
 			# ------------------------------------------------------------------
 			# SATELLITE CENTER
@@ -7166,6 +7221,9 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
+
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'Satellite Center', 'astro_satellite_processing' )
 			
 			# ------------------------------------------------------------------
 			# ASTRO CATALOG
@@ -7324,6 +7382,9 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
+
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'Astro Catalog', 'astro_catalog_processing' )
 			
 			# ------------------------------------------------------------------
 			# ASTROQUERY / SIMBAD
@@ -7414,6 +7475,10 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_latitude' ] = None
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
+
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'AstroQuery / SIMBAD',
+					'astro_astroquery_processing' )
 			
 			# ------------------------------------------------------------------
 			# STAR MAP
@@ -7626,7 +7691,12 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 
+				render_source_processing_controls( 'astro', 'astro_last_result',
+					'astro_last_source', 'Star Map', 'astro_starmap_processing' )
+
 		with astro_c2:
+			render_mode_document_tabs( 'astro', '📄 Source Document' )
+
 			# ------------------------------------------------------------------
 			# ASTRONOMICAL RESULTS
 			# ------------------------------------------------------------------
@@ -7707,11 +7777,6 @@ elif mode == 'Astronomical':
 
 				st.markdown( '##### Raw Result' )
 				st.json( astro_result )
-
-	with st.expander( label='Astronomical RAG', icon='🧠', expanded=False ):
-		from processing import render_mode_processing_controls
-		render_mode_processing_controls( 'astro', 'astro_last_result', 'astro_last_source',
-			'astronomical_rag' )
 
 # ==============================================================================
 # CELESTIAL MAP MODE
@@ -7832,6 +7897,8 @@ elif mode == 'Celestial Map':
 # GEOLOGICAL MODE
 # ==============================================================================
 elif mode == 'Geological':
+	from processing import render_mode_document_tabs, render_source_processing_controls
+
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
 		st.subheader( 'Geological Data' )
@@ -8007,6 +8074,9 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_latitude' ] = None
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
+
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source',
+					'USGS Earthquakes', 'geo_quake_processing' )
 			
 			# ------------------------------------------------------------------
 			# GLOBAL IMAGERY
@@ -8292,6 +8362,9 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_latitude' ] = None
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
+
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source',
+					'Global Imagery', 'geo_imagery_processing' )
 			
 			# ------------------------------------------------------------------
 			# USGS WATER DATA
@@ -8449,6 +8522,9 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_latitude' ] = None
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
+
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source',
+					'USGS Water Data', 'geo_water_processing' )
 			
 			# ------------------------------------------------------------------
 			# USGS THE NATIONAL MAP
@@ -8657,7 +8733,12 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 
+				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source',
+					'USGS The National Map', 'geo_tnm_processing' )
+
 		with geo_c2:
+			render_mode_document_tabs( 'geo', '📄 Source Document' )
+
 			# ------------------------------------------------------------------
 			# GEOLOGICAL RESULTS
 			# ------------------------------------------------------------------
@@ -8720,11 +8801,6 @@ elif mode == 'Geological':
 # ==============================================================================
 # TEXT GENERATION MODE
 # ==============================================================================
-	with st.expander( label='Geological RAG', icon='🧠', expanded=False ):
-		from processing import render_mode_processing_controls
-		render_mode_processing_controls( 'geo', 'geo_last_result', 'geo_last_source',
-			'geological_rag' )
-
 elif mode == 'Generative':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
