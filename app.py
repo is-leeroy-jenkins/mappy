@@ -2592,8 +2592,11 @@ def create_aggregation( df: pd.DataFrame ):
 		st.info( 'No numeric columns available.' )
 		return
 	
-	col = st.selectbox( 'Column', numeric_cols )
-	agg = st.selectbox( 'Aggregation', [ 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'MEDIAN' ] )
+	aggregation_c1, aggregation_c2 = st.columns( 2 )
+	with aggregation_c1:
+		col = st.selectbox( 'Column', numeric_cols )
+	with aggregation_c2:
+		agg = st.selectbox( 'Aggregation', [ 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'MEDIAN' ] )
 	
 	if agg == 'COUNT':
 		result = df[ col ].count( )
@@ -2665,8 +2668,11 @@ def create_visualization( df: pd.DataFrame ) -> None:
 			st.info( 'No numeric columns available.' )
 			return
 		
-		x = st.selectbox( 'X', df_plot.columns )
-		y = st.selectbox( 'Y', numeric_cols )
+		axis_c1, axis_c2 = st.columns( 2 )
+		with axis_c1:
+			x = st.selectbox( 'X', df_plot.columns )
+		with axis_c2:
+			y = st.selectbox( 'Y', numeric_cols )
 		
 		x_values = df_plot[ x ].astype( str ).tolist( )
 		y_values = pd.to_numeric( df_plot[ y ], errors='coerce' ).fillna( 0 ).tolist( )
@@ -2680,8 +2686,11 @@ def create_visualization( df: pd.DataFrame ) -> None:
 			st.info( 'No numeric columns available.' )
 			return
 		
-		x = st.selectbox( 'X', df_plot.columns )
-		y = st.selectbox( 'Y', numeric_cols )
+		axis_c1, axis_c2 = st.columns( 2 )
+		with axis_c1:
+			x = st.selectbox( 'X', df_plot.columns )
+		with axis_c2:
+			y = st.selectbox( 'Y', numeric_cols )
 		
 		x_values = df_plot[ x ].astype( str ).tolist( )
 		y_values = pd.to_numeric( df_plot[ y ], errors='coerce' ).fillna( 0 ).tolist( )
@@ -2695,8 +2704,11 @@ def create_visualization( df: pd.DataFrame ) -> None:
 			st.info( 'At least two numeric columns are required.' )
 			return
 		
-		x = st.selectbox( 'X', numeric_cols, key='viz_scatter_x' )
-		y = st.selectbox( 'Y', numeric_cols, key='viz_scatter_y' )
+		axis_c1, axis_c2 = st.columns( 2 )
+		with axis_c1:
+			x = st.selectbox( 'X', numeric_cols, key='viz_scatter_x' )
+		with axis_c2:
+			y = st.selectbox( 'Y', numeric_cols, key='viz_scatter_y' )
 		
 		x_series = pd.to_numeric( df_plot[ x ], errors='coerce' )
 		y_series = pd.to_numeric( df_plot[ y ], errors='coerce' )
@@ -4716,18 +4728,20 @@ elif mode == 'Weather':
 				google_address = st.text_input( 'Address or Location', value=global_location,
 					key='weather_google_address' )
 				
-				google_product = st.selectbox( 'Product',
-					options=[
-							'Current Conditions',
-							'Hourly Forecast',
-							'Daily Forecast',
-							'Hourly History',
-							'Alerts'
-					],
-					key='weather_google_product' )
-				
-				google_units = st.selectbox( 'Units System', options=[ 'METRIC', 'IMPERIAL' ],
-					key='weather_google_units' )
+				google_select_c1, google_select_c2 = st.columns( 2 )
+				with google_select_c1:
+					google_product = st.selectbox( 'Product',
+						options=[
+								'Current Conditions',
+								'Hourly Forecast',
+								'Daily Forecast',
+								'Hourly History',
+								'Alerts'
+						],
+						key='weather_google_product' )
+				with google_select_c2:
+					google_units = st.selectbox( 'Units System',
+						options=[ 'METRIC', 'IMPERIAL' ], key='weather_google_units' )
 				
 				google_language = st.text_input( 'Language Code', value='en',
 					key='weather_google_language' )
@@ -5175,15 +5189,17 @@ elif mode == 'Weather':
 					tides_begin_date = tides_begin.strftime( '%Y%m%d' )
 					tides_end_date = tides_end.strftime( '%Y%m%d' )
 					
-					tides_datum = st.selectbox(
-						'Datum',
-						options=[ 'MLLW', 'MLW', 'MSL', 'MHW', 'MHHW', 'NAVD' ],
-						key='weather_tides_datum' )
-					
-					tides_units = st.selectbox(
-						'Units',
-						options=[ 'metric', 'english' ],
-						key='weather_tides_units' )
+					tides_select_c1, tides_select_c2 = st.columns( 2 )
+					with tides_select_c1:
+						tides_datum = st.selectbox(
+							'Datum',
+							options=[ 'MLLW', 'MLW', 'MSL', 'MHW', 'MHHW', 'NAVD' ],
+							key='weather_tides_datum' )
+					with tides_select_c2:
+						tides_units = st.selectbox(
+							'Units',
+							options=[ 'metric', 'english' ],
+							key='weather_tides_units' )
 					
 					tides_time_zone = st.selectbox(
 						'Time Zone',
@@ -6009,19 +6025,21 @@ elif mode == 'Environmental':
 			# ------------------------------------------------------------------
 			with st.expander( '🔥 NASA FIRMS', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.NASA_FIRMS )
-				firms_source = st.selectbox( 'Source', options=[
-						'MODIS_NRT',
-						'MODIS_SP',
-						'VIIRS_SNPP_NRT',
-						'VIIRS_SNPP_SP',
-						'VIIRS_NOAA20_NRT',
-						'VIIRS_NOAA20_SP',
-						'VIIRS_NOAA21_NRT',
-						'LANDSAT_NRT'
-				], key='env_firms_source' )
-				
-				firms_area_mode = st.selectbox( 'Area Mode', options=[ 'World', 'Bounding Box' ],
-					key='env_firms_area_mode' )
+				firms_select_c1, firms_select_c2 = st.columns( 2 )
+				with firms_select_c1:
+					firms_source = st.selectbox( 'Source', options=[
+							'MODIS_NRT',
+							'MODIS_SP',
+							'VIIRS_SNPP_NRT',
+							'VIIRS_SNPP_SP',
+							'VIIRS_NOAA20_NRT',
+							'VIIRS_NOAA20_SP',
+							'VIIRS_NOAA21_NRT',
+							'LANDSAT_NRT'
+					], key='env_firms_source' )
+				with firms_select_c2:
+					firms_area_mode = st.selectbox( 'Area Mode',
+						options=[ 'World', 'Bounding Box' ], key='env_firms_area_mode' )
 				
 				firms_day_range = st.number_input(
 					'Day Range',
@@ -8134,15 +8152,17 @@ elif mode == 'Geological':
 						value=dt.date.today( ) - dt.timedelta( days=1 ),
 						key='geo_imagery_date' )
 					
-					imagery_projection = st.selectbox(
-						'Projection',
-						options=[ 'epsg4326', 'epsg3857' ],
-						key='geo_imagery_projection' )
-					
-					imagery_quality = st.selectbox(
-						'Quality',
-						options=[ 'best', 'std' ],
-						key='geo_imagery_quality' )
+					imagery_select_c1, imagery_select_c2 = st.columns( 2 )
+					with imagery_select_c1:
+						imagery_projection = st.selectbox(
+							'Projection',
+							options=[ 'epsg4326', 'epsg3857' ],
+							key='geo_imagery_projection' )
+					with imagery_select_c2:
+						imagery_quality = st.selectbox(
+							'Quality',
+							options=[ 'best', 'std' ],
+							key='geo_imagery_quality' )
 					
 					imagery_format = st.selectbox(
 						'Image Format',
@@ -8250,15 +8270,17 @@ elif mode == 'Geological':
 						'GlobalImagery.fetch_mercator_map().' )
 				
 				elif imagery_product == 'NASA GIBS GetCapabilities URL':
-					imagery_projection = st.selectbox(
-						'Projection',
-						options=[ 'epsg4326', 'epsg3857' ],
-						key='geo_imagery_capabilities_projection' )
-					
-					imagery_quality = st.selectbox(
-						'Quality',
-						options=[ 'best', 'std' ],
-						key='geo_imagery_capabilities_quality' )
+					imagery_select_c1, imagery_select_c2 = st.columns( 2 )
+					with imagery_select_c1:
+						imagery_projection = st.selectbox(
+							'Projection',
+							options=[ 'epsg4326', 'epsg3857' ],
+							key='geo_imagery_capabilities_projection' )
+					with imagery_select_c2:
+						imagery_quality = st.selectbox(
+							'Quality',
+							options=[ 'best', 'std' ],
+							key='geo_imagery_capabilities_quality' )
 					
 					st.caption(
 						'Builds a NASA GIBS WMS GetCapabilities URL. It does not download an image.' )
@@ -11193,9 +11215,12 @@ elif mode == 'Data Management':
 			
 			tables = list_tables( )
 			if tables:
-				table = st.selectbox( 'Select Table', tables, key='alter_table_select' )
-				operation = st.selectbox( 'Operation',
-					[ 'Add Column', 'Rename Column', 'Rename Table', 'Drop Column' ], key='op_key' )
+				alter_c1, alter_c2 = st.columns( 2 )
+				with alter_c1:
+					table = st.selectbox( 'Select Table', tables, key='alter_table_select' )
+				with alter_c2:
+					operation = st.selectbox( 'Operation',
+						[ 'Add Column', 'Rename Column', 'Rename Table', 'Drop Column' ], key='op_key' )
 				
 				if operation == 'Add Column':
 					new_col = st.text_input( 'Column Name' )

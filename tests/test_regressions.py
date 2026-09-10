@@ -110,19 +110,52 @@ class SourceContractTests( unittest.TestCase ):
 		self.assertEqual( source.count( 'render_source_processing_controls(' ), 24 )
 
 	def test_processing_tabs_and_tokenization_contract( self ) -> None:
-		"""Verify the right-side tabs and intermediate tokenization workflow are implemented."""
+		"""Verify right-side tabs and chunk-integrated word tokenization are implemented."""
 		application = (ROOT / 'app.py').read_text( encoding='utf-8' )
 		processing = (ROOT / 'processing.py').read_text( encoding='utf-8' )
 		for prefix in ( 'webscrape', 'weather', 'env', 'astro', 'geo' ):
 			self.assertIn( f"render_mode_document_tabs( '{prefix}', '📄 Source Document' )",
 				application )
-		self.assertIn( "tokenize_run = tokenize_col.button( 'Tokenize'", processing )
-		self.assertIn( 'def tokenize_documents(', processing )
+		self.assertNotIn( "button( 'Tokenize'", processing )
+		self.assertIn( 'def tokenize_documents( documents: List[ Document ] )', processing )
+		self.assertIn( 'tokens = tokenize_documents( chunks )', processing )
+		self.assertIn( 'chunk_col, embed_col, store_col = st.columns( 3 )', processing )
 		self.assertIn( "f'{prefix}_tokens'", processing )
 		self.assertIn( "key=f'{prefix}_embeddings_editor'", processing )
 		self.assertIn( 'st.data_editor(', processing )
 		for label in ( 'Weather RAG', 'Environmental RAG', 'Astronomical RAG', 'Geological RAG' ):
 			self.assertNotIn( label, application )
+
+	def test_consecutive_choice_controls_use_columns( self ) -> None:
+		"""Verify consecutive selectbox and multiselect controls are not stacked vertically."""
+		source = (ROOT / 'app.py').read_text( encoding='utf-8' )
+		tree = ast.parse( source )
+
+		def is_choice_control( statement: ast.stmt ) -> bool:
+			"""Return whether one statement directly renders a selectbox or multiselect control."""
+			if not isinstance( statement, ( ast.Assign, ast.AnnAssign, ast.Expr ) ):
+				return False
+			value = statement.value
+			return isinstance( value, ast.Call ) and isinstance( value.func, ast.Attribute ) and \
+				value.func.attr in ( 'selectbox', 'multiselect' ) and \
+				isinstance( value.func.value, ast.Name ) and value.func.value.id == 'st'
+
+		def inspect_blocks( node: ast.AST ) -> None:
+			"""Assert that no statement block contains consecutive direct choice controls."""
+			for _, value in ast.iter_fields( node ):
+				if isinstance( value, list ):
+					previous_choice = False
+					for item in value:
+						if isinstance( item, ast.stmt ):
+							current_choice = is_choice_control( item )
+							self.assertFalse( previous_choice and current_choice,
+								f'Consecutive choice controls near line {item.lineno}.' )
+							previous_choice = current_choice
+						inspect_blocks( item )
+				elif isinstance( value, ast.AST ):
+					inspect_blocks( value )
+
+		inspect_blocks( tree )
 
 
 if __name__ == '__main__':

@@ -59,9 +59,6 @@ EMBEDDING_MODELS: Dict[ str, List[ str ] ] = {
 	'Local GGUF': [ 'Local GGUF' ],
 }
 
-TOKENIZERS: List[ str ] = [ 'Words', 'Sentences' ]
-
-
 def throw_if( name: str, value: object ) -> None:
 	"""Validate a required value.
 
@@ -85,6 +82,7 @@ def initialize_document_state( ) -> None:
 	defaults = {
 		'document_documents': [ ],
 		'document_chunks': [ ],
+		'document_tokens': [ ],
 		'document_embeddings': [ ],
 		'document_embedder': None,
 		'document_vector_store': None,
@@ -107,6 +105,7 @@ def initialize_web_state( ) -> None:
 		'web_documents': [ ],
 		'web_document_url': '',
 		'web_chunks': [ ],
+		'web_tokens': [ ],
 		'web_embeddings': [ ],
 		'web_embedder': None,
 		'web_vector_store': None,
@@ -126,6 +125,7 @@ def clear_document_state( ) -> None:
 	initialize_document_state( )
 	st.session_state[ 'document_documents' ] = [ ]
 	st.session_state[ 'document_chunks' ] = [ ]
+	st.session_state[ 'document_tokens' ] = [ ]
 	st.session_state[ 'document_embeddings' ] = [ ]
 	st.session_state[ 'document_embedder' ] = None
 	st.session_state[ 'document_vector_store' ] = None
@@ -144,6 +144,7 @@ def clear_web_state( ) -> None:
 	st.session_state[ 'web_documents' ] = [ ]
 	st.session_state[ 'web_document_url' ] = ''
 	st.session_state[ 'web_chunks' ] = [ ]
+	st.session_state[ 'web_tokens' ] = [ ]
 	st.session_state[ 'web_embeddings' ] = [ ]
 	st.session_state[ 'web_embedder' ] = None
 	st.session_state[ 'web_vector_store' ] = None
@@ -190,7 +191,7 @@ def load_uploaded_document( loader_type: str, uploaded_file: object ) -> List[ D
 
 
 def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
-	"""Render Foo-style chunking, tokenization, embedding, and vector-store controls."""
+	"""Render Foo-style chunking, embedding, and vector-store controls."""
 	try:
 		throw_if( 'key_prefix', key_prefix )
 		chunk_col, overlap_col = st.columns( 2 )
@@ -202,9 +203,6 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 				max_value=max( 0, int( chunk_size ) - 1 ),
 				value=min( 200, max( 0, int( chunk_size ) - 1 ) ),
 				step=1, key=f'{key_prefix}_chunk_overlap' )
-
-		tokenizer = st.selectbox( 'Tokenizer', options=TOKENIZERS,
-			key=f'{key_prefix}_tokenizer' )
 
 		provider_col, model_col = st.columns( 2 )
 		with provider_col:
@@ -242,7 +240,6 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 		return {
 			'chunk_size': int( chunk_size ),
 			'chunk_overlap': int( chunk_overlap ),
-			'tokenizer': tokenizer,
 			'provider': provider,
 			'model': model,
 			'model_path': model_path,
@@ -262,33 +259,24 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 		raise exception
 
 
-def tokenize_documents( documents: List[ Document ], tokenizer: str ) -> List[ List[ str ] ]:
-	"""Tokenize document chunks.
+def tokenize_documents( documents: List[ Document ] ) -> List[ List[ str ] ]:
+	"""Tokenize document chunks into words.
 
 	Purpose:
-		Creates word or sentence tokens for each chunk while preserving positional correspondence
+		Creates word tokens for each chunk while preserving positional correspondence
 		between the chunk, its tokens, and any subsequently generated embedding.
 
 	Args:
 		documents (List[Document]): Document chunks requiring tokenization.
-		tokenizer (str): Tokenizer selected in the source-processing controls.
-
 	Returns:
 		List[List[str]]: Tokens grouped by document chunk in input order.
 	"""
 	try:
 		throw_if( 'documents', documents )
-		throw_if( 'tokenizer', tokenizer )
-		if tokenizer not in TOKENIZERS:
-			raise ValueError( f'Unsupported tokenizer: {tokenizer}' )
 		results: List[ List[ str ] ] = [ ]
 		for document in documents:
 			text = document.page_content or ''
-			if tokenizer == 'Sentences':
-				tokens = [ value.strip( ) for value in re.split( r'(?<=[.!?])\s+', text )
-					if value.strip( ) ]
-			else:
-				tokens = re.findall( r"\b[\w]+(?:['’-][\w]+)*\b", text, flags=re.UNICODE )
+			tokens = re.findall( r"\b[\w]+(?:['’-][\w]+)*\b", text, flags=re.UNICODE )
 			results.append( tokens )
 		return results
 	except Error:
@@ -297,7 +285,7 @@ def tokenize_documents( documents: List[ Document ], tokenizer: str ) -> List[ L
 		exception = Error( e )
 		exception.module = 'mappy'
 		exception.cause = 'DocumentProcessing'
-		exception.method = 'tokenize_documents( documents: List[ Document ], tokenizer: str )'
+		exception.method = 'tokenize_documents( documents: List[ Document ] )'
 		Logger( ).write( exception )
 		raise exception
 
@@ -463,27 +451,16 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 			try:
 				chunks = chunk_documents( st.session_state[ 'document_documents' ],
 					settings[ 'chunk_size' ], settings[ 'chunk_overlap' ] )
+				tokens = tokenize_documents( chunks )
 				st.session_state[ 'document_chunks' ] = chunks
+				st.session_state[ 'document_tokens' ] = tokens
 				st.session_state[ 'document_chunk_size_used' ] = settings[ 'chunk_size' ]
 				st.session_state[ 'document_chunk_overlap_used' ] = settings[ 'chunk_overlap' ]
 				st.session_state[ 'document_embeddings' ] = [ ]
 				st.session_state[ 'document_embedder' ] = None
 				st.session_state[ 'document_vector_store' ] = None
-				st.success( f'Created {len( chunks ):,} chunk(s).' )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Error as exception:
-				st.error( str( exception ) )
+				st.success( f'Created {len( chunks ):,} chunk(s) with '
+					f'{sum( len( values ) for values in tokens ):,} word token(s).' )
 			except Error as exception:
 				st.error( str( exception ) )
 			except Exception as exc:
@@ -594,6 +571,7 @@ def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) ->
 				throw_if( 'documents', documents )
 				st.session_state[ 'document_documents' ] = documents
 				st.session_state[ 'document_chunks' ] = [ ]
+				st.session_state[ 'document_tokens' ] = [ ]
 				st.session_state[ 'document_embeddings' ] = [ ]
 				st.session_state[ 'document_embedder' ] = None
 				st.session_state[ 'document_vector_store' ] = None
@@ -673,12 +651,13 @@ def render_enrichment_expander( cache: object ) -> None:
 						os.remove( path )
 
 
-def render_document_tabs( documents_key: str, chunks_key: str, embeddings_key: str,
-	first_label: str ) -> None:
+def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
+	embeddings_key: str, first_label: str ) -> None:
 	"""Render loaded/scraped, chunk, and embedding tabs."""
 	try:
 		throw_if( 'documents_key', documents_key )
 		throw_if( 'chunks_key', chunks_key )
+		throw_if( 'tokens_key', tokens_key )
 		throw_if( 'embeddings_key', embeddings_key )
 		throw_if( 'first_label', first_label )
 		document_tab, chunks_tab, embeddings_tab = st.tabs(
@@ -701,6 +680,7 @@ def render_document_tabs( documents_key: str, chunks_key: str, embeddings_key: s
 				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
 		with chunks_tab:
 			chunks = st.session_state.get( chunks_key ) or [ ]
+			tokens = st.session_state.get( tokens_key ) or [ ]
 			if not chunks:
 				st.info( 'No document chunks are available.' )
 			else:
@@ -711,6 +691,7 @@ def render_document_tabs( documents_key: str, chunks_key: str, embeddings_key: s
 						'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
 						'Source': ( document.metadata or { } ).get( 'source', '' ),
 						'Characters': len( document.page_content or '' ),
+						'Tokens': len( tokens[ index - 1 ] ) if index <= len( tokens ) else 0,
 						'Text': document.page_content or '',
 					} )
 				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
@@ -753,8 +734,8 @@ def render_document_processing( cache: object = None ) -> None:
 			for loader_type in DOCUMENT_LOADERS:
 				render_loader_expander( loader_type, DOCUMENT_LOADERS[ loader_type ] )
 	with right:
-		render_document_tabs( 'document_documents', 'document_chunks', 'document_embeddings',
-			'📄 Loaded' )
+		render_document_tabs( 'document_documents', 'document_chunks', 'document_tokens',
+			'document_embeddings', '📄 Loaded' )
 
 
 def render_web_document_processing( ) -> None:
@@ -787,6 +768,7 @@ def render_web_document_processing( ) -> None:
 					st.session_state[ 'web_documents' ] = documents
 					st.session_state[ 'web_document_url' ] = target_url.strip( )
 					st.session_state[ 'web_chunks' ] = [ ]
+					st.session_state[ 'web_tokens' ] = [ ]
 					st.session_state[ 'web_embeddings' ] = [ ]
 					st.session_state[ 'web_embedder' ] = None
 					st.session_state[ 'web_vector_store' ] = None
@@ -816,13 +798,16 @@ def render_web_document_processing( ) -> None:
 				try:
 					chunks = chunk_documents( st.session_state[ 'web_documents' ],
 						int( chunk_size ), int( chunk_overlap ) )
+					tokens = tokenize_documents( chunks )
 					st.session_state[ 'web_chunks' ] = chunks
+					st.session_state[ 'web_tokens' ] = tokens
 					st.session_state[ 'web_chunk_size_used' ] = int( chunk_size )
 					st.session_state[ 'web_chunk_overlap_used' ] = int( chunk_overlap )
 					st.session_state[ 'web_embeddings' ] = [ ]
 					st.session_state[ 'web_embedder' ] = None
 					st.session_state[ 'web_vector_store' ] = None
-					st.success( f'Created {len( chunks ):,} chunk(s).' )
+					st.success( f'Created {len( chunks ):,} chunk(s) with '
+						f'{sum( len( values ) for values in tokens ):,} word token(s).' )
 				except Error as exception:
 					st.error( str( exception ) )
 				except Exception as exc:
@@ -917,7 +902,8 @@ def render_web_document_processing( ) -> None:
 			if st.session_state.get( 'web_vector_store' ) is not None:
 				render_retrieval_controls( 'web_vector_store', 'web' )
 	with right:
-		render_document_tabs( 'web_documents', 'web_chunks', 'web_embeddings', '🌐 Scraped' )
+		render_document_tabs( 'web_documents', 'web_chunks', 'web_tokens', 'web_embeddings',
+			'🌐 Scraped' )
 
 
 
@@ -931,7 +917,6 @@ def initialize_mode_document_state( prefix: str ) -> None:
 			f'{prefix}_embedder': None, f'{prefix}_document_signature': '',
 			f'{prefix}_vector_store': None, f'{prefix}_chunk_size_used': 0,
 			f'{prefix}_chunk_overlap_used': 0,
-			f'{prefix}_tokenizer_used': '',
 			f'{prefix}_embedding_provider_used': '', f'{prefix}_embedding_model_used': '',
 			f'{prefix}_embedding_model_path_used': '',
 		}
@@ -970,7 +955,7 @@ def clear_mode_document_outputs( prefix: str ) -> None:
 			f'{prefix}_embeddings': [ ], f'{prefix}_embedder': None,
 			f'{prefix}_document_signature': '', f'{prefix}_vector_store': None,
 			f'{prefix}_chunk_size_used': 0, f'{prefix}_chunk_overlap_used': 0,
-			f'{prefix}_tokenizer_used': '', f'{prefix}_embedding_provider_used': '',
+			f'{prefix}_embedding_provider_used': '',
 			f'{prefix}_embedding_model_used': '', f'{prefix}_embedding_model_path_used': '',
 		}
 		for key, value in defaults.items( ):
@@ -1079,7 +1064,6 @@ def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
 		st.session_state[ f'{prefix}_tokens' ] = [ ]
 		st.session_state[ f'{prefix}_embeddings' ] = [ ]
 		st.session_state[ f'{prefix}_embedder' ] = None
-		st.session_state[ f'{prefix}_tokenizer_used' ] = ''
 		st.session_state[ f'{prefix}_document_signature' ] = signature
 	except Error:
 		raise
@@ -1097,7 +1081,7 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 	"""Render Foo-style processing controls inside one source expander.
 
 	Purpose:
-		Keeps each API source, its processing configuration, and its Chunk/Tokenize/Embed/Store actions
+		Keeps each API source, its processing configuration, and its Chunk/Embed/Store actions
 		together in the same expander while maintaining isolated document state per mode.
 
 	Args:
@@ -1133,10 +1117,8 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 		clear_mode_document_outputs( prefix )
 
 	settings = render_processing_inputs( key_prefix )
-	chunk_col, tokenize_col, embed_col, store_col = st.columns( 4 )
+	chunk_col, embed_col, store_col = st.columns( 3 )
 	chunk_run = chunk_col.button( 'Chunk', icon='✂️', key=f'{key_prefix}_chunk_run',
-		use_container_width=True )
-	tokenize_run = tokenize_col.button( 'Tokenize', icon='🔤', key=f'{key_prefix}_tokenize_run',
 		use_container_width=True )
 	embed_run = embed_col.button( 'Embed', icon='🧬', key=f'{key_prefix}_embed_run',
 		use_container_width=True )
@@ -1151,43 +1133,16 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 				documents = st.session_state[ f'{prefix}_documents' ]
 				chunks = chunk_documents( documents, settings[ 'chunk_size' ],
 					settings[ 'chunk_overlap' ] )
+				tokens = tokenize_documents( chunks )
 				st.session_state[ f'{prefix}_chunks' ] = chunks
 				st.session_state[ f'{prefix}_chunk_size_used' ] = settings[ 'chunk_size' ]
 				st.session_state[ f'{prefix}_chunk_overlap_used' ] = settings[ 'chunk_overlap' ]
-				st.session_state[ f'{prefix}_tokens' ] = [ ]
-				st.session_state[ f'{prefix}_tokenizer_used' ] = ''
-				st.session_state[ f'{prefix}_embeddings' ] = [ ]
-				st.session_state[ f'{prefix}_embedder' ] = None
-				st.session_state[ f'{prefix}_vector_store' ] = None
-				st.success( f'Created {len( chunks ):,} chunk(s).' )
-			except Error as exception:
-				st.error( str( exception ) )
-			except Exception as exc:
-				exception = Error( exc )
-				exception.module = 'mappy'
-				exception.cause = 'ModeDocumentProcessing'
-				exception.method = 'render_source_processing_controls( **kwargs )'
-				Logger( ).write( exception )
-				st.error( str( exception ) )
-
-	if tokenize_run:
-		chunks = st.session_state[ f'{prefix}_chunks' ]
-		if active_source != source_name:
-			st.warning( f'Run and chunk {source_name} before tokenizing.' )
-		elif not chunks:
-			st.warning( 'Chunk the loaded result before tokenizing.' )
-		elif settings[ 'chunk_size' ] != st.session_state[ f'{prefix}_chunk_size_used' ] or \
-			settings[ 'chunk_overlap' ] != st.session_state[ f'{prefix}_chunk_overlap_used' ]:
-			st.warning( 'Chunk settings changed. Run Chunk again before tokenizing.' )
-		else:
-			try:
-				tokens = tokenize_documents( chunks, settings[ 'tokenizer' ] )
 				st.session_state[ f'{prefix}_tokens' ] = tokens
-				st.session_state[ f'{prefix}_tokenizer_used' ] = settings[ 'tokenizer' ]
 				st.session_state[ f'{prefix}_embeddings' ] = [ ]
 				st.session_state[ f'{prefix}_embedder' ] = None
 				st.session_state[ f'{prefix}_vector_store' ] = None
-				st.success( f'Created {sum( len( values ) for values in tokens ):,} token(s).' )
+				st.success( f'Created {len( chunks ):,} chunk(s) with '
+					f'{sum( len( values ) for values in tokens ):,} word token(s).' )
 			except Error as exception:
 				st.error( str( exception ) )
 			except Exception as exc:
@@ -1205,8 +1160,8 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 			st.warning( f'Run and chunk {source_name} before embedding.' )
 		elif not chunks:
 			st.warning( 'Chunk the loaded result before embedding.' )
-		elif not tokens or settings[ 'tokenizer' ] != st.session_state[ f'{prefix}_tokenizer_used' ]:
-			st.warning( 'Tokenize the current chunks before embedding.' )
+		elif not tokens:
+			st.warning( 'Chunk and tokenize the loaded result before embedding.' )
 		elif settings[ 'chunk_size' ] != st.session_state[ f'{prefix}_chunk_size_used' ] or \
 			settings[ 'chunk_overlap' ] != st.session_state[ f'{prefix}_chunk_overlap_used' ]:
 			st.warning( 'Chunk settings changed. Run Chunk again before embedding.' )
@@ -1238,8 +1193,6 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 			st.warning( f'Run, chunk, and embed {source_name} before storing.' )
 		elif not chunks or embedder is None:
 			st.warning( 'Create embeddings before storing vectors.' )
-		elif settings[ 'tokenizer' ] != st.session_state[ f'{prefix}_tokenizer_used' ]:
-			st.warning( 'Tokenizer changed. Run Tokenize and Embed again before storing.' )
 		elif settings[ 'provider' ] != st.session_state[ f'{prefix}_embedding_provider_used' ] or \
 			settings[ 'model' ] != st.session_state[ f'{prefix}_embedding_model_used' ] or \
 			settings[ 'model_path' ] != st.session_state[ f'{prefix}_embedding_model_path_used' ]:
