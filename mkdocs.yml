@@ -126,6 +126,10 @@ nav:
       - Exceptions: api/exceptions.md
       - Fetchers: api/fetchers.md
       - AI Generators: api/generators.md
+      - Document Loaders: api/loaders.md
+      - Embeddings: api/embedders.md
+      - Document Processing: api/processing.md
+      - Vector Stores: api/vector.md
       - Geocoding: api/geocode.md
       - Google Maps: api/maps.md
       - Places: api/places.md

@@ -32,7 +32,7 @@ from embedders import EmbeddingFactory
 from excel import Excel
 from fetchers import WebFetcher
 from loaders import DocumentLoaderFactory
-from stores.vector import ChromaStore, PineconeStore
+from vector import ChromaStore, PineconeStore, create_document_ids
 
 
 DOCUMENT_LOADERS: Dict[ str, Dict[ str, object ] ] = {
@@ -175,6 +175,8 @@ def load_uploaded_document( loader_type: str, uploaded_file: object ) -> List[ D
 		finally:
 			if temporary_path and os.path.exists( temporary_path ):
 				os.remove( temporary_path )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -242,6 +244,8 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 			'persist_directory': persist_directory,
 			'namespace': namespace,
 		}
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -260,10 +264,14 @@ def chunk_documents( documents: List[ Document ], chunk_size: int, chunk_overlap
 		splitter = RecursiveCharacterTextSplitter(
 			chunk_size=int( chunk_size ), chunk_overlap=int( chunk_overlap ) )
 		chunks = splitter.split_documents( documents )
+		identifiers = create_document_ids( chunks )
 		for index, document in enumerate( chunks, start=1 ):
 			document.metadata = dict( document.metadata or { } )
-			document.metadata[ 'chunk_id' ] = f'chunk-{index:06d}'
+			document.metadata[ 'chunk_number' ] = index
+			document.metadata[ 'chunk_id' ] = identifiers[ index - 1 ]
 		return chunks
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -290,6 +298,8 @@ def create_embeddings( chunks: List[ Document ], provider: str, model: str,
 			if not all( math.isfinite( float( value ) ) for value in vector ):
 				raise RuntimeError( 'Embedding vectors contain non-finite values.' )
 		return embedder, vectors
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -299,20 +309,29 @@ def create_embeddings( chunks: List[ Document ], provider: str, model: str,
 		raise exception
 
 
-def store_documents( chunks: List[ Document ], embedder: object, vector_backend: str,
-	vector_target: str, persist_directory: str, namespace: str ) -> object:
+def store_documents( chunks: List[ Document ], embeddings: List[ List[ float ] ], embedder: object,
+	vector_backend: str, vector_target: str, persist_directory: str, namespace: str ) -> object:
 	"""Persist document chunks to Chroma or Pinecone."""
 	try:
 		throw_if( 'chunks', chunks )
+		throw_if( 'embeddings', embeddings )
 		throw_if( 'embedder', embedder )
 		throw_if( 'vector_backend', vector_backend )
 		throw_if( 'vector_target', vector_target )
 		if vector_backend == 'Chroma':
 			store = ChromaStore( )
-			return store.create( chunks, embedder, vector_target, persist_directory )
-		api_key = getattr( cfg, 'PINECONE_API_KEY', '' ) or os.getenv( 'PINECONE_API_KEY', '' )
+			store.connect( embedder, vector_target, persist_directory )
+			store.add_embeddings( chunks, embeddings )
+			return store
+		api_key = os.getenv( 'PINECONE_API_KEY', '' ) or getattr( cfg, 'PINECONE_API_KEY', '' )
 		store = PineconeStore( )
-		return store.create( chunks, embedder, vector_target, namespace, api_key )
+		store.create_index( vector_target, len( embeddings[ 0 ] ), api_key )
+		store.wait_until_ready( vector_target, api_key )
+		store.connect( embedder, vector_target, namespace, api_key )
+		store.add_embeddings( chunks, embeddings )
+		return store
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -322,12 +341,62 @@ def store_documents( chunks: List[ Document ], embedder: object, vector_backend:
 		raise exception
 
 
+def render_retrieval_controls( state_key: str, key_prefix: str ) -> None:
+	"""Render similarity retrieval for a stored vector collection.
+
+	Purpose:
+		Makes persisted document vectors usable by accepting a query and displaying scored source
+		context returned by the active Chroma or Pinecone wrapper.
+
+	Args:
+		state_key (str): Session-state key containing the connected vector-store wrapper.
+		key_prefix (str): Unique Streamlit widget-key prefix.
+
+	Returns:
+		None: This function renders controls and retrieval results.
+	"""
+	try:
+		throw_if( 'state_key', state_key )
+		throw_if( 'key_prefix', key_prefix )
+		query = st.text_input( 'Retrieval Query', key=f'{key_prefix}_retrieval_query' )
+		limit = st.slider( 'Retrieved Documents', min_value=1, max_value=20, value=4,
+			step=1, key=f'{key_prefix}_retrieval_limit' )
+		if st.button( 'Search', icon='🔎', key=f'{key_prefix}_retrieval_run',
+			use_container_width=True ):
+			throw_if( 'query', query )
+			store = st.session_state.get( state_key )
+			throw_if( 'vector_store', store )
+			results = store.similarity_search_with_score( query, limit=int( limit ) )
+			if not results:
+				st.info( 'No matching documents were found.' )
+				return
+			df_results = pd.DataFrame( [ {
+				'Rank': index,
+				'Score': score,
+				'Source': (document.metadata or { }).get( 'source', '' ),
+				'Chunk ID': (document.metadata or { }).get( 'chunk_id', '' ),
+				'Text': document.page_content,
+			} for index, (document, score) in enumerate( results, start=1 ) ] )
+			st.dataframe( df_results, use_container_width=True, hide_index=True )
+	except Error as exception:
+		st.error( str( exception ) )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'DocumentProcessing'
+		exception.method = 'render_retrieval_controls( state_key: str, key_prefix: str ) -> None'
+		Logger( ).write( exception )
+		st.error( str( exception ) )
+
+
 def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ str, object ] ) -> None:
 	"""Render Chunk, Embed, and Store actions for one Foo-style loader expander."""
 	try:
 		throw_if( 'loader_type', loader_type )
 		throw_if( 'key_prefix', key_prefix )
 		throw_if( 'settings', settings )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -354,13 +423,29 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 				st.session_state[ 'document_embedder' ] = None
 				st.session_state[ 'document_vector_store' ] = None
 				st.success( f'Created {len( chunks ):,} chunk(s).' )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'DocumentProcessing'
 				exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
 
 	if embed_run:
 		if not st.session_state[ 'document_chunks' ]:
@@ -379,13 +464,15 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 				st.session_state[ 'document_embedding_model_path_used' ] = settings[ 'model_path' ]
 				st.session_state[ 'document_vector_store' ] = None
 				st.success( f'Created {len( vectors ):,} embedding vector(s).' )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'DocumentProcessing'
 				exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
 
 	if store_run:
 		if st.session_state[ 'document_embedder' ] is None or not st.session_state[ 'document_embeddings' ]:
@@ -397,17 +484,23 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 		else:
 			try:
 				st.session_state[ 'document_vector_store' ] = store_documents(
-					st.session_state[ 'document_chunks' ], st.session_state[ 'document_embedder' ],
+					st.session_state[ 'document_chunks' ], st.session_state[ 'document_embeddings' ],
+					st.session_state[ 'document_embedder' ],
 					settings[ 'vector_backend' ], settings[ 'vector_target' ],
 					settings[ 'persist_directory' ], settings[ 'namespace' ] )
 				st.success( f'Stored {len( st.session_state[ "document_chunks" ] ):,} chunk(s).' )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'DocumentProcessing'
 				exception.method = 'render_document_actions( loader_type: str, key_prefix: str, settings: Dict )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
+
+	if st.session_state.get( 'document_vector_store' ) is not None:
+		render_retrieval_controls( 'document_vector_store', key_prefix )
 
 
 def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) -> None:
@@ -417,6 +510,8 @@ def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) ->
 		throw_if( 'settings', settings )
 		loader_settings = DOCUMENT_LOADERS[ loader_type ]
 		key_prefix = str( loader_settings[ 'prefix' ] )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -458,13 +553,15 @@ def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) ->
 				st.session_state[ 'document_active_loader' ] = loader_type
 				st.session_state[ 'document_file_name' ] = uploaded_file.name
 				st.success( f'Loaded {len( documents ):,} LangChain document(s).' )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'DocumentProcessing'
 				exception.method = 'render_loader_expander( loader_type: str, settings: Dict )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
 
 		render_document_actions( loader_type, key_prefix, processing )
 
@@ -514,6 +611,8 @@ def render_enrichment_expander( cache: object ) -> None:
 					output_bytes = handle.read( )
 				st.download_button( 'Download Enriched File', data=output_bytes,
 					file_name=Path( output_path ).name, key='data_upload_download' )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
@@ -582,9 +681,11 @@ def render_document_tabs( documents_key: str, chunks_key: str, embeddings_key: s
 						'Dimensions': len( vector ),
 						'Source': ( document.metadata or { } ).get( 'source', '' ) if document else '',
 						'Text': document.page_content if document else '',
-						'Embedding': vector,
+						'Embedding Preview': vector[ :8 ],
 					} )
 				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -604,7 +705,6 @@ def render_document_processing( cache: object = None ) -> None:
 		with st.expander( label='Local Documents', icon='📁', expanded=True ):
 			for loader_type in DOCUMENT_LOADERS:
 				render_loader_expander( loader_type, DOCUMENT_LOADERS[ loader_type ] )
-		render_enrichment_expander( cache )
 	with right:
 		render_document_tabs( 'document_documents', 'document_chunks', 'document_embeddings',
 			'📄 Loaded' )
@@ -634,7 +734,8 @@ def render_web_document_processing( ) -> None:
 				try:
 					throw_if( 'target_url', target_url )
 					fetcher = WebFetcher( )
-					documents = fetcher.fetch( target_url.strip( ), time=int( request_timeout ) )
+					documents = fetcher.load_documents( target_url.strip( ),
+						time=int( request_timeout ) )
 					throw_if( 'documents', documents )
 					st.session_state[ 'web_documents' ] = documents
 					st.session_state[ 'web_document_url' ] = target_url.strip( )
@@ -643,13 +744,17 @@ def render_web_document_processing( ) -> None:
 					st.session_state[ 'web_embedder' ] = None
 					st.session_state[ 'web_vector_store' ] = None
 					st.success( f'Scraped {len( documents ):,} LangChain document(s).' )
+				except Error as exception:
+					st.error( str( exception ) )
+				except Error as exception:
+					st.error( str( exception ) )
 				except Exception as exc:
 					exception = Error( exc )
 					exception.module = 'mappy'
 					exception.cause = 'WebDocumentProcessing'
 					exception.method = 'render_web_document_processing( ) -> None'
 					Logger( ).write( exception )
-					st.error( str( exc ) )
+				st.error( str( exception ) )
 
 			chunk_col, overlap_col = st.columns( 2 )
 			with chunk_col:
@@ -671,13 +776,15 @@ def render_web_document_processing( ) -> None:
 					st.session_state[ 'web_embedder' ] = None
 					st.session_state[ 'web_vector_store' ] = None
 					st.success( f'Created {len( chunks ):,} chunk(s).' )
+				except Error as exception:
+					st.error( str( exception ) )
 				except Exception as exc:
 					exception = Error( exc )
 					exception.module = 'mappy'
 					exception.cause = 'WebDocumentProcessing'
 					exception.method = 'render_web_document_processing( ) -> None'
 					Logger( ).write( exception )
-					st.error( str( exc ) )
+				st.error( str( exception ) )
 
 			provider_col, model_col = st.columns( 2 )
 			with provider_col:
@@ -708,13 +815,17 @@ def render_web_document_processing( ) -> None:
 						st.session_state[ 'web_embedding_model_path_used' ] = model_path
 						st.session_state[ 'web_vector_store' ] = None
 						st.success( f'Created {len( vectors ):,} embedding vector(s).' )
+					except Error as exception:
+						st.error( str( exception ) )
+					except Error as exception:
+						st.error( str( exception ) )
 					except Exception as exc:
 						exception = Error( exc )
 						exception.module = 'mappy'
 						exception.cause = 'WebDocumentProcessing'
 						exception.method = 'render_web_document_processing( ) -> None'
 						Logger( ).write( exception )
-						st.error( str( exc ) )
+				st.error( str( exception ) )
 
 			store_col, target_col = st.columns( 2 )
 			with store_col:
@@ -743,16 +854,21 @@ def render_web_document_processing( ) -> None:
 				else:
 					try:
 						st.session_state[ 'web_vector_store' ] = store_documents(
-							st.session_state[ 'web_chunks' ], st.session_state[ 'web_embedder' ],
+							st.session_state[ 'web_chunks' ], st.session_state[ 'web_embeddings' ],
+							st.session_state[ 'web_embedder' ],
 							vector_backend, vector_target, persist_directory, namespace )
 						st.success( f'Stored {len( st.session_state[ "web_chunks" ] ):,} chunk(s).' )
+					except Error as exception:
+						st.error( str( exception ) )
 					except Exception as exc:
 						exception = Error( exc )
 						exception.module = 'mappy'
 						exception.cause = 'WebDocumentProcessing'
 						exception.method = 'render_web_document_processing( ) -> None'
 						Logger( ).write( exception )
-						st.error( str( exc ) )
+				st.error( str( exception ) )
+			if st.session_state.get( 'web_vector_store' ) is not None:
+				render_retrieval_controls( 'web_vector_store', 'web' )
 	with right:
 		render_document_tabs( 'web_documents', 'web_chunks', 'web_embeddings', '🌐 Scraped' )
 
@@ -765,12 +881,16 @@ def initialize_mode_document_state( prefix: str ) -> None:
 		defaults = {
 			f'{prefix}_documents': [ ], f'{prefix}_chunks': [ ], f'{prefix}_embeddings': [ ],
 			f'{prefix}_embedder': None, f'{prefix}_document_signature': '',
+			f'{prefix}_vector_store': None, f'{prefix}_chunk_size_used': 0,
+			f'{prefix}_chunk_overlap_used': 0,
 			f'{prefix}_embedding_provider_used': '', f'{prefix}_embedding_model_used': '',
 			f'{prefix}_embedding_model_path_used': '',
 		}
 		for key, value in defaults.items( ):
 			if key not in st.session_state:
 				st.session_state[ key ] = value
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -789,11 +909,66 @@ def serialize_mode_result( result: object ) -> str:
 		if isinstance( result, str ):
 			return result
 		return json.dumps( result, indent=2, sort_keys=True, default=str )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
 		exception.cause = 'ModeDocumentProcessing'
 		exception.method = 'serialize_mode_result( result: object ) -> str'
+		Logger( ).write( exception )
+		raise exception
+
+
+def create_result_documents( result: object, source: str, mode: str ) -> List[ Document ]:
+	"""Convert a GIS provider result into record-oriented documents.
+
+	Purpose:
+		Preserves row, feature, observation, and event boundaries so chunking does not destroy the
+		geographic and temporal context required for filtered retrieval.
+
+	Args:
+		result (object): Provider result returned by a Mappy source.
+		source (str): Provider or endpoint label.
+		mode (str): Mappy GIS mode containing the source.
+
+	Returns:
+		List[Document]: Record-oriented documents with provider and GIS metadata.
+	"""
+	try:
+		throw_if( 'result', result )
+		throw_if( 'source', source )
+		throw_if( 'mode', mode )
+		if isinstance( result, pd.DataFrame ):
+			records = result.to_dict( orient='records' )
+		elif isinstance( result, list ):
+			records = result
+		elif isinstance( result, dict ) and isinstance( result.get( 'rows' ), list ):
+			records = result[ 'rows' ]
+		else:
+			records = [ result ]
+		documents: List[ Document ] = [ ]
+		metadata_names = { 'id', 'latitude', 'longitude', 'lat', 'lng', 'date', 'time',
+			'timestamp', 'start', 'end', 'url' }
+		for index, record in enumerate( records, start=1 ):
+			metadata: Dict[ str, object ] = { 'source': source, 'mode': mode,
+				'record_number': index }
+			if isinstance( record, dict ):
+				for name, value in record.items( ):
+					if str( name ).lower( ) in metadata_names and isinstance(
+						value, ( str, int, float, bool ) ):
+						metadata[ str( name ).lower( ) ] = value
+			text = record if isinstance( record, str ) else json.dumps( record, indent=2,
+				sort_keys=True, default=str )
+			documents.append( Document( page_content=text, metadata=metadata ) )
+		return documents
+	except Error:
+		raise
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'create_result_documents( result: object, source: str, mode: str )'
 		Logger( ).write( exception )
 		raise exception
 
@@ -808,17 +983,18 @@ def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
 		result = st.session_state.get( result_key )
 		if result is None or result == { } or result == [ ] or result == '':
 			return
-		text = serialize_mode_result( result )
 		source = str( st.session_state.get( source_key, '' ) or prefix.title( ) )
+		text = serialize_mode_result( result )
 		signature = f'{source}\n{text}'
 		if signature == st.session_state[ f'{prefix}_document_signature' ]:
 			return
-		st.session_state[ f'{prefix}_documents' ] = [
-			Document( page_content=text, metadata={ 'source': source, 'mode': prefix } ) ]
+		st.session_state[ f'{prefix}_documents' ] = create_result_documents( result, source, prefix )
 		st.session_state[ f'{prefix}_chunks' ] = [ ]
 		st.session_state[ f'{prefix}_embeddings' ] = [ ]
 		st.session_state[ f'{prefix}_embedder' ] = None
 		st.session_state[ f'{prefix}_document_signature' ] = signature
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -852,6 +1028,8 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 		throw_if( 'source_key', source_key )
 		throw_if( 'source_name', source_name )
 		throw_if( 'key_prefix', key_prefix )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'
@@ -888,13 +1066,15 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 				st.session_state[ f'{prefix}_embedder' ] = None
 				st.session_state[ f'{prefix}_vector_store' ] = None
 				st.success( f'Created {len( chunks ):,} chunk(s).' )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'ModeDocumentProcessing'
 				exception.method = 'render_source_processing_controls( **kwargs )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
 
 	if embed_run:
 		chunks = st.session_state[ f'{prefix}_chunks' ]
@@ -916,13 +1096,15 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 				st.session_state[ f'{prefix}_embedding_model_path_used' ] = settings[ 'model_path' ]
 				st.session_state[ f'{prefix}_vector_store' ] = None
 				st.success( f'Created {len( vectors ):,} embedding vector(s).' )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'ModeDocumentProcessing'
 				exception.method = 'render_source_processing_controls( **kwargs )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
 
 	if store_run:
 		chunks = st.session_state[ f'{prefix}_chunks' ]
@@ -937,17 +1119,61 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 			st.warning( 'Embedding settings changed. Run Embed again before storing.' )
 		else:
 			try:
-				vector_store = store_documents( chunks, embedder, settings[ 'vector_backend' ],
+				vector_store = store_documents( chunks,
+					st.session_state[ f'{prefix}_embeddings' ], embedder, settings[ 'vector_backend' ],
 					settings[ 'vector_target' ], settings[ 'persist_directory' ], settings[ 'namespace' ] )
 				st.session_state[ f'{prefix}_vector_store' ] = vector_store
 				st.success( f"Stored {len( chunks ):,} chunk(s) in {settings[ 'vector_backend' ]}." )
+			except Error as exception:
+				st.error( str( exception ) )
 			except Exception as exc:
 				exception = Error( exc )
 				exception.module = 'mappy'
 				exception.cause = 'ModeDocumentProcessing'
 				exception.method = 'render_source_processing_controls( **kwargs )'
 				Logger( ).write( exception )
-				st.error( str( exc ) )
+				st.error( str( exception ) )
+
+	if st.session_state.get( f'{prefix}_vector_store' ) is not None:
+		render_retrieval_controls( f'{prefix}_vector_store', key_prefix )
+
+
+def render_mode_processing_controls( prefix: str, result_key: str, source_key: str,
+	key_prefix: str ) -> None:
+	"""Render processing controls for the latest result in a GIS mode.
+
+	Purpose:
+		Adds ingestion, non-destructive storage, and retrieval to an existing specialized GIS result
+		panel without replacing its maps, images, metrics, tables, or raw response.
+
+	Args:
+		prefix (str): Per-mode session-state prefix.
+		result_key (str): Session-state key containing the latest provider result.
+		source_key (str): Session-state key containing the latest provider name.
+		key_prefix (str): Unique Streamlit widget-key prefix.
+
+	Returns:
+		None: This function renders processing and retrieval controls.
+	"""
+	try:
+		throw_if( 'prefix', prefix )
+		throw_if( 'result_key', result_key )
+		throw_if( 'source_key', source_key )
+		throw_if( 'key_prefix', key_prefix )
+		source = str( st.session_state.get( source_key, '' ) or '' )
+		if not source:
+			st.info( 'Run a GIS source before processing its result.' )
+			return
+		render_source_processing_controls( prefix, result_key, source_key, source, key_prefix )
+	except Error as exception:
+		st.error( str( exception ) )
+	except Exception as e:
+		exception = Error( e )
+		exception.module = 'mappy'
+		exception.cause = 'ModeDocumentProcessing'
+		exception.method = 'render_mode_processing_controls( self, **kwargs )'
+		Logger( ).write( exception )
+		st.error( str( exception ) )
 
 
 def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) -> None:
@@ -995,9 +1221,11 @@ def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) ->
 						'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] or st.session_state[ f'{prefix}_embedding_model_used' ],
 						'Dimensions': len( vector ),
 						'Source': ( document.metadata or { } ).get( 'source', '' ),
-						'Text': document.page_content, 'Vector': vector,
+						'Text': document.page_content, 'Vector Preview': vector[ :8 ],
 					} )
 				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+	except Error:
+		raise
 	except Exception as e:
 		exception = Error( e )
 		exception.module = 'mappy'

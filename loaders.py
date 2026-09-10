@@ -106,6 +106,8 @@ class Loader( ):
 			if not Path( self.file_path ).is_file( ):
 				raise FileNotFoundError( f'File not found: {self.file_path}' )
 			return self.file_path
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -135,6 +137,8 @@ class Loader( ):
 				document.metadata[ 'path' ] = self.file_path
 				document.metadata[ 'loader' ] = loader_name
 			return self.documents
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -167,6 +171,8 @@ class TextLoader( Loader ):
 				'path': self.file_path,
 				'loader': 'TextLoader' } ) ]
 			return self.documents
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -197,6 +203,8 @@ class CsvLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = LangChainCsvLoader( file_path=self.file_path ).load( )
 			return self.set_metadata( 'CsvLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -227,6 +235,8 @@ class PdfLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = PyPDFLoader( file_path=self.file_path ).load( )
 			return self.set_metadata( 'PdfLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -257,6 +267,8 @@ class ExcelLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = UnstructuredExcelLoader( self.file_path, mode='single' ).load( )
 			return self.set_metadata( 'ExcelLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -287,6 +299,8 @@ class WordLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = Docx2txtLoader( self.file_path ).load( )
 			return self.set_metadata( 'WordLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -317,6 +331,8 @@ class MarkdownLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = UnstructuredMarkdownLoader( self.file_path, mode='single' ).load( )
 			return self.set_metadata( 'MarkdownLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -347,6 +363,8 @@ class HtmlLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = UnstructuredHTMLLoader( self.file_path, mode='single' ).load( )
 			return self.set_metadata( 'HtmlLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -380,6 +398,8 @@ class JsonLoader( Loader ):
 				jq_schema='.',
 				text_content=False ).load( )
 			return self.set_metadata( 'JsonLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -410,6 +430,8 @@ class PowerPointLoader( Loader ):
 			self.file_path = self.verify_exists( file_path )
 			self.documents = UnstructuredPowerPointLoader( self.file_path, mode='single' ).load( )
 			return self.set_metadata( 'PowerPointLoader' )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
@@ -464,6 +486,8 @@ class DocumentLoaderFactory( ):
 			if self.loader_type not in loaders:
 				raise ValueError( f'Unsupported document loader: {self.loader_type}' )
 			return loaders[ self.loader_type ]( )
+		except Error:
+			raise
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mappy'
