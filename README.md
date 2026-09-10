@@ -100,8 +100,9 @@ enrichment.
 * 🌌 **Astronomical Data** – Access naval observatory, space weather, star chart, satellite, catalog,
   AstroQuery/SIMBAD, and star map functionality.
 * 🌎 **Geological Data** – Query USGS earthquakes, water data, national map data, and global imagery.
-* 🧠 **GIS Retrieval** – Convert provider records into metadata-rich documents, store precomputed
-  embeddings non-destructively in Chroma or Pinecone, and run scored similarity searches.
+* 🧠 **GIS Retrieval** – Process every Web, Weather, Environmental, Astronomical, and Geological
+  source through combined chunking, tokenization, embedding, storage, and retrieval controls.
+  Review the active source document, chunks, and full embedding vectors in read-only result tabs.
 * 🕸️ **Web Scraper** – Fetch, crawl, parse, summarize, and extract structured data from web pages.
 * ⚡ **Rate Limiting and Caching** – Control API usage with QPS limits and optional cache backends.
 * 🛠️ **Explicit Error Handling** – Use clear exception paths for not-found, gateway, and framework
@@ -298,6 +299,10 @@ mappy/
  ├── excel.py            # Excel and CSV integration helpers
  ├── caches.py           # In-memory and SQLite cache backends
  ├── fetchers.py         # Weather, environmental, astronomical, geological, and web fetchers
+ ├── loaders.py          # Local document loaders
+ ├── embedders.py        # Hosted and local embedding providers
+ ├── processing.py       # Source processing controls and result tabs
+ ├── vector.py           # Chroma and Pinecone lifecycle and retrieval operations
  ├── exceptions.py       # Custom framework exceptions
  ├── requirements.txt    # Python dependencies
  └── resources/          # Images, setup documentation, and supporting assets
