@@ -101,7 +101,7 @@ enrichment.
   AstroQuery/SIMBAD, and star map functionality.
 * 🌎 **Geological Data** – Query USGS earthquakes, water data, national map data, and global imagery.
 * 🧠 **GIS Retrieval** – Process every Web, Weather, Environmental, Astronomical, and Geological
-  source through combined chunking, tokenization, embedding, storage, and retrieval controls.
+  source through combined chunking and word tokenization, embedding, storage, and retrieval controls.
   Review the active source document, chunks, and full embedding vectors in read-only result tabs.
 * 🕸️ **Web Scraper** – Fetch, crawl, parse, summarize, and extract structured data from web pages.
 * ⚡ **Rate Limiting and Caching** – Control API usage with QPS limits and optional cache backends.
