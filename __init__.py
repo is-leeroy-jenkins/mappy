@@ -51,11 +51,10 @@ from .geocode import Geocoder  # noqa: F401
 from .places import Places  # noqa: F401
 from .distances import DistanceMatrix  # noqa: F401
 from .timezones import Timezone  # noqa: F401
-from .staticmaps import StaticMapURL  # noqa: F401
+from .staticmaps import StaticMap  # noqa: F401
 from .excel import Excel  # noqa: F401
 
 __version__ = "0.2.0"
-
 
 
 
