@@ -4,9 +4,9 @@ from __future__ import annotations
 from bs4 import BeautifulSoup
 from collections import deque, Counter
 from exceptions import NotFound
+from boogr import Error
 import html as html_lib
 import json
-import math
 import os
 from typing import Optional
 import matplotlib
@@ -34,13 +34,6 @@ from staticmaps import StaticMap
 from excel import Excel
 from caches import InMemoryCache, SQLiteCache
 from generators import Chat, Claude, Grok, Mistral, Gemini
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from processing import (
-	render_web_document_processing,
-	render_source_processing_controls,
-	render_mode_document_tabs )
-from embedders import EmbeddingFactory
-from stores.vector import ChromaStore, PineconeStore
 from fetchers import (
 	GoogleWeather,
 	OpenWeather,
@@ -3852,7 +3845,7 @@ with st.sidebar:
 		
 		if openaq_key:
 			st.session_state.openaq_api_key = openaq_key
-			os.environ[ 'AIRNOW_API_KEY' ] = openaq_key
+			os.environ[ 'OPENAQ_API_KEY' ] = openaq_key
 		
 		opensky_client = st.text_input( 'Open Sky Client ID', type='password',
 			value=st.session_state.opensky_api_client_id or '',
@@ -3863,7 +3856,7 @@ with st.sidebar:
 			os.environ[ 'OPENSKY_API_CLIENT_ID' ] = opensky_client
 		
 		firms_key = st.text_input( 'FIRMS Map Client', type='password',
-			value=st.session_state.opensky_api_client_id or '',
+			value=st.session_state.firms_map_key or '',
 			help='Overrides FIRMS_MAP_KEY from config.py for this session only.' )
 		
 		if firms_key:
@@ -3874,7 +3867,7 @@ with st.sidebar:
 			value=st.session_state.opensky_api_credentials or '',
 			help='Overrides OPENSKY_API_CREDENTIALS from config.py for this session only.' )
 		
-		if opensky_client:
+		if opensky_credentials:
 			st.session_state.opensky_api_credentials = opensky_credentials
 			os.environ[ 'OPENSKY_API_CREDENTIALS' ] = opensky_credentials
 		
@@ -3883,7 +3876,7 @@ with st.sidebar:
 			help='Overrides Purple Air API from config.py for this session only.' )
 		
 		if purpleair_key:
-			st.session_state.purpleair_key = purpleair_key
+			st.session_state.purpleair_api_key = purpleair_key
 			os.environ[ 'PURPLEAIR_API_KEY' ] = purpleair_key
 		
 		openai_key = st.text_input( 'OpenAI API', type='password',
@@ -3942,7 +3935,7 @@ bootstrap_browser_geolocation( geocoder )
 # GEOCODING MODE
 # ==============================================================================
 if mode == 'Geocoding':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
 		st.subheader( 'Geocoding' )
 		st.divider( )
@@ -4373,8 +4366,317 @@ elif mode == 'Time Zones':
 # SCRAPING MODE
 # ==============================================================================
 elif mode == 'Web Scraper':
+	from processing import render_web_document_processing
+
+	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
+	with center:
+		st.subheader( f'🕷️ Web Scraping' )
+		st.divider( )
+
+		if 'webscrape_clear_request' not in st.session_state:
+			st.session_state[ 'webscrape_clear_request' ] = False
+
+		if 'webscrape_results' not in st.session_state:
+			st.session_state[ 'webscrape_results' ] = [ ]
+
+		if 'webscrape_summary' not in st.session_state:
+			st.session_state[ 'webscrape_summary' ] = { }
+
+		if st.session_state.get( 'webscrape_clear_request', False ):
+			st.session_state[ 'webfetcher_url' ] = ''
+			st.session_state[ 'webscrape_results' ] = [ ]
+			st.session_state[ 'webscrape_summary' ] = { }
+			st.session_state[ 'webscrape_clear_request' ] = False
+
+		def clear_webscrape_state( ) -> None:
+			"""Clear the webscrape state state.
+
+			Purpose:
+				Supports the Mappy Streamlit application by executing the clear webscrape state
+				workflow. The function preserves the existing UI behavior, session-state
+				interactions, dataframe handling, database access, and service integrations
+				defined by the application code.
+			"""
+			st.session_state[ 'webscrape_clear_request' ] = True
+
+		col_left, col_right = st.columns( [ 1, 2 ], border=True )
+
+		with col_left:
+			target_url = st.text_input(
+				'Enter Target URL',
+				placeholder='https://example.com',
+				key='webfetcher_url' )
+
+			st.markdown( '##### Core Output' )
+
+			include_title = st.checkbox(
+				'Page Title',
+				value=True,
+				key='wf_page_title' )
+
+			include_basic_text = st.checkbox(
+				'Basic Text',
+				value=True,
+				key='wf_basic_text' )
+
+			include_raw_html = st.checkbox(
+				'Raw HTML',
+				value=False,
+				key='wf_raw_html' )
+
+			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
+
+			st.markdown( '##### Structured Extraction' )
+
+			method_c1, method_c2 = st.columns( [ 0.5, 0.5 ] )
+
+			registry_labels = {
+					'scrape_headings': 'Headings',
+					'scrape_paragraphs': 'Paragraphs',
+					'scrape_lists': 'Lists',
+					'scrape_tables': 'Tables',
+					'scrape_articles': 'Articles',
+					'scrape_sections': 'Sections',
+					'scrape_divisions': 'Divisions',
+					'scrape_blockquotes': 'Blockquotes',
+					'scrape_hyperlinks': 'Hyperlinks',
+					'scrape_images': 'Images',
+			}
+
+			selected_methods = [ ]
+			registry_items = list( registry_labels.items( ) )
+
+			with method_c1:
+				for method_name, label in registry_items[ :5 ]:
+					if st.checkbox( label, key=f'wf_{method_name}' ):
+						selected_methods.append( method_name )
+
+			with method_c2:
+				for method_name, label in registry_items[ 5: ]:
+					if st.checkbox( label, key=f'wf_{method_name}' ):
+						selected_methods.append( method_name )
+
+			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
+
+			st.markdown( '##### Crawl Controls' )
+
+			enable_recursive = st.checkbox(
+				'Recursive Crawl',
+				value=False,
+				key='wf_recursive' )
+
+			max_depth = st.number_input(
+				'Max Depth',
+				min_value=0,
+				max_value=10,
+				value=1,
+				step=1,
+				key='wf_max_depth',
+				disabled=(not enable_recursive) )
+
+			max_pages = st.number_input(
+				'Max Pages',
+				min_value=1,
+				max_value=500,
+				value=10,
+				step=1,
+				key='wf_max_pages' )
+
+			same_domain_only = st.checkbox(
+				'Same Domain Only',
+				value=True,
+				key='wf_same_domain_only',
+				disabled=(not enable_recursive) )
+
+			request_timeout = st.number_input(
+				'Request Timeout',
+				min_value=1,
+				max_value=120,
+				value=10,
+				step=1,
+				key='wf_request_timeout' )
+
+			delay_seconds = st.number_input(
+				'Delay Between Pages',
+				min_value=0.0,
+				max_value=10.0,
+				value=0.25,
+				step=0.25,
+				format='%.2f',
+				key='wf_delay_seconds',
+				disabled=(not enable_recursive) )
+
+			max_bytes = st.number_input(
+				'Max Bytes Per Page',
+				min_value=1000,
+				max_value=10000000,
+				value=1000000,
+				step=1000,
+				key='wf_max_bytes' )
+
+			use_playwright = st.checkbox(
+				'Use Playwright Renderer',
+				value=False,
+				help=(
+						'Use only when the page requires JavaScript rendering. '
+						'This requires Playwright and installed browser binaries.'
+				),
+				key='wf_use_playwright' )
+
+			button_c1, button_c2 = st.columns( 2 )
+
+			with button_c1:
+				run_scraper = st.button(
+					'Run Scraper',
+					key='webfetcher_run' )
+
+			with button_c2:
+				st.button(
+					'Clear',
+					key='webfetcher_clear',
+					on_click=clear_webscrape_state )
+
+		with col_right:
+			if run_scraper:
+				try:
+					if not target_url or not target_url.strip( ):
+						raise ValueError( 'A target URL is required.' )
+
+					crawler = WebCrawler( use_playwright=bool( use_playwright ) )
+					result = crawler.crawl( seed_url=target_url.strip( ),
+						include_title=bool( include_title ),
+						include_basic_text=bool( include_basic_text ),
+						include_raw_html=bool( include_raw_html ),
+						selected_methods=selected_methods,
+						recursive=bool( enable_recursive ),
+						max_depth=int( max_depth ),
+						max_pages=int( max_pages ),
+						same_domain_only=bool( same_domain_only ),
+						request_timeout=int( request_timeout ),
+						delay_seconds=float( delay_seconds ),
+						max_bytes=int( max_bytes ) )
+
+					st.session_state[ 'webscrape_results' ] = result.get( 'pages', [ ] )
+					st.session_state[ 'webscrape_summary' ] = result.get( 'summary', { } )
+					st.rerun( )
+
+				except Exception as exc:
+					st.error( str( exc ) )
+
+			summary = st.session_state.get( 'webscrape_summary', { } )
+			results = st.session_state.get( 'webscrape_results', [ ] )
+			renderer = WebFetcher( )
+
+			if summary:
+				st.subheader( 'Summary' )
+
+				metric_c1, metric_c2, metric_c3, metric_c4 = st.columns( 4 )
+
+				with metric_c1:
+					st.metric( 'Pages', summary.get( 'pages_processed', 0 ) )
+
+				with metric_c2:
+					st.metric( 'Errors', summary.get( 'errors', 0 ) )
+
+				with metric_c3:
+					st.metric( 'Bytes', summary.get( 'total_content_bytes', 0 ) )
+
+				with metric_c4:
+					st.metric( 'Seconds', summary.get( 'elapsed_seconds', 0 ) )
+
+				with st.expander( 'Crawl Summary JSON', expanded=False ):
+					st.json( summary )
+
+			if not results:
+				st.info( 'No results.' )
+
+			else:
+				st.subheader( 'Results' )
+
+				for idx, page in enumerate( results, start=1 ):
+					title = page.get( 'title', '' ) or page.get( 'url', f'Page {idx}' )
+					depth = page.get( 'depth', 0 )
+
+					with st.expander( f'Page {idx} [Depth {depth}]: {title}',
+							expanded=(idx == 1) ):
+						meta_col1, meta_col2 = st.columns( 2 )
+
+						with meta_col1:
+							st.markdown( f"**URL:** {page.get( 'url', '' )}" )
+							st.markdown( f"**Status Code:** {page.get( 'status_code', '' )}" )
+							st.markdown( f"**Depth:** {page.get( 'depth', 0 )}" )
+							st.markdown( f"**Bytes:** {page.get( 'content_bytes', 0 )}" )
+
+						with meta_col2:
+							st.markdown( f"**Encoding:** {page.get( 'encoding', '' )}" )
+							st.markdown( f"**Title:** {page.get( 'title', '' )}" )
+							st.markdown(
+								f"**Links Discovered:** "
+								f"{len( page.get( 'links_discovered', [ ] ) or [ ] )}" )
+							st.markdown(
+								f"**Truncated:** "
+								f"{bool( page.get( 'truncated_by_max_bytes', False ) )}" )
+
+						page_errors = page.get( 'errors', [ ] ) or [ ]
+						if page_errors:
+							st.warning( 'This page completed with one or more warnings/errors.' )
+							st.json( page_errors )
+
+						plain_text = page.get( 'plain_text', '' )
+						if isinstance( plain_text, str ) and plain_text.strip( ):
+							st.subheader( 'Basic Text' )
+							st.text_area(
+								label='',
+								value=renderer.truncate_text( plain_text, limit=12000 ),
+								height=280,
+								key=f'webscrape_plain_text_{idx}' )
+
+						raw_html = page.get( 'raw_html', '' )
+						if isinstance( raw_html, str ) and raw_html.strip( ):
+							st.subheader( 'Raw HTML' )
+							st.text_area(
+								label='',
+								value=renderer.truncate_text( raw_html, limit=12000 ),
+								height=240,
+								key=f'webscrape_raw_html_{idx}' )
+
+						discovered_links = page.get( 'links_discovered', [ ] ) or [ ]
+						if discovered_links:
+							with st.expander(
+									f'Links Discovered ({len( discovered_links )})',
+									expanded=False ):
+								st.text_area(
+									label='',
+									value=renderer.truncate_text(
+										'\n'.join( discovered_links ),
+										limit=12000 ),
+									height=240,
+									key=f'webscrape_links_{idx}' )
+
+						data = page.get( 'data', { } ) or { }
+						if data:
+							st.subheader( 'Structured Data' )
+
+						for label, items in data.items( ):
+							values = renderer.coerce_items( items )
+
+							with st.expander( f'{label} ({len( values )})', expanded=False ):
+								if not values:
+									st.info( 'No results returned.' )
+									continue
+
+								st.text_area(
+									label='',
+									value=renderer.truncate_text(
+										'\n'.join( values ),
+										limit=12000 ),
+									height=240,
+									key=f'webscrape_{idx}_{label}' )
+
 	render_web_document_processing( )
 
+# ==============================================================================
+# WEATHER MODE
 # ==============================================================================
 elif mode == 'Weather':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -4505,6 +4807,8 @@ elif mode == 'Weather':
 								
 								st.success( 'Google Weather request completed.' )
 							
+							except Error as ex:
+								st.error( f'Google Weather request failed: {ex.exception}' )
 							except Exception as ex:
 								st.error( f'Google Weather request failed: {ex}' )
 				
@@ -4516,8 +4820,6 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Google Weather', 'weather_google_weather' )
 			# ------------------------------------------------------------------
 			# OPENWEATHER / OPEN-METEO
 			# ------------------------------------------------------------------
@@ -4585,8 +4887,6 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'OpenWeather / Open-Meteo', 'weather_openweather_open_meteo' )
 			# ------------------------------------------------------------------
 			# HISTORICAL WEATHER
 			# ------------------------------------------------------------------
@@ -4657,8 +4957,6 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Historical Weather', 'weather_historical_weather' )
 			# ------------------------------------------------------------------
 			# CLIMATE DATA
 			# ------------------------------------------------------------------
@@ -4804,8 +5102,6 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Climate Data', 'weather_climate_data' )
 			# ------------------------------------------------------------------
 			# TIDES AND CURRENTS
 			# ------------------------------------------------------------------
@@ -4914,11 +5210,55 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
 
-				st.divider( )
-				render_source_processing_controls( 'weather', 'weather_last_result', 'weather_last_source', 'Tides & Currents', 'weather_tides_currents' )
 		with weather_c2:
-			render_mode_document_tabs( 'weather', '📄 Loaded' )
+			# ------------------------------------------------------------------
+			# WEATHER RESULTS
+			# ------------------------------------------------------------------
+			st.markdown( '##### Weather Results' )
 
+			weather_source = st.session_state.get( 'weather_last_source', '' )
+			weather_result = st.session_state.get( 'weather_last_result', { } )
+			weather_latitude = st.session_state.get( 'weather_last_latitude', None )
+			weather_longitude = st.session_state.get( 'weather_last_longitude', None )
+
+			if not weather_result:
+				st.info( 'No weather results available. Run one of the Weather expanders.' )
+
+			else:
+				if weather_source:
+					st.caption( f'Source: {weather_source}' )
+
+				if weather_latitude is not None and weather_longitude is not None:
+					try:
+						lat_value = float( weather_latitude )
+						lng_value = float( weather_longitude )
+
+						lat_c, lng_c = st.columns( 2 )
+						with lat_c:
+							st.metric( 'Latitude', f'{lat_value:.6f}' )
+						with lng_c:
+							st.metric( 'Longitude', f'{lng_value:.6f}' )
+
+						preview_url = static_maps.pin(
+							lat=lat_value,
+							lng=lng_value,
+							zoom=8,
+							size='600x400' )
+
+						st.image( preview_url )
+
+					except Exception as ex:
+						st.warning( f'Static map preview failed: {ex}' )
+
+				st.json( weather_result )
+
+	with st.expander( label='Weather RAG', icon='🧠', expanded=False ):
+		from processing import render_mode_processing_controls
+		render_mode_processing_controls( 'weather', 'weather_last_result',
+			'weather_last_source', 'weather_rag' )
+
+# ==============================================================================
+# ENVIRONMENTAL MODE
 # ==============================================================================
 elif mode == 'Environmental':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -5074,8 +5414,6 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'AirNow', 'env_airnow' )
 			# ------------------------------------------------------------------
 			# UV INDEX
 			# ------------------------------------------------------------------
@@ -5184,8 +5522,6 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'UV Index', 'env_uv_index' )
 			# ------------------------------------------------------------------
 			# OPENAQ
 			# ------------------------------------------------------------------
@@ -5398,8 +5734,6 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'OpenAQ', 'env_openaq' )
 			# ------------------------------------------------------------------
 			# PURPLEAIR SENSORS
 			# ------------------------------------------------------------------
@@ -5560,8 +5894,6 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'PurpleAir', 'env_purpleair' )
 			# ------------------------------------------------------------------
 			# ENVIROFACTS
 			# ------------------------------------------------------------------
@@ -5631,8 +5963,6 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'EnviroFacts', 'env_envirofacts' )
 			# ------------------------------------------------------------------
 			# FIRMS FIRE / THERMAL ANOMALIES
 			# ------------------------------------------------------------------
@@ -5770,8 +6100,6 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 			
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'FIRMS', 'env_firms' )
 			# ------------------------------------------------------------------
 			# EONET NATURAL EVENTS
 			# ------------------------------------------------------------------
@@ -5964,11 +6292,69 @@ elif mode == 'Environmental':
 						st.session_state[ 'env_last_latitude' ] = None
 						st.session_state[ 'env_last_longitude' ] = None
 
-				st.divider( )
-				render_source_processing_controls( 'env', 'env_last_result', 'env_last_source', 'EONET', 'env_eonet' )
 		with enviro_c2:
-			render_mode_document_tabs( 'env', '📄 Loaded' )
+			# ------------------------------------------------------------------
+			# ENVIRONMENTAL RESULTS
+			# ------------------------------------------------------------------
+			st.markdown( '##### Environmental Results' )
+			env_source = st.session_state.get( 'env_last_source', '' )
+			env_result = st.session_state.get( 'env_last_result', { } )
+			env_latitude = st.session_state.get( 'env_last_latitude', None )
+			env_longitude = st.session_state.get( 'env_last_longitude', None )
+			if not env_result:
+				st.info(
+					'No environmental results available. Run one of the Environmental expanders.' )
+			else:
+				if env_source:
+					st.caption( f'Source: {env_source}' )
 
+				summary = env_result.get( 'summary', None ) if isinstance( env_result,
+					dict ) else None
+				rows = env_result.get( 'rows', None ) if isinstance( env_result, dict ) else None
+				if isinstance( summary, dict ) and summary:
+					st.markdown( '##### Summary' )
+					st.data_editor( pd.DataFrame( [ summary ] ), key='env_summary_table',
+						use_container_width=True, disabled=True )
+				if env_latitude is not None and env_longitude is not None:
+					try:
+						lat_value = float( env_latitude )
+						lng_value = float( env_longitude )
+
+						lat_c, lng_c = st.columns( 2 )
+						with lat_c:
+							st.metric( 'Latitude', f'{lat_value:.6f}' )
+						with lng_c:
+							st.metric( 'Longitude', f'{lng_value:.6f}' )
+
+						preview_url = static_maps.pin(
+							lat=lat_value,
+							lng=lng_value,
+							zoom=8,
+							size='600x400' )
+
+						st.image( preview_url )
+
+					except Exception as ex:
+						st.warning( f'Static map preview failed: {ex}' )
+
+				if isinstance( rows, list ) and rows:
+					st.markdown( '##### Rows' )
+					st.data_editor(
+						pd.DataFrame( rows ),
+						key='env_rows_table',
+						use_container_width=True,
+						disabled=True )
+
+				st.markdown( '##### Raw Result' )
+				st.json( env_result )
+
+	with st.expander( label='Environmental RAG', icon='🧠', expanded=False ):
+		from processing import render_mode_processing_controls
+		render_mode_processing_controls( 'env', 'env_last_result', 'env_last_source',
+			'environmental_rag' )
+
+# ==============================================================================
+# ASTRONOMICAL MODE
 # ==============================================================================
 elif mode == 'Astronomical':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
@@ -6145,8 +6531,6 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Naval Observatory', 'astro_naval_observatory' )
 			# ------------------------------------------------------------------
 			# SPACE WEATHER
 			# ------------------------------------------------------------------
@@ -6342,8 +6726,6 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Space Weather', 'astro_space_weather' )
 			# ------------------------------------------------------------------
 			# STAR CHART
 			# ------------------------------------------------------------------
@@ -6610,8 +6992,6 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Star Chart', 'astro_star_chart' )
 			# ------------------------------------------------------------------
 			# SATELLITE CENTER
 			# ------------------------------------------------------------------
@@ -6787,8 +7167,6 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Satellite Center', 'astro_satellite_center' )
 			# ------------------------------------------------------------------
 			# ASTRO CATALOG
 			# ------------------------------------------------------------------
@@ -6947,8 +7325,6 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Astro Catalog', 'astro_astro_catalog' )
 			# ------------------------------------------------------------------
 			# ASTROQUERY / SIMBAD
 			# ------------------------------------------------------------------
@@ -7039,8 +7415,6 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'AstroQuery / SIMBAD', 'astro_astroquery_simbad' )
 			# ------------------------------------------------------------------
 			# STAR MAP
 			# ------------------------------------------------------------------
@@ -7252,11 +7626,95 @@ elif mode == 'Astronomical':
 						st.session_state[ 'astro_last_longitude' ] = None
 						st.session_state[ 'astro_last_url' ] = ''
 
-				st.divider( )
-				render_source_processing_controls( 'astro', 'astro_last_result', 'astro_last_source', 'Star Map', 'astro_star_map' )
 		with astro_c2:
-			render_mode_document_tabs( 'astro', '📄 Loaded' )
+			# ------------------------------------------------------------------
+			# ASTRONOMICAL RESULTS
+			# ------------------------------------------------------------------
+			st.markdown( '##### Astronomical Results' )
 
+			astro_source = st.session_state.get( 'astro_last_source', '' )
+			astro_result = st.session_state.get( 'astro_last_result', { } )
+			astro_latitude = st.session_state.get( 'astro_last_latitude', None )
+			astro_longitude = st.session_state.get( 'astro_last_longitude', None )
+			astro_url = st.session_state.get( 'astro_last_url', '' )
+
+			if not astro_result:
+				st.info( 'No astronomical results available.' )
+
+			else:
+				if astro_source:
+					st.caption( f'Source: {astro_source}' )
+
+				if astro_latitude is not None and astro_longitude is not None:
+					try:
+						lat_value = float( astro_latitude )
+						lng_value = float( astro_longitude )
+
+						lat_c, lng_c = st.columns( 2 )
+						with lat_c:
+							st.metric( 'Latitude', f'{lat_value:.6f}' )
+						with lng_c:
+							st.metric( 'Longitude', f'{lng_value:.6f}' )
+
+						preview_url = static_maps.pin(
+							lat=lat_value,
+							lng=lng_value,
+							zoom=6,
+							size='600x400' )
+
+						st.image( preview_url )
+
+					except Exception as ex:
+						st.warning( f'Static map preview failed: {ex}' )
+
+				if astro_url:
+					st.markdown( '##### Generated Link' )
+					st.markdown( f'[Open Generated Astronomical Resource]({astro_url})' )
+
+					try:
+						ext = [ '.png', '.jpg', '.jpeg' ]
+						if any( astro_url.lower( ).endswith( ext ) for ext in ext ):
+							st.image( astro_url )
+					except Exception:
+						pass
+
+				summary = astro_result.get( 'summary', None ) if isinstance( astro_result,
+					dict ) else None
+
+				if isinstance( summary, dict ) and summary:
+					st.markdown( '##### Summary' )
+					st.data_editor(
+						pd.DataFrame( [ summary ] ),
+						key='astro_summary_table',
+						use_container_width=True,
+						disabled=True )
+
+				columns = astro_result.get( 'columns', None ) if isinstance( astro_result,
+					dict ) else None
+				rows = astro_result.get( 'rows', None ) if isinstance( astro_result,
+					dict ) else None
+
+				if isinstance( rows, list ) and rows:
+					st.markdown( '##### Rows' )
+
+					if isinstance( columns, list ) and columns:
+						df_astro_rows = pd.DataFrame( rows, columns=columns )
+					else:
+						df_astro_rows = pd.DataFrame( rows )
+
+					st.data_editor( df_astro_rows, key='astro_rows_table',
+						use_container_width=True, disabled=True )
+
+				st.markdown( '##### Raw Result' )
+				st.json( astro_result )
+
+	with st.expander( label='Astronomical RAG', icon='🧠', expanded=False ):
+		from processing import render_mode_processing_controls
+		render_mode_processing_controls( 'astro', 'astro_last_result', 'astro_last_source',
+			'astronomical_rag' )
+
+# ==============================================================================
+# CELESTIAL MAP MODE
 # ==============================================================================
 elif mode == 'Celestial Map':
 	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
@@ -7550,8 +8008,6 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'USGS Earthquakes', 'geo_usgs_earthquakes' )
 			# ------------------------------------------------------------------
 			# GLOBAL IMAGERY
 			# ------------------------------------------------------------------
@@ -7837,8 +8293,6 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'Global Imagery', 'geo_global_imagery' )
 			# ------------------------------------------------------------------
 			# USGS WATER DATA
 			# ------------------------------------------------------------------
@@ -7996,8 +8450,6 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 			
-				st.divider( )
-				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'USGS Water Data', 'geo_usgs_water_data' )
 			# ------------------------------------------------------------------
 			# USGS THE NATIONAL MAP
 			# ------------------------------------------------------------------
@@ -8205,12 +8657,74 @@ elif mode == 'Geological':
 						st.session_state[ 'geo_last_longitude' ] = None
 						st.session_state[ 'geo_last_image_path' ] = ''
 
-				st.divider( )
-				render_source_processing_controls( 'geo', 'geo_last_result', 'geo_last_source', 'USGS The National Map', 'geo_usgs_the_national_map' )
 		with geo_c2:
-			render_mode_document_tabs( 'geo', '📄 Loaded' )
+			# ------------------------------------------------------------------
+			# GEOLOGICAL RESULTS
+			# ------------------------------------------------------------------
+			st.markdown( '##### Geological Results' )
+
+			geo_source = st.session_state.get( 'geo_last_source', '' )
+			geo_result = st.session_state.get( 'geo_last_result', { } )
+			geo_latitude = st.session_state.get( 'geo_last_latitude', None )
+			geo_longitude = st.session_state.get( 'geo_last_longitude', None )
+			geo_image_path = st.session_state.get( 'geo_last_image_path', '' )
+
+			if not geo_result:
+				st.info( 'No geological results available.' )
+
+			else:
+				if geo_source:
+					st.caption( f'Source: {geo_source}' )
+
+				if geo_image_path and os.path.exists( geo_image_path ):
+					st.markdown( '##### Image Output' )
+					st.image( geo_image_path )
+
+				summary = geo_result.get( 'summary', None ) if isinstance( geo_result,
+					dict ) else None
+				rows = geo_result.get( 'rows', None ) if isinstance( geo_result, dict ) else None
+
+				if isinstance( summary, dict ) and summary:
+					st.markdown( '##### Summary' )
+					st.data_editor( pd.DataFrame( [ summary ] ), key='geo_summary_table',
+						use_container_width=True, disabled=True )
+
+				if geo_latitude is not None and geo_longitude is not None:
+					try:
+						lat_value = float( geo_latitude )
+						lng_value = float( geo_longitude )
+
+						lat_c, lng_c = st.columns( 2 )
+						with lat_c:
+							st.metric( 'Latitude', f'{lat_value:.6f}' )
+						with lng_c:
+							st.metric( 'Longitude', f'{lng_value:.6f}' )
+
+						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=5,
+							size='600x400' )
+
+						st.image( preview_url )
+
+					except Exception as ex:
+						st.warning( f'Static map preview failed: {ex}' )
+
+				if isinstance( rows, list ) and rows:
+					st.markdown( '##### Rows' )
+					df_geo_rows = pd.DataFrame( rows )
+					st.data_editor( df_geo_rows, key='geo_rows_table', use_container_width=True,
+						disabled=True )
+
+				st.markdown( '##### Raw Result' )
+				st.json( geo_result )
 
 # ==============================================================================
+# TEXT GENERATION MODE
+# ==============================================================================
+	with st.expander( label='Geological RAG', icon='🧠', expanded=False ):
+		from processing import render_mode_processing_controls
+		render_mode_processing_controls( 'geo', 'geo_last_result', 'geo_last_source',
+			'geological_rag' )
+
 elif mode == 'Generative':
 	left, center, right = st.columns( [ 0.05, 0.9, 0.05 ] )
 	with center:
@@ -9868,6 +10382,8 @@ elif mode == 'Generative':
 # DATA UPLOAD MODE
 # ==============================================================================
 elif mode == 'Data Upload':
+	from processing import render_document_processing
+
 	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
 	with center:
 		st.subheader( 'Excel / CSV' )
@@ -9952,6 +10468,8 @@ elif mode == 'Data Upload':
 							os.remove( output_path )
 					except Exception:
 						pass
+
+	render_document_processing( cache )
 
 # ==============================================================================
 # DATA MANAGEMENT MODE

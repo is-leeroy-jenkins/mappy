@@ -100,6 +100,8 @@ enrichment.
 * 🌌 **Astronomical Data** – Access naval observatory, space weather, star chart, satellite, catalog,
   AstroQuery/SIMBAD, and star map functionality.
 * 🌎 **Geological Data** – Query USGS earthquakes, water data, national map data, and global imagery.
+* 🧠 **GIS Retrieval** – Convert provider records into metadata-rich documents, store precomputed
+  embeddings non-destructively in Chroma or Pinecone, and run scored similarity searches.
 * 🕸️ **Web Scraper** – Fetch, crawl, parse, summarize, and extract structured data from web pages.
 * ⚡ **Rate Limiting and Caching** – Control API usage with QPS limits and optional cache backends.
 * 🛠️ **Explicit Error Handling** – Use clear exception paths for not-found, gateway, and framework
@@ -168,7 +170,22 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-``
+```
+
+## 🔑 Configuration
+
+`mappy` reads configuration values from the current process environment and `config.py`. Values
+entered in the Streamlit Credentials panel update the environment for the active session.
+
+| Key                       | Purpose                                 |
+| ------------------------- | --------------------------------------- |
+| `GOOGLE_API_KEY`          | General Google API access.              |
+| `GOOGLE_CSE_ID`           | Google Custom Search Engine identifier. |
+| `GOOGLEMAPS_API_KEY`      | Google Maps and geocoding access.       |
+| `GEOCODING_API_KEY`       | Optional dedicated geocoding key.       |
+| `GOOGLE_WEATHER_API_KEY`  | Google Weather API access.              |
+| `OPENAQ_API_KEY`          | OpenAQ API access.                      |
+| `PINECONE_API_KEY`        | Pinecone vector-store access.           |
 
 ## 🚀 Running the Streamlit App
 
