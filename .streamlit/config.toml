@@ -1,6 +1,3 @@
-[client]
-toolbarMode = "minimal"
-
 [theme]
 base = "dark"
 primaryColor = "#8AA6B6"

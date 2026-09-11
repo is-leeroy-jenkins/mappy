@@ -4359,7 +4359,7 @@ elif mode == 'Time Zones':
 elif mode == 'Web Scraper':
 	from processing import render_mode_document_tabs, render_source_processing_controls
 
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( f'🕷️ Web Scraping' )
 		st.divider( )
@@ -4395,48 +4395,27 @@ elif mode == 'Web Scraper':
 			st.session_state[ 'webscrape_clear_request' ] = True
 
 		col_left, col_right = st.columns( [ 1, 2 ], border=True )
-
+		
 		with col_left:
-			target_url = st.text_input(
-				'Enter Target URL',
-				placeholder='https://example.com',
+			target_url = st.text_input( 'Enter Target URL', placeholder='https://example.com',
 				key='webfetcher_url' )
-
+			
 			st.markdown( '##### Core Output' )
-
-			include_title = st.checkbox(
-				'Page Title',
-				value=True,
-				key='wf_page_title' )
-
-			include_basic_text = st.checkbox(
-				'Basic Text',
-				value=True,
-				key='wf_basic_text' )
-
-			include_raw_html = st.checkbox(
-				'Raw HTML',
-				value=False,
-				key='wf_raw_html' )
+			
+			include_title = st.checkbox( 'Page Title', value=True, key='wf_page_title' )
+			include_basic_text = st.checkbox( 'Basic Text', value=True, key='wf_basic_text' )
+			include_raw_html = st.checkbox( 'Raw HTML', value=False, key='wf_raw_html' )
 
 			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
-
 			st.markdown( '##### Structured Extraction' )
 
 			method_c1, method_c2 = st.columns( [ 0.5, 0.5 ] )
-
-			registry_labels = {
-					'scrape_headings': 'Headings',
-					'scrape_paragraphs': 'Paragraphs',
-					'scrape_lists': 'Lists',
-					'scrape_tables': 'Tables',
-					'scrape_articles': 'Articles',
-					'scrape_sections': 'Sections',
-					'scrape_divisions': 'Divisions',
-					'scrape_blockquotes': 'Blockquotes',
-					'scrape_hyperlinks': 'Hyperlinks',
-					'scrape_images': 'Images',
-			}
+			
+			registry_labels = { 'scrape_headings': 'Headings', 'scrape_paragraphs': 'Paragraphs',
+					'scrape_lists': 'Lists', 'scrape_tables': 'Tables',
+					'scrape_articles': 'Articles', 'scrape_sections': 'Sections',
+					'scrape_divisions': 'Divisions', 'scrape_blockquotes': 'Blockquotes',
+					'scrape_hyperlinks': 'Hyperlinks', 'scrape_images': 'Images', }
 
 			selected_methods = [ ]
 			registry_items = list( registry_labels.items( ) )
@@ -4452,91 +4431,48 @@ elif mode == 'Web Scraper':
 						selected_methods.append( method_name )
 
 			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
-
 			st.markdown( '##### Crawl Controls' )
-
-			enable_recursive = st.checkbox(
-				'Recursive Crawl',
-				value=False,
-				key='wf_recursive' )
-
-			max_depth = st.number_input(
-				'Max Depth',
-				min_value=0,
-				max_value=10,
-				value=1,
-				step=1,
-				key='wf_max_depth',
-				disabled=(not enable_recursive) )
-
-			max_pages = st.number_input(
-				'Max Pages',
-				min_value=1,
-				max_value=500,
-				value=10,
-				step=1,
+			
+			enable_recursive = st.checkbox( 'Recursive Crawl', value=False, key='wf_recursive' )
+			
+			max_depth = st.number_input( 'Max Depth', min_value=0, max_value=10, value=1, step=1,
+				key='wf_max_depth', disabled=(not enable_recursive) )
+			
+			max_pages = st.number_input( 'Max Pages', min_value=1, max_value=500, value=10, step=1,
 				key='wf_max_pages' )
-
-			same_domain_only = st.checkbox(
-				'Same Domain Only',
-				value=True,
-				key='wf_same_domain_only',
+			
+			same_domain_only = st.checkbox( 'Same Domain Only', value=True,
+				key='wf_same_domain_only', disabled=(not enable_recursive) )
+			
+			request_timeout = st.number_input( 'Request Timeout', min_value=1, max_value=120,
+				value=10, step=1, key='wf_request_timeout' )
+			
+			delay_seconds = st.number_input( 'Delay Between Pages', min_value=0.0, max_value=10.0,
+				value=0.25, step=0.25, format='%.2f', key='wf_delay_seconds',
 				disabled=(not enable_recursive) )
-
-			request_timeout = st.number_input(
-				'Request Timeout',
-				min_value=1,
-				max_value=120,
-				value=10,
-				step=1,
-				key='wf_request_timeout' )
-
-			delay_seconds = st.number_input(
-				'Delay Between Pages',
-				min_value=0.0,
-				max_value=10.0,
-				value=0.25,
-				step=0.25,
-				format='%.2f',
-				key='wf_delay_seconds',
-				disabled=(not enable_recursive) )
-
-			max_bytes = st.number_input(
-				'Max Bytes Per Page',
-				min_value=1000,
-				max_value=10000000,
-				value=1000000,
-				step=1000,
-				key='wf_max_bytes' )
-
-			use_playwright = st.checkbox(
-				'Use Playwright Renderer',
-				value=False,
-				help=(
-						'Use only when the page requires JavaScript rendering. '
-						'This requires Playwright and installed browser binaries.'
-				),
+			
+			max_bytes = st.number_input( 'Max Bytes Per Page', min_value=1000, max_value=10000000,
+				value=1000000, step=1000, key='wf_max_bytes' )
+			
+			use_playwright = st.checkbox( 'Use Playwright Renderer', value=False,
+				help=('Use only when the page requires JavaScript rendering. '
+				      'This requires Playwright and installed browser binaries.'),
 				key='wf_use_playwright' )
 
 			button_c1, button_c2 = st.columns( 2 )
-
 			with button_c1:
-				run_scraper = st.button(
-					'Run Scraper',
-					key='webfetcher_run' )
-
+				run_scraper = st.button( label='Run Scraper', key='webfetcher_run',
+					width='stretch', icon='🏃' )
+			
 			with button_c2:
-				st.button(
-					'Clear',
-					key='webfetcher_clear',
-					on_click=clear_webscrape_state )
+				st.button( label='Clear', key='webfetcher_clear', width='stretch',
+					on_click=clear_webscrape_state, icon='🧹' )
 
 			render_source_processing_controls( 'webscrape', 'webscrape_results',
 				'webscrape_source', 'Web Scraper', 'webscrape_processing' )
 
 		with col_right:
 			render_mode_document_tabs( 'webscrape', '📄 Source Document' )
-
 			if run_scraper:
 				try:
 					if not target_url or not target_url.strip( ):
@@ -4593,15 +4529,14 @@ elif mode == 'Web Scraper':
 
 			else:
 				st.subheader( 'Results' )
-
 				for idx, page in enumerate( results, start=1 ):
 					title = page.get( 'title', '' ) or page.get( 'url', f'Page {idx}' )
 					depth = page.get( 'depth', 0 )
 
 					with st.expander( f'Page {idx} [Depth {depth}]: {title}',
 							expanded=(idx == 1) ):
+						
 						meta_col1, meta_col2 = st.columns( 2 )
-
 						with meta_col1:
 							st.markdown( f"**URL:** {page.get( 'url', '' )}" )
 							st.markdown( f"**Status Code:** {page.get( 'status_code', '' )}" )
@@ -4611,11 +4546,9 @@ elif mode == 'Web Scraper':
 						with meta_col2:
 							st.markdown( f"**Encoding:** {page.get( 'encoding', '' )}" )
 							st.markdown( f"**Title:** {page.get( 'title', '' )}" )
-							st.markdown(
-								f"**Links Discovered:** "
+							st.markdown( f"**Links Discovered:** "
 								f"{len( page.get( 'links_discovered', [ ] ) or [ ] )}" )
-							st.markdown(
-								f"**Truncated:** "
+							st.markdown( f"**Truncated:** "
 								f"{bool( page.get( 'truncated_by_max_bytes', False ) )}" )
 
 						page_errors = page.get( 'errors', [ ] ) or [ ]
@@ -4626,8 +4559,7 @@ elif mode == 'Web Scraper':
 						plain_text = page.get( 'plain_text', '' )
 						if isinstance( plain_text, str ) and plain_text.strip( ):
 							st.subheader( 'Basic Text' )
-							st.text_area(
-								label='',
+							st.text_area( label='',
 								value=renderer.truncate_text( plain_text, limit=12000 ),
 								height=280,
 								key=f'webscrape_plain_text_{idx}' )
@@ -4635,24 +4567,17 @@ elif mode == 'Web Scraper':
 						raw_html = page.get( 'raw_html', '' )
 						if isinstance( raw_html, str ) and raw_html.strip( ):
 							st.subheader( 'Raw HTML' )
-							st.text_area(
-								label='',
-								value=renderer.truncate_text( raw_html, limit=12000 ),
-								height=240,
+							st.text_area( label='',
+								value=renderer.truncate_text( raw_html, limit=12000 ), height=240,
 								key=f'webscrape_raw_html_{idx}' )
 
 						discovered_links = page.get( 'links_discovered', [ ] ) or [ ]
 						if discovered_links:
-							with st.expander(
-									f'Links Discovered ({len( discovered_links )})',
+							with st.expander( f'Links Discovered ({len( discovered_links )})',
 									expanded=False ):
-								st.text_area(
-									label='',
-									value=renderer.truncate_text(
-										'\n'.join( discovered_links ),
-										limit=12000 ),
-									height=240,
-									key=f'webscrape_links_{idx}' )
+								st.text_area( label='',
+									value=renderer.truncate_text( '\n'.join( discovered_links ),
+										limit=12000 ), height=240, key=f'webscrape_links_{idx}' )
 
 						data = page.get( 'data', { } ) or { }
 						if data:
@@ -4660,19 +4585,14 @@ elif mode == 'Web Scraper':
 
 						for label, items in data.items( ):
 							values = renderer.coerce_items( items )
-
 							with st.expander( f'{label} ({len( values )})', expanded=False ):
 								if not values:
 									st.info( 'No results returned.' )
 									continue
-
-								st.text_area(
-									label='',
-									value=renderer.truncate_text(
-										'\n'.join( values ),
-										limit=12000 ),
-									height=240,
-									key=f'webscrape_{idx}_{label}' )
+								
+								st.text_area( label='',
+									value=renderer.truncate_text( '\n'.join( values ),
+										limit=12000 ), height=240, key=f'webscrape_{idx}_{label}' )
 
 # ==============================================================================
 # WEATHER MODE
