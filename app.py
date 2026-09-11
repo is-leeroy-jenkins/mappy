@@ -5052,7 +5052,6 @@ elif mode == 'Weather':
 							use_container_width=True ):
 						try:
 							service = TidesAndCurrents( )
-							
 							result = service.fetch( mode=tides_mode, station_id=tides_station_id,
 								begin_date=tides_begin_date, end_date=tides_end_date,
 								datum=tides_datum, units=tides_units, time_zone=tides_time_zone,
@@ -5070,6 +5069,7 @@ elif mode == 'Weather':
 				with tides_btn_c2:
 					if st.button( label='Clear', icon='🧹', key='weather_tides_clear',
 							use_container_width=True ):
+						
 						st.session_state[ 'weather_last_source' ] = ''
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
@@ -5108,11 +5108,8 @@ elif mode == 'Weather':
 							st.metric( 'Latitude', f'{lat_value:.6f}' )
 						with lng_c:
 							st.metric( 'Longitude', f'{lng_value:.6f}' )
-
-						preview_url = static_maps.pin(
-							lat=lat_value,
-							lng=lng_value,
-							zoom=8,
+						
+						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=8,
 							size='600x400' )
 
 						st.image( preview_url )
@@ -5137,7 +5134,6 @@ elif mode == 'Environmental':
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
 		global_box = create_bounding_box_from_center( global_latitude, global_longitude )
-		
 		location_c1, location_c2, location_c3, location_c4 = st.columns( 4, border=True )
 		location_c1.metric( 'Location', global_location )
 		location_c2.metric( 'ZIP Code', global_zipcode )
@@ -5153,15 +5149,9 @@ elif mode == 'Environmental':
 			# ------------------------------------------------------------------
 			with st.expander( '🌫️ AirNow Air Quality', expanded=True ):
 				st.badge( label='About API', color='blue', help=cfg.AIR_NOW )
-				airnow_mode = st.selectbox(
-					'Mode',
-					options=[
-							'Current by ZIP',
-							'Current by Coordinates',
-							'Forecast by ZIP',
-							'Forecast by Coordinates'
-					],
-					key='env_airnow_mode' )
+				airnow_mode = st.selectbox( 'Mode',
+					options=[ 'Current by ZIP', 'Current by Coordinates', 'Forecast by ZIP',
+							'Forecast by Coordinates' ], key='env_airnow_mode' )
 				
 				airnow_distance = st.number_input( 'Distance', min_value=0, max_value=250,
 					value=25, step=1, key='input_env_airnow_distance' )
@@ -5178,27 +5168,19 @@ elif mode == 'Environmental':
 				
 				else:
 					airnow_zip = ''
-					
 					airnow_coord_c1, airnow_coord_c2 = st.columns( 2 )
-					
 					with airnow_coord_c1:
-						airnow_latitude = st.number_input(
-							'Latitude',
-							value=float( global_latitude ),
-							format='%.6f',
+						airnow_latitude = st.number_input( 'Latitude',
+							value=float( global_latitude ), format='%.6f',
 							key='input_env_airnow_latitude' )
 					
 					with airnow_coord_c2:
-						airnow_longitude = st.number_input(
-							'Longitude',
-							value=float( global_longitude ),
-							format='%.6f',
+						airnow_longitude = st.number_input( 'Longitude',
+							value=float( global_longitude ), format='%.6f',
 							key='input_env_airnow_longitude' )
 				
 				if 'Forecast' in airnow_mode:
-					airnow_date = st.date_input(
-						'Forecast Date',
-						value=dt.date.today( ),
+					airnow_date = st.date_input( 'Forecast Date', value=dt.date.today( ),
 						key='input_env_airnow_date' )
 				else:
 					airnow_date = None
@@ -5211,13 +5193,11 @@ elif mode == 'Environmental':
 						try:
 							service = AirNow( )
 							result = None
-							
 							if airnow_mode == 'Current by ZIP':
 								if not airnow_zip:
 									st.warning( 'Enter a ZIP code.' )
 								else:
-									result = service.fetch_current_zip(
-										zip_code=airnow_zip,
+									result = service.fetch_current_zip( zip_code=airnow_zip,
 										distance=int( airnow_distance ),
 										time=int( airnow_timeout ) )
 							
@@ -5235,8 +5215,7 @@ elif mode == 'Environmental':
 								if not airnow_zip:
 									st.warning( 'Enter a ZIP code.' )
 								else:
-									result = service.fetch_forecast_zip(
-										zip_code=airnow_zip,
+									result = service.fetch_forecast_zip( zip_code=airnow_zip,
 										date=airnow_date.isoformat( ),
 										distance=int( airnow_distance ),
 										time=int( airnow_timeout ) )
@@ -5258,10 +5237,8 @@ elif mode == 'Environmental':
 								st.session_state[ 'env_last_latitude' ] = airnow_latitude
 								st.session_state[ 'env_last_longitude' ] = airnow_longitude
 								
-								set_global_coordinates_from_result(
-									airnow_latitude,
-									airnow_longitude,
-									location=global_location,
+								set_global_coordinates_from_result( airnow_latitude,
+									airnow_longitude, location=global_location,
 									description='AirNow coordinate result' )
 								
 								if airnow_zip:
@@ -5275,6 +5252,7 @@ elif mode == 'Environmental':
 				with airnow_btn_c2:
 					if st.button( label='Clear', icon='🧹', key='env_airnow_clear',
 							use_container_width=True ):
+						
 						st.session_state[ 'env_last_source' ] = ''
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
@@ -5288,44 +5266,22 @@ elif mode == 'Environmental':
 			# ------------------------------------------------------------------
 			with st.expander( '☀️ UV Index', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.EPA_UV_INDEX )
-				uv_mode = st.selectbox(
-					'Mode',
-					options=[
-							'Daily by ZIP',
-							'Daily by City / State',
-							'Hourly by ZIP',
-							'Hourly by City / State'
-					],
-					key='env_uv_mode' )
+				uv_mode = st.selectbox( 'Mode',
+					options=[ 'Daily by ZIP', 'Daily by City / State', 'Hourly by ZIP',
+							'Hourly by City / State' ], key='env_uv_mode' )
 				
-				uv_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='env_uv_timeout' )
+				uv_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='env_uv_timeout' )
 				
 				if 'ZIP' in uv_mode:
-					uv_zip = st.text_input(
-						'ZIP Code',
-						value='20001',
-						key='env_uv_zip' )
-					
+					uv_zip = st.text_input( 'ZIP Code', value='20001', key='env_uv_zip' )
 					uv_city = ''
 					uv_state = ''
 				
 				else:
 					uv_zip = ''
-					uv_city = st.text_input(
-						'City',
-						value='Washington',
-						key='env_uv_city' )
-					
-					uv_state = st.text_input(
-						'State',
-						value='DC',
-						key='env_uv_state' )
+					uv_city = st.text_input( 'City', value='Washington', key='env_uv_city' )
+					uv_state = st.text_input( 'State', value='DC', key='env_uv_state' )
 				
 				uv_btn_c1, uv_btn_c2 = st.columns( 2 )
 				
@@ -5340,8 +5296,7 @@ elif mode == 'Environmental':
 									st.warning( 'Enter a ZIP code.' )
 									result = None
 								else:
-									result = service.fetch_daily_zip(
-										zip_code=uv_zip,
+									result = service.fetch_daily_zip( zip_code=uv_zip,
 										time=int( uv_timeout ) )
 							
 							elif uv_mode == 'Daily by City / State':
@@ -5349,18 +5304,15 @@ elif mode == 'Environmental':
 									st.warning( 'Enter both city and state.' )
 									result = None
 								else:
-									result = service.fetch_daily_city_state(
-										city=uv_city,
-										state=uv_state,
-										time=int( uv_timeout ) )
+									result = service.fetch_daily_city_state( city=uv_city,
+										state=uv_state, time=int( uv_timeout ) )
 							
 							elif uv_mode == 'Hourly by ZIP':
 								if not uv_zip:
 									st.warning( 'Enter a ZIP code.' )
 									result = None
 								else:
-									result = service.fetch_hourly_zip(
-										zip_code=uv_zip,
+									result = service.fetch_hourly_zip( zip_code=uv_zip,
 										time=int( uv_timeout ) )
 							
 							else:
@@ -5368,10 +5320,8 @@ elif mode == 'Environmental':
 									st.warning( 'Enter both city and state.' )
 									result = None
 								else:
-									result = service.fetch_hourly_city_state(
-										city=uv_city,
-										state=uv_state,
-										time=int( uv_timeout ) )
+									result = service.fetch_hourly_city_state( city=uv_city,
+										state=uv_state, time=int( uv_timeout ) )
 							
 							if result is not None:
 								st.session_state[ 'env_last_source' ] = 'UV Index'
@@ -5399,41 +5349,20 @@ elif mode == 'Environmental':
 			# ------------------------------------------------------------------
 			with st.expander( '🧪 OpenAQ', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.OPEN_AQ )
-				openaq_mode = st.selectbox(
-					'Mode',
-					options=[
-							'Locations',
-							'Latest Measurements by Location',
-							'Latest Measurements by Parameter',
-							'Countries',
-							'Providers',
-							'Parameters'
-					],
-					key='sb_openaq_mode' )
+				openaq_mode = st.selectbox( 'Mode',
+					options=[ 'Locations', 'Latest Measurements by Location',
+							'Latest Measurements by Parameter', 'Countries', 'Providers',
+							'Parameters' ], key='sb_openaq_mode' )
 				
-				openaq_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='ib_env_openaq_timeout' )
+				openaq_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='ib_env_openaq_timeout' )
 				
-				openaq_limit = st.number_input(
-					'Limit',
-					min_value=1,
-					max_value=1000,
+				openaq_limit = st.number_input( 'Limit', min_value=1, max_value=1000,
 					value=100 if openaq_mode in [ 'Countries', 'Providers', 'Parameters' ] else 25,
-					step=1,
-					key='env_openaq_limit' )
+					step=1, key='env_openaq_limit' )
 				
-				openaq_page = st.number_input(
-					'Page',
-					min_value=1,
-					max_value=10000,
-					value=1,
-					step=1,
-					key='env_openaq_page' )
+				openaq_page = st.number_input( 'Page', min_value=1, max_value=10000, value=1,
+					step=1, key='env_openaq_page' )
 				
 				openaq_country_id = 0
 				openaq_coordinates = ''
@@ -5444,68 +5373,45 @@ elif mode == 'Environmental':
 				openaq_parameter_id = None
 				
 				if openaq_mode == 'Locations':
-					openaq_country_id = st.number_input(
-						'Country ID',
-						min_value=0,
-						value=0,
-						step=1,
-						help='Optional. Use Countries mode to discover country IDs. 0 disables this filter.',
+					openaq_country_id = st.number_input( 'Country ID', min_value=0, value=0,
+						step=1, help='Optional. 0 disables this filter.',
 						key='in_env_openaq_country_id' )
 					
-					openaq_coordinates = st.text_input(
-						'Coordinates',
+					openaq_coordinates = st.text_input( 'Coordinates',
 						value=f'{global_latitude:.6f},{global_longitude:.6f}',
 						help='OpenAQ examples use latitude,longitude for radial location filtering.',
 						key='env_openaq_coordinates' )
 					
-					openaq_radius = st.number_input(
-						'Radius',
-						min_value=1,
-						max_value=100000,
-						value=25000,
-						step=1000,
-						key='env_openaq_radius' )
+					openaq_radius = st.number_input( 'Radius', min_value=1, max_value=100000,
+						value=25000, step=1000, key='env_openaq_radius' )
 					
-					openaq_providers_id = st.text_input(
-						'Providers ID',
-						value='',
-						help='Optional. Use Providers mode to discover IDs. Comma-separated values are supported by OpenAQ.',
+					openaq_providers_id = st.text_input( 'Providers ID', value='',
+						help='Optional. Use Providers mode to discover IDs. Comma-separated values '
+						     'are supported by OpenAQ.',
 						key='env_openaq_providers_id' )
 					
-					openaq_parameters_id = st.text_input(
-						'Parameters ID',
-						value='',
-						help='Optional. Use Parameters mode to discover IDs. Example: 2 is commonly PM2.5.',
+					openaq_parameters_id = st.text_input( 'Parameters ID', value='',
+						help='Optional. Use Parameters mode to discover IDs. Example: 2 is '
+						     'commonly PM2.5.',
 						key='env_openaq_parameters_id' )
 				
 				elif openaq_mode == 'Latest Measurements by Location':
-					openaq_location_id = st.number_input(
-						'Location ID',
-						min_value=1,
-						value=1,
-						step=1,
-						help='Use Locations mode first to discover location IDs.',
+					openaq_location_id = st.number_input( 'Location ID', min_value=1, value=1,
+						step=1, help='Use Locations mode first to discover location IDs.',
 						key='env_openaq_location_id' )
 				
 				elif openaq_mode == 'Latest Measurements by Parameter':
-					openaq_parameter_id = st.number_input(
-						'Parameter ID',
-						min_value=1,
-						value=2,
+					openaq_parameter_id = st.number_input( 'Parameter ID', min_value=1, value=2,
 						step=1,
-						help='Use Parameters mode first to discover parameter IDs. OpenAQ examples commonly use 2 for PM2.5.',
+						help='Use Parameters mode first to discover parameter IDs. OpenAQ examples '
+						     'commonly use 2 for PM2.5.',
 						key='env_openaq_parameter_id' )
 				
 				elif openaq_mode == 'Countries':
-					openaq_providers_id = st.text_input(
-						'Providers ID',
-						value='',
-						help='Optional provider filter.',
-						key='env_openaq_countries_providers_id' )
+					openaq_providers_id = st.text_input( 'Providers ID', value='',
+						help='Optional provider filter.', key='env_openaq_countries_providers_id' )
 					
-					openaq_parameters_id = st.text_input(
-						'Parameters ID',
-						value='',
+					openaq_parameters_id = st.text_input( 'Parameters ID', value='',
 						help='Optional parameter filter.',
 						key='env_openaq_countries_parameters_id' )
 				
@@ -5531,15 +5437,11 @@ elif mode == 'Environmental':
 								if int( openaq_country_id ) > 0:
 									country_id_value = int( openaq_country_id )
 								
-								result = service.fetch_locations(
-									country_id=country_id_value,
-									coordinates=openaq_coordinates,
-									radius=int( openaq_radius ),
+								result = service.fetch_locations( country_id=country_id_value,
+									coordinates=openaq_coordinates, radius=int( openaq_radius ),
 									providers_id=openaq_providers_id,
-									parameters_id=openaq_parameters_id,
-									limit=int( openaq_limit ),
-									page=int( openaq_page ),
-									time=int( openaq_timeout ) )
+									parameters_id=openaq_parameters_id, limit=int( openaq_limit ),
+									page=int( openaq_page ), time=int( openaq_timeout ) )
 								
 								try:
 									parts = [ p.strip( ) for p in openaq_coordinates.split( ',' ) ]
@@ -5551,47 +5453,35 @@ elif mode == 'Environmental':
 									lng_value = None
 							
 							elif openaq_mode == 'Latest Measurements by Location':
-								result = service.fetch_latest(
-									location_id=int( openaq_location_id ),
+								result = service.fetch_latest( location_id=int( openaq_location_id ),
 									time=int( openaq_timeout ) )
 							
 							elif openaq_mode == 'Latest Measurements by Parameter':
 								result = service.fetch_parameter_latest(
 									parameter_id=int( openaq_parameter_id ),
-									limit=int( openaq_limit ),
-									page=int( openaq_page ),
+									limit=int( openaq_limit ), page=int( openaq_page ),
 									time=int( openaq_timeout ) )
 							
 							elif openaq_mode == 'Countries':
-								result = service.fetch_countries(
-									providers_id=openaq_providers_id,
-									parameters_id=openaq_parameters_id,
-									limit=int( openaq_limit ),
-									page=int( openaq_page ),
-									time=int( openaq_timeout ) )
+								result = service.fetch_countries( providers_id=openaq_providers_id,
+									parameters_id=openaq_parameters_id, limit=int( openaq_limit ),
+									page=int( openaq_page ), time=int( openaq_timeout ) )
 							
 							elif openaq_mode == 'Providers':
-								result = service.fetch_providers(
-									limit=int( openaq_limit ),
-									page=int( openaq_page ),
-									time=int( openaq_timeout ) )
+								result = service.fetch_providers( limit=int( openaq_limit ),
+									page=int( openaq_page ), time=int( openaq_timeout ) )
 							
 							else:
-								result = service.fetch_parameters(
-									limit=int( openaq_limit ),
-									page=int( openaq_page ),
-									time=int( openaq_timeout ) )
+								result = service.fetch_parameters( limit=int( openaq_limit ),
+									page=int( openaq_page ), time=int( openaq_timeout ) )
 							
 							st.session_state[ 'env_last_source' ] = 'OpenAQ'
 							st.session_state[ 'env_last_result' ] = result or { }
 							st.session_state[ 'env_last_latitude' ] = lat_value
 							st.session_state[ 'env_last_longitude' ] = lng_value
 							
-							set_global_coordinates_from_result(
-								lat_value,
-								lng_value,
-								location=global_location,
-								description='OpenAQ coordinate result' )
+							set_global_coordinates_from_result( lat_value, lng_value,
+								location=global_location, description='OpenAQ coordinate result' )
 							
 							st.success( 'OpenAQ request completed.' )
 						
@@ -5623,20 +5513,14 @@ elif mode == 'Environmental':
 				
 				if purple_mode == 'Sensors by Bounding Box':
 					purple_default_fields = (
-							'name,pm2.5,temperature,humidity,latitude,longitude,last_seen,location_type'
-					)
+							'name,pm2.5,temperature,humidity,latitude,longitude,last_seen' )
 				else:
 					purple_default_fields = (
 							'name,model,hardware,pm2.5_cf_1_a,pm2.5_cf_1_b,temperature,'
-							'humidity,pressure,latitude,longitude,last_seen,firmware_version,rssi'
-					)
+							'humidity,pressure,latitude,longitude,last_seen,firmware_version,rssi' )
 				
-				purple_fields = st.text_area(
-					'Fields',
-					value=purple_default_fields,
-					height=90,
-					help='Comma-separated PurpleAir fields. Leave the default unless you need a custom API response.',
-					key='env_purple_fields' )
+				purple_fields = st.text_area( 'Fields', value=purple_default_fields, height=90,
+					help='Comma-separated PurpleAir fields. ', key='env_purple_fields' )
 				
 				if purple_mode == 'Sensors by Bounding Box':
 					st.caption(
@@ -5645,55 +5529,34 @@ elif mode == 'Environmental':
 					purple_box_c1, purple_box_c2 = st.columns( 2 )
 					
 					with purple_box_c1:
-						purple_nwlng = st.number_input(
-							'NW Longitude',
-							value=float( global_box[ 'nw_lng' ] ),
-							format='%.6f',
+						purple_nwlng = st.number_input( 'NW Longitude',
+							value=float( global_box[ 'nw_lng' ] ), format='%.6f',
 							key='env_purple_nwlng' )
 						
-						purple_nwlat = st.number_input(
-							'NW Latitude',
-							value=float( global_box[ 'nw_lat' ] ),
-							format='%.6f',
+						purple_nwlat = st.number_input( 'NW Latitude',
+							value=float( global_box[ 'nw_lat' ] ), format='%.6f',
 							key='env_purple_nwlat' )
 					
 					with purple_box_c2:
-						purple_selng = st.number_input(
-							'SE Longitude',
-							value=float( global_box[ 'se_lng' ] ),
-							format='%.6f',
+						purple_selng = st.number_input( 'SE Longitude',
+							value=float( global_box[ 'se_lng' ] ), format='%.6f',
 							key='env_purple_selng' )
 						
-						purple_selat = st.number_input(
-							'SE Latitude',
-							value=float( global_box[ 'se_lat' ] ),
-							format='%.6f',
+						purple_selat = st.number_input( 'SE Latitude',
+							value=float( global_box[ 'se_lat' ] ), format='%.6f',
 							key='env_purple_selat' )
 					
-					purple_location_type = st.number_input(
-						'Location Type',
-						min_value=0,
-						max_value=1,
-						value=0,
-						step=1,
-						help='Public outdoor sensors are commonly 0.',
+					purple_location_type = st.number_input( 'Location Type', min_value=0,
+						max_value=1, value=0, step=1, help='Public outdoor sensors are commonly 0.',
 						key='env_purple_location_type' )
 					
-					purple_max_age = st.number_input(
-						'Max Age',
-						min_value=0,
-						max_value=10080,
-						value=0,
-						step=10,
+					purple_max_age = st.number_input( 'Max Age', min_value=0, max_value=10080,
+						value=0, step=10,
 						help='Maximum sensor age in minutes. 0 keeps the broad/default behavior.',
 						key='env_purple_max_age' )
 					
-					purple_modified_since = st.number_input(
-						'Modified Since',
-						min_value=0,
-						max_value=4102444800,
-						value=0,
-						step=1,
+					purple_modified_since = st.number_input( 'Modified Since', min_value=0,
+						max_value=4102444800, value=0, step=1,
 						help='UNIX timestamp filter. 0 disables the filter.',
 						key='env_purple_modified_since' )
 					
@@ -5712,12 +5575,8 @@ elif mode == 'Environmental':
 					purple_center_latitude = None
 					purple_center_longitude = None
 					
-					purple_sensor_index = st.number_input(
-						'Sensor Index',
-						min_value=1,
-						value=1,
-						step=1,
-						key='env_purple_sensor_index' )
+					purple_sensor_index = st.number_input( 'Sensor Index', min_value=1, value=1,
+						step=1, key='env_purple_sensor_index' )
 				
 				purple_btn_c1, purple_btn_c2 = st.columns( 2 )
 				
@@ -5728,16 +5587,13 @@ elif mode == 'Environmental':
 							service = PurpleAir( )
 							
 							if purple_mode == 'Sensors by Bounding Box':
-								result = service.fetch_sensors(
-									nwlng=float( purple_nwlng ),
-									nwlat=float( purple_nwlat ),
-									selng=float( purple_selng ),
+								result = service.fetch_sensors( nwlng=float( purple_nwlng ),
+									nwlat=float( purple_nwlat ), selng=float( purple_selng ),
 									selat=float( purple_selat ),
 									location_type=int( purple_location_type ),
 									max_age=int( purple_max_age ),
 									modified_since=int( purple_modified_since ),
-									fields=purple_fields,
-									time=int( purple_timeout ) )
+									fields=purple_fields, time=int( purple_timeout ) )
 							
 							else:
 								result = service.fetch_sensor(
@@ -5750,10 +5606,8 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_latitude' ] = purple_center_latitude
 							st.session_state[ 'env_last_longitude' ] = purple_center_longitude
 							
-							set_global_coordinates_from_result(
-								purple_center_latitude,
-								purple_center_longitude,
-								location=global_location,
+							set_global_coordinates_from_result( purple_center_latitude,
+								purple_center_longitude, location=global_location,
 								description='PurpleAir bounding-box center' )
 							
 							st.success( 'PurpleAir request completed.' )
@@ -5777,38 +5631,21 @@ elif mode == 'Environmental':
 			# ------------------------------------------------------------------
 			with st.expander( '🏭 EPA EnviroFacts Facilities', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.EPA_ENVIROFACTS )
-				envirofacts_table = st.selectbox(
-					'Table',
+				envirofacts_table = st.selectbox( 'Table',
 					options=[ 'TRI_FACILITY', 'TRI_RELEASE', 'EF_W_EMISSIONS_SOURCE_GHG' ],
 					key='env_envirofacts_table' )
 				
-				envirofacts_state = st.text_input(
-					'State Code',
-					value='',
-					help='Optional two-letter state filter.',
-					key='env_envirofacts_state' )
+				envirofacts_state = st.text_input( 'State Code', value='',
+					help='Optional two-letter state filter.', key='env_envirofacts_state' )
 				
-				envirofacts_facility = st.text_input(
-					'Facility Name',
-					value='',
-					help='Optional facility-name prefix filter.',
-					key='env_envirofacts_facility' )
+				envirofacts_facility = st.text_input( 'Facility Name', value='',
+					help='Optional facility-name prefix filter.', key='env_envirofacts_facility' )
 				
-				envirofacts_limit = st.number_input(
-					'Limit',
-					min_value=1,
-					max_value=500,
-					value=25,
-					step=1,
-					key='env_envirofacts_limit' )
+				envirofacts_limit = st.number_input( 'Limit', min_value=1, max_value=500, value=25,
+					step=1, key='env_envirofacts_limit' )
 				
-				envirofacts_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='env_envirofacts_timeout' )
+				envirofacts_timeout = st.number_input( 'Timeout', min_value=1, max_value=60,
+					value=20, step=1, key='env_envirofacts_timeout' )
 				
 				envirofacts_btn_c1, envirofacts_btn_c2 = st.columns( 2 )
 				
@@ -5817,12 +5654,9 @@ elif mode == 'Environmental':
 							use_container_width=True ):
 						try:
 							service = EnviroFacts( )
-							result = service.fetch(
-								table_name=envirofacts_table,
-								state_code=envirofacts_state,
-								facility_name=envirofacts_facility,
-								limit=int( envirofacts_limit ),
-								time=int( envirofacts_timeout ) )
+							result = service.fetch( table_name=envirofacts_table,
+								state_code=envirofacts_state, facility_name=envirofacts_facility,
+								limit=int( envirofacts_limit ), time=int( envirofacts_timeout ) )
 							
 							st.session_state[ 'env_last_source' ] = 'EnviroFacts'
 							st.session_state[ 'env_last_result' ] = result or { }
@@ -5851,49 +5685,29 @@ elif mode == 'Environmental':
 				st.badge( label='About API', color='blue', help=cfg.NASA_FIRMS )
 				firms_select_c1, firms_select_c2 = st.columns( 2 )
 				with firms_select_c1:
-					firms_source = st.selectbox( 'Source', options=[
-							'MODIS_NRT',
-							'MODIS_SP',
-							'VIIRS_SNPP_NRT',
-							'VIIRS_SNPP_SP',
-							'VIIRS_NOAA20_NRT',
-							'VIIRS_NOAA20_SP',
-							'VIIRS_NOAA21_NRT',
-							'LANDSAT_NRT'
-					], key='env_firms_source' )
+					firms_source = st.selectbox( 'Source',
+						options=[ 'MODIS_NRT', 'MODIS_SP', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP',
+								'VIIRS_NOAA20_NRT', 'VIIRS_NOAA20_SP', 'VIIRS_NOAA21_NRT',
+								'LANDSAT_NRT' ], key='env_firms_source' )
 				with firms_select_c2:
 					firms_area_mode = st.selectbox( 'Area Mode',
 						options=[ 'World', 'Bounding Box' ], key='env_firms_area_mode' )
 				
-				firms_day_range = st.number_input(
-					'Day Range',
-					min_value=1,
-					max_value=5,
-					value=1,
-					step=1,
-					key='env_firms_day_range' )
+				firms_day_range = st.number_input( 'Day Range', min_value=1, max_value=5, value=1,
+					step=1, key='env_firms_day_range' )
 				
-				firms_use_date = st.checkbox(
-					'Use Start Date',
-					value=False,
+				firms_use_date = st.checkbox( 'Use Start Date', value=False,
 					key='env_firms_use_date' )
 				
 				if firms_use_date:
-					firms_date_value = st.date_input(
-						'Date',
-						value=dt.date.today( ),
+					firms_date_value = st.date_input( 'Date', value=dt.date.today( ),
 						key='env_firms_date' )
 					firms_date = firms_date_value.isoformat( )
 				else:
 					firms_date = ''
 				
-				firms_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='env_firms_timeout' )
+				firms_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='env_firms_timeout' )
 				
 				if firms_area_mode == 'World':
 					firms_area_coordinates = 'world'
@@ -5911,35 +5725,23 @@ elif mode == 'Environmental':
 					firms_box_c1, firms_box_c2 = st.columns( 2 )
 					
 					with firms_box_c1:
-						firms_west = st.number_input(
-							'West',
-							value=float( global_box[ 'west' ] ),
-							format='%.6f',
-							key='env_firms_west' )
+						firms_west = st.number_input( 'West', value=float( global_box[ 'west' ] ),
+							format='%.6f', key='env_firms_west' )
 						
-						firms_south = st.number_input(
-							'South',
-							value=float( global_box[ 'south' ] ),
-							format='%.6f',
+						firms_south = st.number_input( 'South',
+							value=float( global_box[ 'south' ] ), format='%.6f',
 							key='env_firms_south' )
 					
 					with firms_box_c2:
-						firms_east = st.number_input(
-							'East',
-							value=float( global_box[ 'east' ] ),
-							format='%.6f',
-							key='env_firms_east' )
+						firms_east = st.number_input( 'East', value=float( global_box[ 'east' ] ),
+							format='%.6f', key='env_firms_east' )
 						
-						firms_north = st.number_input(
-							'North',
-							value=float( global_box[ 'north' ] ),
-							format='%.6f',
+						firms_north = st.number_input( 'North',
+							value=float( global_box[ 'north' ] ), format='%.6f',
 							key='env_firms_north' )
 					
-					firms_area_coordinates = (
-							f'{float( firms_west )},{float( firms_south )},'
-							f'{float( firms_east )},{float( firms_north )}'
-					)
+					firms_area_coordinates = ( f'{float( firms_west )},{float( firms_south )},'
+							f'{float( firms_east )},{float( firms_north )}' )
 					
 					firms_center_latitude = (float( firms_south ) + float( firms_north )) / 2.0
 					firms_center_longitude = (float( firms_west ) + float( firms_east )) / 2.0
@@ -5952,11 +5754,9 @@ elif mode == 'Environmental':
 						try:
 							service = Firms( )
 							
-							result = service.fetch_area(
-								source=firms_source,
+							result = service.fetch_area( source=firms_source,
 								area_coordinates=firms_area_coordinates,
-								day_range=int( firms_day_range ),
-								date=firms_date,
+								day_range=int( firms_day_range ), date=firms_date,
 								time=int( firms_timeout ) )
 							
 							st.session_state[ 'env_last_source' ] = 'FIRMS'
@@ -5964,10 +5764,8 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_latitude' ] = firms_center_latitude
 							st.session_state[ 'env_last_longitude' ] = firms_center_longitude
 							
-							set_global_coordinates_from_result(
-								firms_center_latitude,
-								firms_center_longitude,
-								location=global_location,
+							set_global_coordinates_from_result( firms_center_latitude,
+								firms_center_longitude, location=global_location,
 								description='FIRMS bounding-box center' )
 							
 							st.success( 'FIRMS request completed.' )
@@ -5991,71 +5789,43 @@ elif mode == 'Environmental':
 			# ------------------------------------------------------------------
 			with st.expander( '🌎 NASA Earth Observatory Natural Events', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.NASA_EONET )
-				eonet_mode = st.selectbox(
-					'Mode',
-					options=[ 'events', 'categories' ],
+				eonet_mode = st.selectbox( 'Mode', options=[ 'events', 'categories' ],
 					key='env_eonet_mode' )
 				
-				eonet_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='env_eonet_timeout' )
+				eonet_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='env_eonet_timeout' )
 				
 				if eonet_mode == 'events':
-					eonet_source = st.text_input(
-						'Source',
-						value='',
+					eonet_source = st.text_input( 'Source', value='',
 						help='Optional EONET source identifier or comma-separated identifiers.',
 						key='env_eonet_source' )
 					
-					eonet_category = st.text_input(
-						'Category',
-						value='',
+					eonet_category = st.text_input( 'Category', value='',
 						help='Optional EONET category identifier or comma-separated identifiers.',
 						key='env_eonet_category' )
 					
-					eonet_status = st.selectbox(
-						'Status',
-						options=[ 'open', 'closed', 'all' ],
+					eonet_status = st.selectbox( 'Status', options=[ 'open', 'closed', 'all' ],
 						key='env_eonet_status' )
 					
-					eonet_limit = st.number_input(
-						'Limit',
-						min_value=1,
-						max_value=500,
-						value=25,
-						step=1,
-						key='env_eonet_limit' )
+					eonet_limit = st.number_input( 'Limit', min_value=1, max_value=500, value=25,
+						step=1, key='env_eonet_limit' )
 					
-					eonet_days = st.number_input(
-						'Days',
-						min_value=1,
-						max_value=3650,
-						value=30,
-						step=1,
-						key='env_eonet_days' )
+					eonet_days = st.number_input( 'Days', min_value=1, max_value=3650, value=30,
+						step=1, key='env_eonet_days' )
 					
-					eonet_use_dates = st.checkbox(
-						'Use Start / End Dates',
-						value=False,
+					eonet_use_dates = st.checkbox( 'Use Start / End Dates', value=False,
 						key='env_eonet_use_dates' )
 					
 					if eonet_use_dates:
 						eonet_date_c1, eonet_date_c2 = st.columns( 2 )
 						
 						with eonet_date_c1:
-							eonet_start_value = st.date_input(
-								'Start Date',
+							eonet_start_value = st.date_input( 'Start Date',
 								value=dt.date.today( ) - dt.timedelta( days=30 ),
 								key='env_eonet_start_date' )
 						
 						with eonet_date_c2:
-							eonet_end_value = st.date_input(
-								'End Date',
-								value=dt.date.today( ),
+							eonet_end_value = st.date_input( 'End Date', value=dt.date.today( ),
 								key='env_eonet_end_date' )
 						
 						eonet_start_date = eonet_start_value.isoformat( )
@@ -6065,9 +5835,7 @@ elif mode == 'Environmental':
 						eonet_start_date = ''
 						eonet_end_date = ''
 					
-					eonet_use_bbox = st.checkbox(
-						'Use Bounding Box',
-						value=False,
+					eonet_use_bbox = st.checkbox( 'Use Bounding Box', value=False,
 						key='env_eonet_use_bbox' )
 					
 					if eonet_use_bbox:
@@ -6077,45 +5845,28 @@ elif mode == 'Environmental':
 						eonet_box_c1, eonet_box_c2 = st.columns( 2 )
 						
 						with eonet_box_c1:
-							eonet_min_lon = st.number_input(
-								'Min Longitude',
-								value=float( global_box[ 'west' ] ),
-								format='%.6f',
+							eonet_min_lon = st.number_input( 'Min Longitude',
+								value=float( global_box[ 'west' ] ), format='%.6f',
 								key='env_eonet_min_lon' )
 							
-							eonet_max_lat = st.number_input(
-								'Max Latitude',
-								value=float( global_box[ 'north' ] ),
-								format='%.6f',
+							eonet_max_lat = st.number_input( 'Max Latitude',
+								value=float( global_box[ 'north' ] ), format='%.6f',
 								key='env_eonet_max_lat' )
 						
 						with eonet_box_c2:
-							eonet_max_lon = st.number_input(
-								'Max Longitude',
-								value=float( global_box[ 'east' ] ),
-								format='%.6f',
+							eonet_max_lon = st.number_input( 'Max Longitude',
+								value=float( global_box[ 'east' ] ), format='%.6f',
 								key='env_eonet_max_lon' )
 							
-							eonet_min_lat = st.number_input(
-								'Min Latitude',
-								value=float( global_box[ 'south' ] ),
-								format='%.6f',
+							eonet_min_lat = st.number_input( 'Min Latitude',
+								value=float( global_box[ 'south' ] ), format='%.6f',
 								key='env_eonet_min_lat' )
 						
-						eonet_bbox = (
-								f'{float( eonet_min_lon )},{float( eonet_max_lat )},'
-								f'{float( eonet_max_lon )},{float( eonet_min_lat )}'
-						)
+						eonet_bbox = ( f'{float( eonet_min_lon )},{float( eonet_max_lat )},'
+								f'{float( eonet_max_lon )},{float( eonet_min_lat )}')
 						
-						eonet_center_latitude = (
-								                        float( eonet_min_lat ) + float(
-							                        eonet_max_lat )
-						                        ) / 2.0
-						
-						eonet_center_longitude = (
-								                         float( eonet_min_lon ) + float(
-							                         eonet_max_lon )
-						                         ) / 2.0
+						eonet_center_latitude = (float( eonet_min_lat ) + float(eonet_max_lat )) / 2.0
+						eonet_center_longitude = (float( eonet_min_lon ) + float( eonet_max_lon)) / 2.0
 					
 					else:
 						eonet_bbox = ''
@@ -6142,27 +5893,19 @@ elif mode == 'Environmental':
 						try:
 							service = EoNet( )
 							
-							result = service.fetch(
-								mode=eonet_mode,
-								source=eonet_source,
-								category=eonet_category,
-								status=eonet_status,
-								limit=int( eonet_limit ),
-								days=int( eonet_days ),
-								start_date=eonet_start_date,
-								end_date=eonet_end_date,
-								bbox=eonet_bbox,
-								time=int( eonet_timeout ) )
+							result = service.fetch( mode=eonet_mode, source=eonet_source,
+								category=eonet_category, status=eonet_status,
+								limit=int( eonet_limit ), days=int( eonet_days ),
+								start_date=eonet_start_date, end_date=eonet_end_date,
+								bbox=eonet_bbox, time=int( eonet_timeout ) )
 							
 							st.session_state[ 'env_last_source' ] = 'EONET'
 							st.session_state[ 'env_last_result' ] = result or { }
 							st.session_state[ 'env_last_latitude' ] = eonet_center_latitude
 							st.session_state[ 'env_last_longitude' ] = eonet_center_longitude
 							
-							set_global_coordinates_from_result(
-								eonet_center_latitude,
-								eonet_center_longitude,
-								location=global_location,
+							set_global_coordinates_from_result( eonet_center_latitude,
+								eonet_center_longitude, location=global_location,
 								description='EONET bounding-box center' )
 							
 							st.success( 'EONET request completed.' )
@@ -6173,6 +5916,7 @@ elif mode == 'Environmental':
 				with eonet_btn_c2:
 					if st.button( label='Clear', icon='🧹', key='env_eonet_clear',
 							use_container_width=True ):
+						
 						st.session_state[ 'env_last_source' ] = ''
 						st.session_state[ 'env_last_result' ] = { }
 						st.session_state[ 'env_last_latitude' ] = None
@@ -6216,11 +5960,8 @@ elif mode == 'Environmental':
 							st.metric( 'Latitude', f'{lat_value:.6f}' )
 						with lng_c:
 							st.metric( 'Longitude', f'{lng_value:.6f}' )
-
-						preview_url = static_maps.pin(
-							lat=lat_value,
-							lng=lng_value,
-							zoom=8,
+						
+						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=8,
 							size='600x400' )
 
 						st.image( preview_url )
@@ -6230,11 +5971,8 @@ elif mode == 'Environmental':
 
 				if isinstance( rows, list ) and rows:
 					st.markdown( '##### Rows' )
-					st.data_editor(
-						pd.DataFrame( rows ),
-						key='env_rows_table',
-						use_container_width=True,
-						disabled=True )
+					st.data_editor( pd.DataFrame( rows ), key='env_rows_table',
+						use_container_width=True, disabled=True )
 
 				st.markdown( '##### Raw Result' )
 				st.json( env_result )
@@ -6272,21 +6010,12 @@ elif mode == 'Astronomical':
 					'Uses the U.S. Naval Observatory Celestial Navigation Data API. The endpoint '
 					'accepts date, time, and assumed observer coordinates as latitude,longitude.' )
 				
-				naval_date = st.date_input(
-					'Date',
-					value=dt.date.today( ),
+				naval_date = st.date_input( 'Date', value=dt.date.today( ),
 					key='astro_naval_date' )
 				
-				naval_time_choice = st.selectbox(
-					'Time Preset',
-					options=[
-							'Current UTC Time',
-							'00:00:00',
-							'06:00:00',
-							'12:00:00',
-							'18:00:00',
-							'Custom'
-					],
+				naval_time_choice = st.selectbox( 'Time Preset',
+					options=[ 'Current UTC Time', '00:00:00', '06:00:00', '12:00:00', '18:00:00',
+							'Custom' ],
 					key='astro_naval_time_choice' )
 				
 				if naval_time_choice == 'Current UTC Time':
@@ -6294,24 +6023,16 @@ elif mode == 'Astronomical':
 					st.caption( f'Using current UTC time: {naval_time_value}' )
 				
 				elif naval_time_choice == 'Custom':
-					naval_time_value = st.text_input(
-						'Custom Time',
-						value='12:00:00',
+					naval_time_value = st.text_input( 'Custom Time', value='12:00:00',
 						help='Use HH:MM, HH:MM:SS, or HH:MM:SS.S format.',
 						key='astro_naval_time_value' )
 				
 				else:
 					naval_time_value = naval_time_choice
 				
-				naval_location_preset = st.selectbox(
-					'Observer Location Preset',
-					options=[
-							'Global Location',
-							'Washington, DC',
-							'New York Harbor',
-							'Norfolk, VA',
-							'Custom'
-					],
+				naval_location_preset = st.selectbox( 'Observer Location Preset',
+					options=[ 'Global Location', 'Washington, DC', 'New York Harbor', 'Norfolk, VA',
+							'Custom' ],
 					key='astro_naval_location_preset' )
 				
 				if naval_location_preset == 'Washington, DC':
@@ -6342,12 +6063,8 @@ elif mode == 'Astronomical':
 				naval_c1, naval_c2 = st.columns( 2 )
 				
 				with naval_c1:
-					naval_latitude = st.number_input(
-						'Observer Latitude',
-						min_value=-90.0,
-						max_value=90.0,
-						value=float( naval_default_latitude ),
-						format='%.6f',
+					naval_latitude = st.number_input( 'Observer Latitude', min_value=-90.0,
+						max_value=90.0, value=float( naval_default_latitude ), format='%.6f',
 						key='astro_naval_latitude' )
 				
 				with naval_c2:
