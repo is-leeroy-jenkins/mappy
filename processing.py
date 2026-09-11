@@ -202,7 +202,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 				value=min( 200, max( 0, int( chunk_size ) - 1 ) ),
 				step=1, key=f'{key_prefix}_chunk_overlap' )
 
-		provider_col, model_col = st.columns( 2, border=True )
+		provider_col, model_col = st.columns( 2 )
 		with provider_col:
 			provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
 				index=list( EMBEDDING_MODELS.keys( ) ).index( 'Hugging Face' ),
@@ -216,7 +216,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 			model_path = st.text_input( 'Local GGUF Model Path',
 				placeholder=r'C:\models\embedding-model.gguf', key=f'{key_prefix}_embedding_model_path' )
 
-		store_col, target_col = st.columns( 2, border=True )
+		store_col, target_col = st.columns( 2 )
 		with store_col:
 			vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
 				key=f'{key_prefix}_vector_backend' )
@@ -281,7 +281,8 @@ def tokenize_documents( documents: List[ Document ] ) -> List[ List[ str ] ]:
 		raise exception
 
 
-def chunk_documents( documents: List[ Document ], chunk_size: int, chunk_overlap: int ) -> List[ Document ]:
+def chunk_documents( documents: List[ Document ], chunk_size: int,
+                     chunk_overlap: int ) -> List[ Document ]:
 	"""Split LangChain documents into retrieval chunks."""
 	try:
 		throw_if( 'documents', documents )
@@ -305,7 +306,6 @@ def chunk_documents( documents: List[ Document ], chunk_size: int, chunk_overlap
 		exception.method = 'chunk_documents( documents: List[ Document ], chunk_size: int, chunk_overlap: int )'
 		Logger( ).write( exception )
 		raise exception
-
 
 def create_embeddings( chunks: List[ Document ], provider: str, model: str,
 	model_path: str ) -> tuple[ object, List[ List[ float ] ] ]:
@@ -333,7 +333,6 @@ def create_embeddings( chunks: List[ Document ], provider: str, model: str,
 		exception.method = 'create_embeddings( chunks: List[ Document ], provider: str, model: str, model_path: str )'
 		Logger( ).write( exception )
 		raise exception
-
 
 def store_documents( chunks: List[ Document ], embeddings: List[ List[ float ] ], embedder: object,
 	vector_backend: str, vector_target: str, persist_directory: str, namespace: str ) -> object:
@@ -396,9 +395,7 @@ def render_retrieval_controls( state_key: str, key_prefix: str ) -> None:
 			if not results:
 				st.info( 'No matching documents were found.' )
 				return
-			df_results = pd.DataFrame( [ {
-				'Rank': index,
-				'Score': score,
+			df_results = pd.DataFrame( [ { 'Rank': index, 'Score': score,
 				'Source': (document.metadata or { }).get( 'source', '' ),
 				'Chunk ID': (document.metadata or { }).get( 'chunk_id', '' ),
 				'Text': document.page_content,
@@ -413,7 +410,6 @@ def render_retrieval_controls( state_key: str, key_prefix: str ) -> None:
 		exception.method = 'render_retrieval_controls( state_key: str, key_prefix: str ) -> None'
 		Logger( ).write( exception )
 		st.error( str( exception ) )
-
 
 def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ str, object ] ) -> None:
 	"""Render Chunk, Embed, and Store actions for one Foo-style loader expander."""
@@ -517,7 +513,6 @@ def render_document_actions( loader_type: str, key_prefix: str, settings: Dict[ 
 	if st.session_state.get( 'document_vector_store' ) is not None:
 		render_retrieval_controls( 'document_vector_store', key_prefix )
 
-
 def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) -> None:
 	"""Render one local Foo-style loader expander."""
 	try:
@@ -581,7 +576,6 @@ def render_loader_expander( loader_type: str, settings: Dict[ str, object ] ) ->
 
 		render_document_actions( loader_type, key_prefix, processing )
 
-
 def render_enrichment_expander( cache: object ) -> None:
 	"""Render Mappy's existing Excel/CSV geospatial enrichment workflow."""
 	with st.expander( label='Excel / CSV Enrichment', icon='🌎', expanded=False ):
@@ -640,7 +634,6 @@ def render_enrichment_expander( cache: object ) -> None:
 				for path in [ input_path, output_path ]:
 					if os.path.exists( path ):
 						os.remove( path )
-
 
 def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 	embeddings_key: str, first_label: str ) -> None:
@@ -712,7 +705,7 @@ def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 def render_document_processing( cache: object = None ) -> None:
 	"""Render Foo-style local document loading in Mappy Data Upload mode."""
 	initialize_document_state( )
-	st.subheader( '📤 Document Loading' )
+	st.subheader( '📤 Loading' )
 	st.divider( )
 	left, right = st.columns( [ 0.4, 0.6 ], gap='xxsmall', border=True )
 	with left:
