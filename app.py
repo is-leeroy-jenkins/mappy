@@ -4772,12 +4772,12 @@ elif mode == 'Weather':
 				with open_btn_c1:
 					if st.button( label='Run', icon='🏃', key='weather_open_run',
 							use_container_width=True ):
+						
 						if not open_location:
 							st.warning( 'Enter a location.' )
 						else:
 							try:
 								weather = OpenWeather( )
-								
 								result = weather.fetch( location=open_location, mode=open_mode,
 									zone=open_zone, forecast_days=int( open_forecast_days ),
 									past_days=int( open_past_days ),
@@ -4786,8 +4786,7 @@ elif mode == 'Weather':
 								weather_latitude = getattr( weather, 'latitude', None )
 								weather_longitude = getattr( weather, 'longitude', None )
 								
-								st.session_state[
-									'weather_last_source' ] = 'OpenWeather / Open-Meteo'
+								st.session_state[ 'weather_last_source' ] = 'OpenWeather / Open-Meteo'
 								st.session_state[ 'weather_last_result' ] = result or { }
 								st.session_state[ 'weather_last_latitude' ] = weather_latitude
 								st.session_state[ 'weather_last_longitude' ] = weather_longitude
@@ -4804,6 +4803,7 @@ elif mode == 'Weather':
 				with open_btn_c2:
 					if st.button( label='Clear', icon='🧹', key='weather_open_clear',
 							use_container_width=True ):
+						
 						st.session_state[ 'weather_last_source' ] = ''
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
@@ -4821,8 +4821,7 @@ elif mode == 'Weather':
 				historical_location = st.text_input( 'Location', value=global_location,
 					key='weather_historical_location' )
 				
-				historical_date = st.date_input(
-					'Historical Date',
+				historical_date = st.date_input( 'Historical Date',
 					value=dt.date.today( ) - dt.timedelta( days=7 ),
 					key='weather_historical_date' )
 				
@@ -4837,16 +4836,15 @@ elif mode == 'Weather':
 				with historical_btn_c1:
 					if st.button( label='Run', icon='🏃', key='weather_historical_run',
 							use_container_width=True ):
+						
 						if not historical_location:
 							st.warning( 'Enter a location.' )
 						else:
 							try:
 								weather = HistoricalWeather( )
 								
-								result = weather.fetch(
-									location=historical_location,
-									date=historical_date,
-									zone=historical_zone,
+								result = weather.fetch( location=historical_location,
+									date=historical_date, zone=historical_zone,
 									count=int( historical_count ) )
 								
 								weather_latitude = getattr( weather, 'latitude', None )
@@ -4857,10 +4855,8 @@ elif mode == 'Weather':
 								st.session_state[ 'weather_last_latitude' ] = weather_latitude
 								st.session_state[ 'weather_last_longitude' ] = weather_longitude
 								
-								set_global_coordinates_from_result(
-									weather_latitude,
-									weather_longitude,
-									location=historical_location,
+								set_global_coordinates_from_result( weather_latitude,
+									weather_longitude, location=historical_location,
 									description='Historical Weather result' )
 								
 								st.success( 'Historical Weather request completed.' )
