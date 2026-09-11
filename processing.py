@@ -74,7 +74,6 @@ def throw_if( name: str, value: object ) -> None:
 	if isinstance( value, ( list, tuple, dict, set ) ) and len( value ) == 0:
 		raise ValueError( f'Argument "{name}" cannot be empty!' )
 
-
 def initialize_document_state( ) -> None:
 	"""Initialize shared document-processing state."""
 	defaults = {
@@ -96,7 +95,6 @@ def initialize_document_state( ) -> None:
 		if key not in st.session_state:
 			st.session_state[ key ] = value
 
-
 def initialize_web_state( ) -> None:
 	"""Initialize shared web-document state."""
 	defaults = {
@@ -117,7 +115,6 @@ def initialize_web_state( ) -> None:
 		if key not in st.session_state:
 			st.session_state[ key ] = value
 
-
 def clear_document_state( ) -> None:
 	"""Clear loaded documents and all derived document state."""
 	initialize_document_state( )
@@ -135,7 +132,6 @@ def clear_document_state( ) -> None:
 	st.session_state[ 'document_embedding_model_used' ] = ''
 	st.session_state[ 'document_embedding_model_path_used' ] = ''
 
-
 def clear_web_state( ) -> None:
 	"""Clear scraped documents and all derived web-document state."""
 	initialize_web_state( )
@@ -151,7 +147,6 @@ def clear_web_state( ) -> None:
 	st.session_state[ 'web_embedding_provider_used' ] = ''
 	st.session_state[ 'web_embedding_model_used' ] = ''
 	st.session_state[ 'web_embedding_model_path_used' ] = ''
-
 
 def load_uploaded_document( loader_type: str, uploaded_file: object ) -> List[ Document ]:
 	"""Load an uploaded file into LangChain documents."""
@@ -186,7 +181,6 @@ def load_uploaded_document( loader_type: str, uploaded_file: object ) -> List[ D
 		exception.method = 'load_uploaded_document( loader_type: str, uploaded_file: object )'
 		Logger( ).write( exception )
 		raise exception
-
 
 def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 	"""Render Foo-style chunking, embedding, and vector-store controls."""
@@ -249,7 +243,6 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 		Logger( ).write( exception )
 		raise exception
 
-
 def tokenize_documents( documents: List[ Document ] ) -> List[ List[ str ] ]:
 	"""Tokenize document chunks into words.
 
@@ -279,7 +272,6 @@ def tokenize_documents( documents: List[ Document ] ) -> List[ List[ str ] ]:
 		exception.method = 'tokenize_documents( documents: List[ Document ] )'
 		Logger( ).write( exception )
 		raise exception
-
 
 def chunk_documents( documents: List[ Document ], chunk_size: int,
                      chunk_overlap: int ) -> List[ Document ]:
