@@ -3926,7 +3926,7 @@ bootstrap_browser_geolocation( geocoder )
 # GEOCODING MODE
 # ==============================================================================
 if mode == 'Geocoding':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Geocoding' )
 		st.divider( )
@@ -4000,7 +4000,7 @@ if mode == 'Geocoding':
 # MAP MODE
 # ==============================================================================
 elif mode == 'Interactive Map':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Interactive Map' )
 		st.divider( )
@@ -4047,7 +4047,7 @@ elif mode == 'Interactive Map':
 # DISTANCES MODE
 # ==============================================================================
 elif mode == 'Distances':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Distance Matrix' )
 		st.divider( )
@@ -4132,7 +4132,7 @@ elif mode == 'Distances':
 # MAPS MODE
 # ==============================================================================
 elif mode == 'Static Maps':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Static Map' )
 		st.divider( )
@@ -4239,7 +4239,7 @@ elif mode == 'Static Maps':
 # TIME ZONE MODE
 # ==============================================================================
 elif mode == 'Time Zones':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Time Zone Lookup' )
 		st.divider( )
@@ -4503,10 +4503,8 @@ elif mode == 'Web Scraper':
 			summary = st.session_state.get( 'webscrape_summary', { } )
 			results = st.session_state.get( 'webscrape_results', [ ] )
 			renderer = WebFetcher( )
-
 			if summary:
 				st.subheader( 'Summary' )
-
 				metric_c1, metric_c2, metric_c3, metric_c4 = st.columns( 4 )
 
 				with metric_c1:
@@ -4599,8 +4597,7 @@ elif mode == 'Web Scraper':
 # ==============================================================================
 elif mode == 'Weather':
 	from processing import render_mode_document_tabs, render_source_processing_controls
-
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Weather Data' )
 		st.divider( )
@@ -5201,8 +5198,7 @@ elif mode == 'Weather':
 # ==============================================================================
 elif mode == 'Environmental':
 	from processing import render_mode_document_tabs, render_source_processing_controls
-
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Environmental Data' )
 		st.divider( )
@@ -6319,8 +6315,7 @@ elif mode == 'Environmental':
 # ==============================================================================
 elif mode == 'Astronomical':
 	from processing import render_mode_document_tabs, render_source_processing_controls
-
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Astronomical Data' )
 		st.divider( )
@@ -7699,7 +7694,7 @@ elif mode == 'Astronomical':
 # CELESTIAL MAP MODE
 # ==============================================================================
 elif mode == 'Celestial Map':
-	left, center, right = st.columns( [ 0.10, 0.8, 0.10 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Celestial Map' )
 		st.divider( )
@@ -7815,8 +7810,7 @@ elif mode == 'Celestial Map':
 # ==============================================================================
 elif mode == 'Geological':
 	from processing import render_mode_document_tabs, render_source_processing_controls
-
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Geological Data' )
 		st.divider( )
@@ -7848,28 +7842,14 @@ elif mode == 'Geological':
 				
 				if quake_mode == 'feed':
 					quake_feed = st.selectbox( 'Feed',
-						options=[
-								'all_hour.geojson',
-								'all_day.geojson',
-								'all_week.geojson',
-								'all_month.geojson',
-								'1.0_hour.geojson',
-								'1.0_day.geojson',
-								'1.0_week.geojson',
-								'1.0_month.geojson',
-								'2.5_hour.geojson',
-								'2.5_day.geojson',
-								'2.5_week.geojson',
-								'2.5_month.geojson',
-								'4.5_hour.geojson',
-								'4.5_day.geojson',
-								'4.5_week.geojson',
-								'4.5_month.geojson',
-								'significant_hour.geojson',
-								'significant_day.geojson',
-								'significant_week.geojson',
-								'significant_month.geojson'
-						], key='geo_quake_feed' )
+						options=[ 'all_hour.geojson', 'all_day.geojson', 'all_week.geojson',
+								'all_month.geojson', '1.0_hour.geojson', '1.0_day.geojson',
+								'1.0_week.geojson', '1.0_month.geojson', '2.5_hour.geojson',
+								'2.5_day.geojson', '2.5_week.geojson', '2.5_month.geojson',
+								'4.5_hour.geojson', '4.5_day.geojson', '4.5_week.geojson',
+								'4.5_month.geojson', 'significant_hour.geojson',
+								'significant_day.geojson', 'significant_week.geojson',
+								'significant_month.geojson' ], key='geo_quake_feed' )
 					
 					quake_start_date = ''
 					quake_end_date = ''
@@ -8723,7 +8703,7 @@ elif mode == 'Geological':
 # TEXT GENERATION MODE
 # ==============================================================================
 elif mode == 'Generative':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( f'🧠  Generative AI' )
 		st.divider( )
@@ -10380,8 +10360,7 @@ elif mode == 'Generative':
 # ==============================================================================
 elif mode == 'Data Upload':
 	from processing import render_document_processing
-
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Excel / CSV' )
 		st.divider( )
@@ -10472,7 +10451,7 @@ elif mode == 'Data Upload':
 # DATA MANAGEMENT MODE
 # ==============================================================================
 elif mode == 'Data Management':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+	left, center, right = st.columns( [ 0.01, 0.98, 0.01 ] )
 	with center:
 		st.subheader( 'Data Management' )
 		tabs = st.tabs( [ 'Import', 'Browse', 'CRUD', 'Explore', 'Filter',
