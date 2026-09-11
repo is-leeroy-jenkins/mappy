@@ -9374,13 +9374,7 @@ elif mode == 'Data Management':
 					
 					with action_c3:
 						confirm_update_coordinates = st.checkbox( 'Confirm Update Coordinates',
-							value=False, help=(
-									'When checked, the Update Coordinates button will geocode '
-									'missing '
-									'Reports locations and immediately write matched coordinates '
-									'back '
-									'to SQLite.'),
-							key='reports_geocode_confirm_update_coordinates' )
+							value=False, key='reports_geocode_confirm_update_coordinates' )
 					
 					with action_c4:
 						if st.button( 'Update Coordinates', icon='📍',
