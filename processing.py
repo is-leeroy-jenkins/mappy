@@ -35,29 +35,27 @@ from fetchers import WebFetcher
 from loaders import DocumentLoaderFactory
 from vector import ChromaStore, PineconeStore, create_document_ids
 
-
 DOCUMENT_LOADERS: Dict[ str, Dict[ str, object ] ] = {
-	'Text': { 'label': 'Text Loader', 'icon': '📝', 'types': [ 'txt', 'text', 'log' ], 'prefix': 'txt' },
-	'CSV': { 'label': 'CSV Loader', 'icon': '📊', 'types': [ 'csv' ], 'prefix': 'csv' },
-	'PDF': { 'label': 'PDF Loader', 'icon': '📕', 'types': [ 'pdf' ], 'prefix': 'pdf' },
-	'Excel': { 'label': 'Excel Loader', 'icon': '📗', 'types': [ 'xlsx', 'xls' ], 'prefix': 'xlsx' },
-	'Word': { 'label': 'Word Loader', 'icon': '📘', 'types': [ 'docx' ], 'prefix': 'docx' },
-	'Markdown': { 'label': 'Markdown Loader', 'icon': '🧾', 'types': [ 'md', 'markdown' ], 'prefix': 'md' },
-	'HTML': { 'label': 'HTML Loader', 'icon': '🌐', 'types': [ 'html', 'htm' ], 'prefix': 'html' },
-	'JSON': { 'label': 'JSON Loader', 'icon': '🧩', 'types': [ 'json' ], 'prefix': 'json' },
-	'PowerPoint': { 'label': 'PowerPoint Loader', 'icon': '📽️', 'types': [ 'pptx' ], 'prefix': 'pptx' },
-}
+		'Text': { 'label': 'Text Loader', 'icon': '📝', 'types': [ 'txt', 'text', 'log' ],
+		          'prefix': 'txt' },
+		'CSV': { 'label': 'CSV Loader', 'icon': '📊', 'types': [ 'csv' ], 'prefix': 'csv' },
+		'PDF': { 'label': 'PDF Loader', 'icon': '📕', 'types': [ 'pdf' ], 'prefix': 'pdf' },
+		'Excel': { 'label': 'Excel Loader', 'icon': '📗', 'types': [ 'xlsx', 'xls' ],
+		           'prefix': 'xlsx' },
+		'Word': { 'label': 'Word Loader', 'icon': '📘', 'types': [ 'docx' ], 'prefix': 'docx' },
+		'Markdown': { 'label': 'Markdown Loader', 'icon': '🧾', 'types': [ 'md', 'markdown' ],
+		              'prefix': 'md' },
+		'HTML': { 'label': 'HTML Loader', 'icon': '🌐', 'types': [ 'html', 'htm' ],
+		          'prefix': 'html' },
+		'JSON': { 'label': 'JSON Loader', 'icon': '🧩', 'types': [ 'json' ], 'prefix': 'json' },
+		'PowerPoint': { 'label': 'PowerPoint Loader', 'icon': '📽️', 'types': [ 'pptx' ],
+		                'prefix': 'pptx' }, }
 
 EMBEDDING_MODELS: Dict[ str, List[ str ] ] = {
-	'OpenAI': [ 'text-embedding-3-small', 'text-embedding-3-large' ],
-	'Google Generative AI': [ 'gemini-embedding-2-preview' ],
-	'Mistral AI': [ 'mistral-embed' ],
-	'Hugging Face': [
-		'sentence-transformers/all-MiniLM-L6-v2',
-		'sentence-transformers/all-mpnet-base-v2',
-	],
-	'Local GGUF': [ 'Local GGUF' ],
-}
+		'OpenAI': [ 'text-embedding-3-small', 'text-embedding-3-large' ],
+		'Google Generative AI': [ 'gemini-embedding-2-preview' ], 'Mistral AI': [ 'mistral-embed' ],
+		'Hugging Face': [ 'sentence-transformers/all-MiniLM-L6-v2',
+				'sentence-transformers/all-mpnet-base-v2', ], 'Local GGUF': [ 'Local GGUF' ], }
 
 def throw_if( name: str, value: object ) -> None:
 	"""Validate a required value.
@@ -194,7 +192,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 	"""Render Foo-style chunking, embedding, and vector-store controls."""
 	try:
 		throw_if( 'key_prefix', key_prefix )
-		chunk_col, overlap_col = st.columns( 2 )
+		chunk_col, overlap_col = st.columns( 2, border=True )
 		with chunk_col:
 			chunk_size = st.slider( 'Chunk Size', min_value=1, max_value=5000, value=1000,
 				step=1, key=f'{key_prefix}_chunk_size' )
@@ -204,7 +202,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 				value=min( 200, max( 0, int( chunk_size ) - 1 ) ),
 				step=1, key=f'{key_prefix}_chunk_overlap' )
 
-		provider_col, model_col = st.columns( 2 )
+		provider_col, model_col = st.columns( 2, border=True )
 		with provider_col:
 			provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
 				index=list( EMBEDDING_MODELS.keys( ) ).index( 'Hugging Face' ),
@@ -218,7 +216,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 			model_path = st.text_input( 'Local GGUF Model Path',
 				placeholder=r'C:\models\embedding-model.gguf', key=f'{key_prefix}_embedding_model_path' )
 
-		store_col, target_col = st.columns( 2 )
+		store_col, target_col = st.columns( 2, border=True )
 		with store_col:
 			vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
 				key=f'{key_prefix}_vector_backend' )
@@ -236,18 +234,11 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 		else:
 			persist_directory = ''
 			namespace = st.text_input( 'Namespace', value='', key=f'{key_prefix}_pinecone_namespace' )
-
-		return {
-			'chunk_size': int( chunk_size ),
-			'chunk_overlap': int( chunk_overlap ),
-			'provider': provider,
-			'model': model,
-			'model_path': model_path,
-			'vector_backend': vector_backend,
-			'vector_target': vector_target,
-			'persist_directory': persist_directory,
-			'namespace': namespace,
-		}
+		
+		return { 'chunk_size': int( chunk_size ), 'chunk_overlap': int( chunk_overlap ),
+				'provider': provider, 'model': model, 'model_path': model_path,
+				'vector_backend': vector_backend, 'vector_target': vector_target,
+				'persist_directory': persist_directory, 'namespace': namespace, }
 	except Error:
 		raise
 	except Exception as e:
@@ -412,7 +403,7 @@ def render_retrieval_controls( state_key: str, key_prefix: str ) -> None:
 				'Chunk ID': (document.metadata or { }).get( 'chunk_id', '' ),
 				'Text': document.page_content,
 			} for index, (document, score) in enumerate( results, start=1 ) ] )
-			st.dataframe( df_results, use_container_width=True, hide_index=True )
+			st.data_editor( df_results, use_container_width=True, hide_index=True )
 	except Error as exception:
 		st.error( str( exception ) )
 	except Exception as e:
@@ -631,7 +622,7 @@ def render_enrichment_expander( cache: object ) -> None:
 					frame = pd.read_csv( output_path )
 				else:
 					frame = pd.read_excel( output_path )
-				st.dataframe( frame, use_container_width=True, hide_index=True )
+				st.data_editor( frame, use_container_width=True, hide_index=True )
 				with open( output_path, 'rb' ) as handle:
 					output_bytes = handle.read( )
 				st.download_button( 'Download Enriched File', data=output_bytes,
@@ -661,7 +652,7 @@ def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 		throw_if( 'embeddings_key', embeddings_key )
 		throw_if( 'first_label', first_label )
 		document_tab, chunks_tab, embeddings_tab = st.tabs(
-			[ first_label, '✂️ Chunks', '🧠 Embeddings' ] )
+			[ first_label, '✂️ Chunks', '🔣 Embeddings' ] )
 		with document_tab:
 			documents = st.session_state.get( documents_key ) or [ ]
 			if not documents:
@@ -669,15 +660,13 @@ def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 			else:
 				rows = [ ]
 				for index, document in enumerate( documents, start=1 ):
-					rows.append( {
-						'Document': index,
-						'Source': ( document.metadata or { } ).get( 'source', '' ),
-						'Loader': ( document.metadata or { } ).get( 'loader', '' ),
-						'Characters': len( document.page_content or '' ),
-						'Metadata': document.metadata or { },
-						'Text': document.page_content or '',
-					} )
-				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+					rows.append( { 'Document': index,
+							'Source': (document.metadata or { }).get( 'source', '' ),
+							'Loader': (document.metadata or { }).get( 'loader', '' ),
+							'Characters': len( document.page_content or '' ),
+							'Metadata': document.metadata or { },
+							'Text': document.page_content or '', } )
+				st.data_editor( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
 		with chunks_tab:
 			chunks = st.session_state.get( chunks_key ) or [ ]
 			tokens = st.session_state.get( tokens_key ) or [ ]
@@ -686,15 +675,13 @@ def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 			else:
 				rows = [ ]
 				for index, document in enumerate( chunks, start=1 ):
-					rows.append( {
-						'Chunk': index,
-						'Chunk ID': ( document.metadata or { } ).get( 'chunk_id', '' ),
-						'Source': ( document.metadata or { } ).get( 'source', '' ),
-						'Characters': len( document.page_content or '' ),
-						'Tokens': len( tokens[ index - 1 ] ) if index <= len( tokens ) else 0,
-						'Text': document.page_content or '',
-					} )
-				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+					rows.append( { 'Chunk': index,
+							'Chunk ID': (document.metadata or { }).get( 'chunk_id', '' ),
+							'Source': (document.metadata or { }).get( 'source', '' ),
+							'Characters': len( document.page_content or '' ),
+							'Tokens': len( tokens[ index - 1 ] ) if index <= len( tokens ) else 0,
+							'Text': document.page_content or '', } )
+				st.data_editor( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
 		with embeddings_tab:
 			vectors = st.session_state.get( embeddings_key ) or [ ]
 			chunks = st.session_state.get( chunks_key ) or [ ]
@@ -711,7 +698,7 @@ def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 						'Text': document.page_content if document else '',
 						'Embedding Preview': vector[ :8 ],
 					} )
-				st.dataframe( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
+				st.data_editor( pd.DataFrame( rows ), use_container_width=True, hide_index=True )
 	except Error:
 		raise
 	except Exception as e:
@@ -721,7 +708,6 @@ def render_document_tabs( documents_key: str, chunks_key: str, tokens_key: str,
 		exception.method = 'render_document_tabs( **kwargs )'
 		Logger( ).write( exception )
 		raise exception
-
 
 def render_document_processing( cache: object = None ) -> None:
 	"""Render Foo-style local document loading in Mappy Data Upload mode."""
@@ -737,7 +723,6 @@ def render_document_processing( cache: object = None ) -> None:
 		render_document_tabs( 'document_documents', 'document_chunks', 'document_tokens',
 			'document_embeddings', '📄 Loaded' )
 
-
 def render_web_document_processing( ) -> None:
 	"""Render Foo-style web scraping and document processing in Mappy Web Scraper mode."""
 	initialize_web_state( )
@@ -745,13 +730,13 @@ def render_web_document_processing( ) -> None:
 	st.divider( )
 	left, right = st.columns( [ 0.4, 0.6 ], gap='xxsmall', border=True )
 	with left:
-		with st.expander( label='Web Processing', icon='🌐', expanded=True ):
+		with st.expander( label='Web Processing', icon='🕸️', expanded=True ):
 			target_url = st.text_input( 'Target URL', placeholder='https://example.com',
 				key='web_document_url_input' )
 			request_timeout = st.slider( 'Request Timeout', min_value=1, max_value=120,
 				value=10, step=1, key='web_document_timeout' )
 			fetch_col, clear_col = st.columns( 2 )
-			fetch_run = fetch_col.button( 'Fetch', icon='🌐', key='web_document_fetch',
+			fetch_run = fetch_col.button( 'Fetch', icon='🐕', key='web_document_fetch',
 				use_container_width=True )
 			clear_run = clear_col.button( 'Clear', icon='🧹', key='web_document_clear',
 				use_container_width=True )
@@ -785,7 +770,7 @@ def render_web_document_processing( ) -> None:
 					Logger( ).write( exception )
 				st.error( str( exception ) )
 
-			chunk_col, overlap_col = st.columns( 2 )
+			chunk_col, overlap_col = st.columns( 2, border=True )
 			with chunk_col:
 				chunk_size = st.slider( 'Chunk Size', min_value=1, max_value=5000, value=1000,
 					step=1, key='web_chunk_size' )
@@ -818,7 +803,7 @@ def render_web_document_processing( ) -> None:
 					Logger( ).write( exception )
 				st.error( str( exception ) )
 
-			provider_col, model_col = st.columns( 2 )
+			provider_col, model_col = st.columns( 2, border=True )
 			with provider_col:
 				provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
 					index=list( EMBEDDING_MODELS.keys( ) ).index( 'Hugging Face' ),
@@ -859,7 +844,7 @@ def render_web_document_processing( ) -> None:
 						Logger( ).write( exception )
 				st.error( str( exception ) )
 
-			store_col, target_col = st.columns( 2 )
+			store_col, target_col = st.columns( 2, border=True )
 			with store_col:
 				vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
 					key='web_vector_backend' )
@@ -905,8 +890,6 @@ def render_web_document_processing( ) -> None:
 		render_document_tabs( 'web_documents', 'web_chunks', 'web_tokens', 'web_embeddings',
 			'🌐 Scraped' )
 
-
-
 def initialize_mode_document_state( prefix: str ) -> None:
 	"""Initialize per-mode document state."""
 	try:
@@ -932,7 +915,6 @@ def initialize_mode_document_state( prefix: str ) -> None:
 		exception.method = 'initialize_mode_document_state( prefix: str ) -> None'
 		Logger( ).write( exception )
 		raise exception
-
 
 def clear_mode_document_outputs( prefix: str ) -> None:
 	"""Clear source-derived processing outputs for one GIS mode.
@@ -970,7 +952,6 @@ def clear_mode_document_outputs( prefix: str ) -> None:
 		Logger( ).write( exception )
 		raise exception
 
-
 def serialize_mode_result( result: object ) -> str:
 	"""Serialize a structured API result as document text."""
 	try:
@@ -989,7 +970,6 @@ def serialize_mode_result( result: object ) -> str:
 		exception.method = 'serialize_mode_result( result: object ) -> str'
 		Logger( ).write( exception )
 		raise exception
-
 
 def create_result_documents( result: object, source: str, mode: str ) -> List[ Document ]:
 	"""Convert a GIS provider result into record-oriented documents.
@@ -1043,7 +1023,6 @@ def create_result_documents( result: object, source: str, mode: str ) -> List[ D
 		Logger( ).write( exception )
 		raise exception
 
-
 def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
 	"""Synchronize the latest API result into a LangChain Document."""
 	try:
@@ -1074,7 +1053,6 @@ def sync_mode_document( prefix: str, result_key: str, source_key: str ) -> None:
 		exception.method = 'sync_mode_document( prefix: str, result_key: str, source_key: str )'
 		Logger( ).write( exception )
 		raise exception
-
 
 def render_source_processing_controls( prefix: str, result_key: str, source_key: str,
 	source_name: str, key_prefix: str ) -> None:
@@ -1217,7 +1195,6 @@ def render_source_processing_controls( prefix: str, result_key: str, source_key:
 	if st.session_state.get( f'{prefix}_vector_store' ) is not None:
 		render_retrieval_controls( f'{prefix}_vector_store', key_prefix )
 
-
 def render_mode_processing_controls( prefix: str, result_key: str, source_key: str,
 	key_prefix: str ) -> None:
 	"""Render processing controls for the latest result in a GIS mode.
@@ -1255,7 +1232,6 @@ def render_mode_processing_controls( prefix: str, result_key: str, source_key: s
 		Logger( ).write( exception )
 		st.error( str( exception ) )
 
-
 def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) -> None:
 	"""Render Loaded, Chunks, and Embeddings tabs for one API mode."""
 	try:
@@ -1263,7 +1239,7 @@ def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) ->
 		throw_if( 'loaded_label', loaded_label )
 		initialize_mode_document_state( prefix )
 		loaded_tab, chunks_tab, embeddings_tab = st.tabs(
-			[ loaded_label, '✂️ Chunks', '🧠 Embeddings' ] )
+			[ loaded_label, '✂️ Chunks', '🔣 Embeddings' ] )
 		with loaded_tab:
 			documents = st.session_state[ f'{prefix}_documents' ]
 			if not documents:
@@ -1303,7 +1279,8 @@ def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) ->
 					rows.append( {
 						'Chunk': index + 1,
 						'Provider': st.session_state[ f'{prefix}_embedding_provider_used' ],
-						'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] or st.session_state[ f'{prefix}_embedding_model_used' ],
+						'Model': st.session_state[ f'{prefix}_embedding_model_path_used' ] \
+						         or st.session_state[ f'{prefix}_embedding_model_used' ],
 						'Dimensions': len( vector ),
 						'Source': ( document.metadata or { } ).get( 'source', '' ),
 						'Text': document.page_content, 'Embedding': vector,

@@ -4472,7 +4472,7 @@ elif mode == 'Web Scraper':
 				'webscrape_source', 'Web Scraper', 'webscrape_processing' )
 
 		with col_right:
-			render_mode_document_tabs( 'webscrape', '📄 Source Document' )
+			render_mode_document_tabs( 'webscrape', '📄 Source' )
 			if run_scraper:
 				try:
 					if not target_url or not target_url.strip( ):
@@ -4627,44 +4627,43 @@ elif mode == 'Weather':
 				google_select_c1, google_select_c2 = st.columns( 2 )
 				with google_select_c1:
 					google_product = st.selectbox( 'Product',
-						options=[
-								'Current Conditions',
-								'Hourly Forecast',
-								'Daily Forecast',
-								'Hourly History',
-								'Alerts'
-						],
-						key='weather_google_product' )
+						options=[ 'Current Conditions', 'Hourly Forecast', 'Daily Forecast',
+								'Hourly History', 'Alerts' ], key='weather_google_product' )
 				with google_select_c2:
 					google_units = st.selectbox( 'Units System',
 						options=[ 'METRIC', 'IMPERIAL' ], key='weather_google_units' )
 				
-				google_language = st.text_input( 'Language Code', value='en',
-					key='weather_google_language' )
+				lang_c1, time_c2 = st.columns( 2 )
 				
-				if google_product == 'Hourly Forecast':
-					google_hours = st.number_input( 'Hours', min_value=1, max_value=240,
-						value=24, step=1, key='weather_google_hours' )
-				else:
-					google_hours = 24
+				with lang_c1:
+					google_language = st.text_input( 'Language Code', value='en',
+						key='weather_google_language' )
+					
+					if google_product == 'Hourly Forecast':
+						google_hours = st.number_input( 'Hours', min_value=1, max_value=240,
+							value=24, step=1, key='weather_google_hours' )
+					else:
+						google_hours = 24
+					
+					if google_product == 'Hourly History':
+						google_history_hours = st.number_input( 'History Hours', min_value=1,
+							max_value=24, value=24, step=1, key='weather_google_history_hours' )
+					else:
+						google_history_hours = 24
+					
+					if google_product == 'Daily Forecast':
+						google_days = st.number_input( 'Days', min_value=1, max_value=10, value=5,
+							step=1, key='weather_google_days' )
+					else:
+						google_days = 5
 				
-				if google_product == 'Hourly History':
-					google_history_hours = st.number_input( 'History Hours', min_value=1,
-						max_value=24, value=24, step=1, key='weather_google_history_hours' )
-				else:
-					google_history_hours = 24
+				with time_c2:
+					google_timeout = st.number_input( 'Timeout', min_value=1, max_value=60,
+						value=10, step=1, key='weather_google_timeout' )
 				
-				if google_product == 'Daily Forecast':
-					google_days = st.number_input( 'Days', min_value=1, max_value=10, value=5,
-						step=1, key='weather_google_days' )
-				else:
-					google_days = 5
-				
-				google_timeout = st.number_input( 'Timeout', min_value=1, max_value=60,
-					value=10, step=1, key='weather_google_timeout' )
+				st.divider( )
 				
 				google_btn_c1, google_btn_c2 = st.columns( 2 )
-				
 				with google_btn_c1:
 					if st.button( label='Run', icon='🏃', key='weather_google_run',
 							use_container_width=True ):
@@ -4827,18 +4826,11 @@ elif mode == 'Weather':
 					value=dt.date.today( ) - dt.timedelta( days=7 ),
 					key='weather_historical_date' )
 				
-				historical_zone = st.text_input(
-					'Timezone',
-					value='auto',
+				historical_zone = st.text_input( 'Timezone', value='auto',
 					key='weather_historical_zone' )
 				
-				historical_count = st.number_input(
-					'Geocoding Result Count',
-					min_value=1,
-					max_value=100,
-					value=10,
-					step=1,
-					key='weather_historical_count' )
+				historical_count = st.number_input( 'Geocoding Result Count', min_value=1,
+					max_value=100, value=10, step=1, key='weather_historical_count' )
 				
 				historical_btn_c1, historical_btn_c2 = st.columns( 2 )
 				
@@ -4893,93 +4885,57 @@ elif mode == 'Weather':
 			# ------------------------------------------------------------------
 			with st.expander( '🌡️ Climate Data', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.NOAA_CLIMATE_DATA )
-				climate_mode = st.selectbox( 'Mode',
-					options=[ 'datasets', 'data' ],
+				climate_mode = st.selectbox( 'Mode', options=[ 'datasets', 'data' ],
 					key='weather_climate_mode' )
 				
-				climate_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='weather_climate_timeout' )
+				climate_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='weather_climate_timeout' )
 				
 				if climate_mode == 'datasets':
-					climate_keyword = st.text_input(
-						'Keyword',
-						value='daily',
+					climate_keyword = st.text_input( 'Keyword', value='daily',
 						key='weather_climate_keyword' )
 					
-					climate_start_date_value = st.date_input(
-						'Start Date',
+					climate_start_date_value = st.date_input( 'Start Date',
 						value=dt.date.today( ) - dt.timedelta( days=365 ),
 						key='weather_climate_dataset_start_date' )
 					
-					climate_end_date_value = st.date_input(
-						'End Date',
-						value=dt.date.today( ),
+					climate_end_date_value = st.date_input( 'End Date', value=dt.date.today( ),
 						key='weather_climate_dataset_end_date' )
 					
-					climate_limit = st.number_input(
-						'Limit',
-						min_value=1,
-						max_value=1000,
-						value=25,
-						step=1,
-						key='weather_climate_dataset_limit' )
+					climate_limit = st.number_input( 'Limit', min_value=1, max_value=1000,
+						value=25, step=1, key='weather_climate_dataset_limit' )
 					
-					climate_offset = st.number_input(
-						'Offset',
-						min_value=0,
-						max_value=100000,
-						value=0,
-						step=1,
-						key='weather_climate_dataset_offset' )
+					climate_offset = st.number_input( 'Offset', min_value=0, max_value=100000,
+						value=0, step=1, key='weather_climate_dataset_offset' )
 					
 					climate_dataset = ''
 					climate_stations = ''
 					climate_data_types = ''
 				
 				else:
-					climate_dataset = st.text_input(
-						'Dataset',
-						value='daily-summaries',
-						help='Example: daily-summaries',
-						key='weather_climate_dataset' )
+					climate_dataset = st.text_input( 'Dataset', value='daily-summaries',
+						help='Example: daily-summaries', key='weather_climate_dataset' )
 					
 					climate_data_c1, climate_data_c2 = st.columns( 2 )
 					with climate_data_c1:
-						climate_start_date_value = st.date_input(
-							'Start Date',
+						climate_start_date_value = st.date_input( 'Start Date',
 							value=dt.date.today( ) - dt.timedelta( days=30 ),
 							key='weather_climate_data_start_date' )
 					
 					with climate_data_c2:
-						climate_end_date_value = st.date_input(
-							'End Date',
-							value=dt.date.today( ),
+						climate_end_date_value = st.date_input( 'End Date', value=dt.date.today( ),
 							key='weather_climate_data_end_date' )
 					
-					climate_stations = st.text_input(
-						'Stations',
-						value='',
+					climate_stations = st.text_input( 'Stations', value='',
 						help='Optional comma-separated station identifiers.',
 						key='weather_climate_stations' )
 					
-					climate_data_types = st.text_input(
-						'Data Types',
-						value='',
+					climate_data_types = st.text_input( 'Data Types', value='',
 						help='Optional comma-separated data type identifiers.',
 						key='weather_climate_data_types' )
 					
-					climate_limit = st.number_input(
-						'Limit',
-						min_value=1,
-						max_value=1000,
-						value=25,
-						step=1,
-						key='weather_climate_data_limit' )
+					climate_limit = st.number_input( 'Limit', min_value=1, max_value=1000,
+						value=25, step=1, key='weather_climate_data_limit' )
 					
 					climate_offset = 0
 					climate_keyword = ''
@@ -4993,12 +4949,10 @@ elif mode == 'Weather':
 							service = ClimateData( )
 							
 							if climate_mode == 'datasets':
-								result = service.fetch_datasets(
-									keyword=climate_keyword,
+								result = service.fetch_datasets( keyword=climate_keyword,
 									start_date=climate_start_date_value.isoformat( ),
 									end_date=climate_end_date_value.isoformat( ),
-									limit=int( climate_limit ),
-									offset=int( climate_offset ),
+									limit=int( climate_limit ), offset=int( climate_offset ),
 									time=int( climate_timeout ) )
 							
 							else:
@@ -5041,24 +4995,15 @@ elif mode == 'Weather':
 			# ------------------------------------------------------------------
 			with st.expander( '🌊 Tides & Currents', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.NOAA_TIDES_CURRENTS )
-				tides_mode = st.selectbox(
-					'Mode',
+				tides_mode = st.selectbox( 'Mode',
 					options=[ 'station', 'water-level', 'tide-predictions' ],
 					key='weather_tides_mode' )
 				
-				tides_station_id = st.text_input(
-					'Station ID',
-					value='8594900',
-					help='Example NOAA station: 8594900',
-					key='weather_tides_station_id' )
+				tides_station_id = st.text_input( 'Station ID', value='8594900',
+					help='Example NOAA station: 8594900', key='weather_tides_station_id' )
 				
-				tides_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='weather_tides_timeout' )
+				tides_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='weather_tides_timeout' )
 				
 				if tides_mode == 'station':
 					tides_begin_date = ''
@@ -5071,15 +5016,12 @@ elif mode == 'Weather':
 				else:
 					tides_date_c1, tides_date_c2 = st.columns( 2 )
 					with tides_date_c1:
-						tides_begin = st.date_input(
-							'Begin Date',
+						tides_begin = st.date_input( 'Begin Date',
 							value=dt.date.today( ) - dt.timedelta( days=1 ),
 							key='weather_tides_begin_date' )
 					
 					with tides_date_c2:
-						tides_end = st.date_input(
-							'End Date',
-							value=dt.date.today( ),
+						tides_end = st.date_input( 'End Date', value=dt.date.today( ),
 							key='weather_tides_end_date' )
 					
 					tides_begin_date = tides_begin.strftime( '%Y%m%d' )
@@ -5087,25 +5029,18 @@ elif mode == 'Weather':
 					
 					tides_select_c1, tides_select_c2 = st.columns( 2 )
 					with tides_select_c1:
-						tides_datum = st.selectbox(
-							'Datum',
+						tides_datum = st.selectbox( 'Datum',
 							options=[ 'MLLW', 'MLW', 'MSL', 'MHW', 'MHHW', 'NAVD' ],
 							key='weather_tides_datum' )
 					with tides_select_c2:
-						tides_units = st.selectbox(
-							'Units',
-							options=[ 'metric', 'english' ],
+						tides_units = st.selectbox( 'Units', options=[ 'metric', 'english' ],
 							key='weather_tides_units' )
 					
-					tides_time_zone = st.selectbox(
-						'Time Zone',
-						options=[ 'gmt', 'lst', 'lst_ldt' ],
-						key='weather_tides_time_zone' )
+					tides_time_zone = st.selectbox( 'Time Zone',
+						options=[ 'gmt', 'lst', 'lst_ldt' ], key='weather_tides_time_zone' )
 					
 					if tides_mode == 'tide-predictions':
-						tides_interval = st.selectbox(
-							'Interval',
-							options=[ 'hilo', 'h' ],
+						tides_interval = st.selectbox( 'Interval', options=[ 'hilo', 'h' ],
 							key='weather_tides_interval' )
 					else:
 						tides_interval = 'hilo'
@@ -5118,16 +5053,10 @@ elif mode == 'Weather':
 						try:
 							service = TidesAndCurrents( )
 							
-							result = service.fetch(
-								mode=tides_mode,
-								station_id=tides_station_id,
-								begin_date=tides_begin_date,
-								end_date=tides_end_date,
-								datum=tides_datum,
-								units=tides_units,
-								time_zone=tides_time_zone,
-								interval=tides_interval,
-								time=int( tides_timeout ) )
+							result = service.fetch( mode=tides_mode, station_id=tides_station_id,
+								begin_date=tides_begin_date, end_date=tides_end_date,
+								datum=tides_datum, units=tides_units, time_zone=tides_time_zone,
+								interval=tides_interval, time=int( tides_timeout ) )
 							
 							st.session_state[ 'weather_last_source' ] = 'Tides & Currents'
 							st.session_state[ 'weather_last_result' ] = result or { }
@@ -5150,7 +5079,7 @@ elif mode == 'Weather':
 					'weather_last_source', 'Tides & Currents', 'weather_tides_processing' )
 
 		with weather_c2:
-			render_mode_document_tabs( 'weather', '📄 Source Document' )
+			render_mode_document_tabs( 'weather', '📄 Source' )
 
 			# ------------------------------------------------------------------
 			# WEATHER RESULTS
@@ -6253,7 +6182,7 @@ elif mode == 'Environmental':
 					'EONET', 'env_eonet_processing' )
 
 		with enviro_c2:
-			render_mode_document_tabs( 'env', '📄 Source Document' )
+			render_mode_document_tabs( 'env', '📄 Source' )
 
 			# ------------------------------------------------------------------
 			# ENVIRONMENTAL RESULTS
@@ -6422,26 +6351,15 @@ elif mode == 'Astronomical':
 						key='astro_naval_latitude' )
 				
 				with naval_c2:
-					naval_longitude = st.number_input(
-						'Observer Longitude',
-						min_value=-180.0,
-						max_value=180.0,
-						value=float( naval_default_longitude ),
-						format='%.6f',
+					naval_longitude = st.number_input( 'Observer Longitude', min_value=-180.0,
+						max_value=180.0, value=float( naval_default_longitude ), format='%.6f',
 						key='astro_naval_longitude' )
 				
-				naval_location_label = st.text_input(
-					'Location Label',
-					value=naval_default_label,
+				naval_location_label = st.text_input( 'Location Label', value=naval_default_label,
 					key='astro_naval_location_label' )
 				
-				naval_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='astro_naval_timeout' )
+				naval_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='astro_naval_timeout' )
 				
 				naval_btn_c1, naval_btn_c2 = st.columns( 2 )
 				
@@ -6469,8 +6387,7 @@ elif mode == 'Astronomical':
 									naval_longitude )
 								st.session_state[ 'astro_last_url' ] = ''
 								
-								set_global_coordinates_from_result(
-									naval_latitude,
+								set_global_coordinates_from_result( naval_latitude,
 									naval_longitude,
 									location=naval_location_label,
 									description='Naval Observatory observer location' )
@@ -6501,22 +6418,14 @@ elif mode == 'Astronomical':
 					'Uses NASA DONKI. Controls are shown only when they apply to the selected '
 					'DONKI endpoint.' )
 				
-				space_mode_labels = {
-						'Coronal Mass Ejection': 'cme',
-						'CME Analysis': 'cme_analysis',
-						'Geomagnetic Storm': 'gst',
-						'Interplanetary Shock': 'ips',
-						'Solar Flare': 'flr',
-						'Solar Energetic Particle': 'sep',
-						'Magnetopause Crossing': 'mpc',
-						'Radiation Belt Enhancement': 'rbe',
-						'High Speed Stream': 'hss',
-						'WSA-ENLIL Model': 'wsa_enlil',
-						'Notifications': 'notifications'
-				}
+				space_mode_labels = { 'Coronal Mass Ejection': 'cme',
+						'CME Analysis': 'cme_analysis', 'Geomagnetic Storm': 'gst',
+						'Interplanetary Shock': 'ips', 'Solar Flare': 'flr',
+						'Solar Energetic Particle': 'sep', 'Magnetopause Crossing': 'mpc',
+						'Radiation Belt Enhancement': 'rbe', 'High Speed Stream': 'hss',
+						'WSA-ENLIL Model': 'wsa_enlil', 'Notifications': 'notifications' }
 				
-				space_mode_label = st.selectbox(
-					'Mode',
+				space_mode_label = st.selectbox( 'Mode',
 					options=list( space_mode_labels.keys( ) ),
 					key='astro_space_mode_label' )
 				
@@ -6525,15 +6434,12 @@ elif mode == 'Astronomical':
 				space_date_c1, space_date_c2 = st.columns( 2 )
 				
 				with space_date_c1:
-					space_start = st.date_input(
-						'Start Date',
+					space_start = st.date_input( 'Start Date',
 						value=dt.date.today( ) - dt.timedelta( days=7 ),
 						key='astro_space_start_date' )
 				
 				with space_date_c2:
-					space_end = st.date_input(
-						'End Date',
-						value=dt.date.today( ),
+					space_end = st.date_input( 'End Date', value=dt.date.today( ),
 						key='astro_space_end_date' )
 				
 				if space_start > space_end:
@@ -6554,60 +6460,39 @@ elif mode == 'Astronomical':
 						'CME Analysis supports catalog, most-accurate-only, complete-entry-only, '
 						'speed, half-angle, and keyword filters.' )
 					
-					space_catalog = st.selectbox(
-						'Catalog',
+					space_catalog = st.selectbox( 'Catalog',
 						options=[ 'ALL', 'SWRC_CATALOG', 'JANG_ET_AL_CATALOG', 'M2M_CATALOG' ],
 						key='astro_space_cme_analysis_catalog' )
 					
 					space_c1, space_c2 = st.columns( 2 )
 					
 					with space_c1:
-						space_most_accurate_only = st.checkbox(
-							'Most Accurate Only',
-							value=True,
+						space_most_accurate_only = st.checkbox( 'Most Accurate Only', value=True,
 							key='astro_space_most_accurate_only' )
 						
-						space_complete_entry_only = st.checkbox(
-							'Complete Entry Only',
-							value=True,
+						space_complete_entry_only = st.checkbox( 'Complete Entry Only', value=True,
 							key='astro_space_complete_entry_only' )
 					
 					with space_c2:
-						space_speed = st.number_input(
-							'Minimum Speed',
-							min_value=0,
-							max_value=5000,
-							value=0,
-							step=10,
-							help='Lower-bound CME speed filter.',
+						space_speed = st.number_input( 'Minimum Speed', min_value=0,
+							max_value=5000, value=0, step=10, help='Lower-bound CME speed filter.',
 							key='astro_space_speed' )
 						
-						space_half_angle = st.number_input(
-							'Minimum Half Angle',
-							min_value=0,
-							max_value=360,
-							value=0,
-							step=1,
+						space_half_angle = st.number_input( 'Minimum Half Angle', min_value=0,
+							max_value=360, value=0, step=1,
 							help='Lower-bound CME half-angle filter.',
 							key='astro_space_half_angle' )
 					
-					space_keyword = st.text_input(
-						'Keyword',
-						value='',
-						key='astro_space_keyword' )
+					space_keyword = st.text_input( 'Keyword', value='', key='astro_space_keyword' )
 				
 				elif space_mode == 'ips':
 					st.caption( 'Interplanetary Shock supports location and catalog filters.' )
 					
-					space_location = st.text_input(
-						'Location',
-						value='ALL',
+					space_location = st.text_input( 'Location', value='ALL',
 						help='DONKI IPS location filter. Use ALL to avoid filtering.',
 						key='astro_space_location' )
 					
-					space_catalog = st.text_input(
-						'Catalog',
-						value='ALL',
+					space_catalog = st.text_input( 'Catalog', value='ALL',
 						help='DONKI IPS catalog filter. Use ALL to avoid filtering.',
 						key='astro_space_catalog' )
 				
@@ -6616,35 +6501,17 @@ elif mode == 'Astronomical':
 						'Notifications supports the notification type filter. The wrapper preserves '
 						'the selected date range.' )
 					
-					space_notification_type = st.selectbox(
-						'Notification Type',
-						options=[
-								'all',
-								'FLR',
-								'SEP',
-								'CME',
-								'IPS',
-								'MPC',
-								'GST',
-								'RBE',
-								'HSS',
-								'WSAEnlil',
-								'Report'
-						],
-						key='astro_space_notification_type' )
+					space_notification_type = st.selectbox( 'Notification Type',
+						options=[ 'all', 'FLR', 'SEP', 'CME', 'IPS', 'MPC', 'GST', 'RBE', 'HSS',
+								'WSAEnlil', 'Report' ], key='astro_space_notification_type' )
 				
 				else:
 					st.caption(
 						'This DONKI endpoint uses the common startDate, endDate, and api_key '
 						'parameters.' )
 				
-				space_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='astro_space_timeout' )
+				space_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='astro_space_timeout' )
 				
 				space_btn_c1, space_btn_c2 = st.columns( 2 )
 				
@@ -6653,18 +6520,14 @@ elif mode == 'Astronomical':
 							use_container_width=True ):
 						try:
 							service = SpaceWeather( )
-							result = service.fetch(
-								mode=space_mode,
+							result = service.fetch( mode=space_mode,
 								start_date=space_start.isoformat( ),
-								end_date=space_end.isoformat( ),
-								time=int( space_timeout ),
-								location=space_location,
-								catalog=space_catalog,
+								end_date=space_end.isoformat( ), time=int( space_timeout ),
+								location=space_location, catalog=space_catalog,
 								notification_type=space_notification_type,
 								most_accurate_only=bool( space_most_accurate_only ),
 								complete_entry_only=bool( space_complete_entry_only ),
-								speed=int( space_speed ),
-								half_angle=int( space_half_angle ),
+								speed=int( space_speed ), half_angle=int( space_half_angle ),
 								keyword=space_keyword,
 								api_key=getattr( cfg, 'NASA_API_KEY', None ) )
 							
@@ -6700,28 +6563,18 @@ elif mode == 'Astronomical':
 					'builds a coordinate-centered link, and Static Chart Image builds a direct '
 					'image-generator URL.' )
 				
-				chart_mode_labels = {
-						'Object Chart': 'object_chart',
+				chart_mode_labels = { 'Object Chart': 'object_chart',
 						'Coordinate Chart': 'coordinate_chart',
-						'Static Chart Image': 'static_chart'
-				}
+						'Static Chart Image': 'static_chart' }
 				
-				chart_mode_label = st.selectbox(
-					'Mode',
-					options=list( chart_mode_labels.keys( ) ),
+				chart_mode_label = st.selectbox( 'Mode', options=list( chart_mode_labels.keys( ) ),
 					key='astro_chart_mode_label' )
 				
 				chart_mode = chart_mode_labels[ chart_mode_label ]
 				
-				chart_example = st.selectbox(
-					'Coordinate Example',
-					options=[
-							'Andromeda Galaxy / M31',
-							'Orion Nebula / M42',
-							'Galactic Center',
-							'Custom'
-					],
-					key='astro_chart_coordinate_example' )
+				chart_example = st.selectbox( 'Coordinate Example',
+					options=[ 'Andromeda Galaxy / M31', 'Orion Nebula / M42', 'Galactic Center',
+							'Custom' ], key='astro_chart_coordinate_example' )
 				
 				if chart_example == 'Andromeda Galaxy / M31':
 					chart_default_object = 'M31'
@@ -6743,32 +6596,22 @@ elif mode == 'Astronomical':
 					chart_default_ra = 0.7117
 					chart_default_dec = 41.2670
 				
-				chart_zoom = st.number_input(
-					'Zoom',
-					min_value=1,
-					max_value=20,
-					value=5,
-					step=1,
+				chart_zoom = st.number_input( 'Zoom', min_value=1, max_value=20, value=5, step=1,
 					key='astro_chart_zoom' )
 				
-				chart_image_source = st.selectbox(
-					'Image Source',
+				chart_image_source = st.selectbox( 'Image Source',
 					options=[ 'DSS2', 'SDSS', 'GALEX', 'IRAS', 'RASS', 'Custom' ],
 					key='astro_chart_image_source_choice' )
 				
 				if chart_image_source == 'Custom':
-					chart_image_source_value = st.text_input(
-						'Custom Image Source',
-						value='DSS2',
+					chart_image_source_value = st.text_input( 'Custom Image Source', value='DSS2',
 						help='Enter the SKY-MAP image source value accepted by the API.',
 						key='astro_chart_image_source_custom' )
 				else:
 					chart_image_source_value = chart_image_source
 				
 				if chart_mode == 'object_chart':
-					chart_object_name = st.text_input(
-						'Object Name',
-						value=chart_default_object,
+					chart_object_name = st.text_input( 'Object Name', value=chart_default_object,
 						help='Object name or catalog identifier. Examples: M31, M42, Sirius.',
 						key='astro_chart_object_name' )
 					
@@ -6787,49 +6630,30 @@ elif mode == 'Astronomical':
 					chart_coord_c1, chart_coord_c2 = st.columns( 2 )
 					
 					with chart_coord_c1:
-						chart_ra = st.number_input(
-							'Right Ascension',
-							value=float( chart_default_ra ),
-							format='%.7f',
+						chart_ra = st.number_input( 'Right Ascension',
+							value=float( chart_default_ra ), format='%.7f',
 							help='Right ascension in decimal hours for SKY-MAP chart endpoints.',
 							key='astro_chart_ra' )
 					
 					with chart_coord_c2:
-						chart_dec = st.number_input(
-							'Declination',
-							value=float( chart_default_dec ),
-							format='%.7f',
-							help='Declination in decimal degrees.',
-							key='astro_chart_dec' )
+						chart_dec = st.number_input( 'Declination',
+							value=float( chart_default_dec ), format='%.7f',
+							help='Declination in decimal degrees.', key='astro_chart_dec' )
 					
 					if chart_mode == 'static_chart':
 						chart_size_c1, chart_size_c2 = st.columns( 2 )
 						
 						with chart_size_c1:
-							chart_width = st.number_input(
-								'Width',
-								min_value=128,
-								max_value=4096,
-								value=900,
-								step=64,
-								key='astro_chart_width' )
+							chart_width = st.number_input( 'Width', min_value=128, max_value=4096,
+								value=900, step=64, key='astro_chart_width' )
 						
 						with chart_size_c2:
-							chart_height = st.number_input(
-								'Height',
-								min_value=128,
+							chart_height = st.number_input( 'Height', min_value=128,
 								max_value=4096,
-								value=450,
-								step=64,
-								key='astro_chart_height' )
+								value=450, step=64, key='astro_chart_height' )
 						
-						chart_magnitude = st.number_input(
-							'Limiting Magnitude',
-							min_value=0.0,
-							max_value=30.0,
-							value=7.5,
-							step=0.5,
-							format='%.1f',
+						chart_magnitude = st.number_input( 'Limiting Magnitude', min_value=0.0,
+							max_value=30.0, value=7.5, step=0.5, format='%.1f',
 							key='astro_chart_magnitude' )
 					
 					else:
@@ -6841,47 +6665,31 @@ elif mode == 'Astronomical':
 						'Coordinate and Static Chart modes use right ascension and declination. '
 						'Static Chart additionally uses width, height, and limiting magnitude.' )
 				
-				chart_box_color = st.selectbox(
-					'Box Color',
+				chart_box_color = st.selectbox( 'Box Color',
 					options=[ 'yellow', 'red', 'green', 'blue', 'white' ],
 					key='astro_chart_box_color' )
 				
 				chart_options_c1, chart_options_c2 = st.columns( 2 )
 				
 				with chart_options_c1:
-					chart_show_box = st.checkbox(
-						'Show Box',
-						value=True,
+					chart_show_box = st.checkbox( 'Show Box', value=True,
 						key='astro_chart_show_box' )
 					
-					chart_show_grid = st.checkbox(
-						'Show Grid',
-						value=True,
+					chart_show_grid = st.checkbox( 'Show Grid', value=True,
 						key='astro_chart_show_grid' )
 				
 				with chart_options_c2:
-					chart_show_lines = st.checkbox(
-						'Show Constellation Lines',
-						value=True,
+					chart_show_lines = st.checkbox( 'Show Constellation Lines', value=True,
 						key='astro_chart_show_lines' )
 					
-					chart_show_boundaries = st.checkbox(
-						'Show Constellation Boundaries',
-						value=True,
-						key='astro_chart_show_boundaries' )
+					chart_show_boundaries = st.checkbox( 'Show Constellation Boundaries',
+						value=True, key='astro_chart_show_boundaries' )
 				
-				chart_show_const_names = st.checkbox(
-					'Show Constellation Names',
-					value=False,
+				chart_show_const_names = st.checkbox( 'Show Constellation Names', value=False,
 					key='astro_chart_show_const_names' )
 				
-				chart_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='astro_chart_timeout' )
+				chart_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='astro_chart_timeout' )
 				
 				chart_btn_c1, chart_btn_c2 = st.columns( 2 )
 				
@@ -6892,50 +6700,40 @@ elif mode == 'Astronomical':
 							service = StarChart( )
 							
 							if chart_mode == 'object_chart':
-								result = service.fetch_object_chart(
-									name=chart_object_name,
-									zoom=int( chart_zoom ),
-									box_color=chart_box_color,
+								result = service.fetch_object_chart( name=chart_object_name,
+									zoom=int( chart_zoom ), box_color=chart_box_color,
 									show_box=bool( chart_show_box ),
 									image_source=chart_image_source_value,
 									time=int( chart_timeout ) )
 							
 							elif chart_mode == 'coordinate_chart':
-								result = service.fetch_coordinate_chart(
-									ra=float( chart_ra ),
-									dec=float( chart_dec ),
-									zoom=int( chart_zoom ),
-									box_color=chart_box_color,
-									show_box=bool( chart_show_box ),
+								result = service.fetch_coordinate_chart( ra=float( chart_ra ),
+									dec=float( chart_dec ), zoom=int( chart_zoom ),
+									box_color=chart_box_color, show_box=bool( chart_show_box ),
 									show_grid=bool( chart_show_grid ),
 									show_lines=bool( chart_show_lines ),
 									show_boundaries=bool( chart_show_boundaries ),
 									image_source=chart_image_source_value )
 							
 							else:
-								result = service.fetch_static_chart(
-									ra=float( chart_ra ),
-									dec=float( chart_dec ),
-									zoom=int( chart_zoom ),
+								result = service.fetch_static_chart( ra=float( chart_ra ),
+									dec=float( chart_dec ), zoom=int( chart_zoom ),
 									image_source=chart_image_source_value,
 									show_grid=bool( chart_show_grid ),
 									show_lines=bool( chart_show_lines ),
 									show_boundaries=bool( chart_show_boundaries ),
 									show_const_names=bool( chart_show_const_names ),
-									width=int( chart_width ),
-									height=int( chart_height ),
+									width=int( chart_width ), height=int( chart_height ),
 									magnitude=float( chart_magnitude ) )
 							
 							result_url = ''
 							if isinstance( result, dict ):
-								result_url = (
-										result.get( 'chart_url', '' )
+								result_url = ( result.get( 'chart_url', '' )
 										or result.get( 'image_url', '' )
 										or result.get( 'static_chart_url', '' )
 										or result.get( 'preferred_image_url', '' )
 										or result.get( 'snapshot_page_url', '' )
-										or result.get( 'url', '' )
-								)
+										or result.get( 'url', '' ) )
 							
 							st.session_state[ 'astro_last_source' ] = 'Star Chart'
 							st.session_state[ 'astro_last_result' ] = normalize( result ) or { }
@@ -6964,30 +6762,20 @@ elif mode == 'Astronomical':
 			# ------------------------------------------------------------------
 			with st.expander( '🛰️ Satellite Center', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.SATELLITE_CENTER )
-				st.caption(
-					'Uses NASA SSCWeb. Run Observatories first to discover valid observatory IDs, '
+				st.caption( 'Uses NASA SSCWeb. Run Observatories first to discover valid observatory IDs, '
 					'then use Locations to retrieve basic position data for selected spacecraft.' )
 				
-				satellite_mode_labels = {
-						'Observatories': 'observatories',
-						'Ground Stations': 'ground_stations',
-						'Locations': 'locations'
-				}
+				satellite_mode_labels = { 'Observatories': 'observatories',
+						'Ground Stations': 'ground_stations', 'Locations': 'locations' }
 				
-				satellite_mode_label = st.selectbox(
-					'Mode',
+				satellite_mode_label = st.selectbox( 'Mode',
 					options=list( satellite_mode_labels.keys( ) ),
 					key='astro_satellite_mode_label' )
 				
 				satellite_mode = satellite_mode_labels[ satellite_mode_label ]
 				
-				satellite_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='astro_satellite_timeout' )
+				satellite_timeout = st.number_input( 'Timeout', min_value=1, max_value=60,
+					value=20, step=1, key='astro_satellite_timeout' )
 				
 				satellite_query = ''
 				satellite_start_date = dt.date.today( )
@@ -6998,40 +6786,30 @@ elif mode == 'Astronomical':
 				satellite_resolution_factor = 1
 				
 				if satellite_mode == 'locations':
-					satellite_query = st.text_input(
-						'Observatories',
-						value='iss',
+					satellite_query = st.text_input( 'Observatories', value='iss',
 						help='Comma-separated SSC observatory IDs. Examples: iss, mms1,mms2.',
 						key='astro_satellite_query' )
 					
 					satellite_date_c1, satellite_date_c2 = st.columns( 2 )
 					
 					with satellite_date_c1:
-						satellite_start_date = st.date_input(
-							'Start Date',
+						satellite_start_date = st.date_input( 'Start Date',
 							value=dt.date.today( ) - dt.timedelta( days=1 ),
 							key='astro_satellite_start_date' )
 						
-						satellite_start_time = st.text_input(
-							'Start Time',
-							value='00:00:00Z',
+						satellite_start_time = st.text_input( 'Start Time', value='00:00:00Z',
 							help='UTC time ending in Z. Example: 00:00:00Z.',
 							key='astro_satellite_start_time' )
 					
 					with satellite_date_c2:
-						satellite_end_date = st.date_input(
-							'End Date',
-							value=dt.date.today( ),
+						satellite_end_date = st.date_input( 'End Date', value=dt.date.today( ),
 							key='astro_satellite_end_date' )
 						
-						satellite_end_time = st.text_input(
-							'End Time',
-							value='00:00:00Z',
+						satellite_end_time = st.text_input( 'End Time', value='00:00:00Z',
 							help='UTC time ending in Z. Example: 00:00:00Z.',
 							key='astro_satellite_end_time' )
 					
-					satellite_coordinate_choice = st.selectbox(
-						'Coordinate System Preset',
+					satellite_coordinate_choice = st.selectbox( 'Coordinate System Preset',
 						options=[
 								'GSE — Geocentric Solar Ecliptic',
 								'GEO — Geographic',
@@ -7062,18 +6840,14 @@ elif mode == 'Astronomical':
 						satellite_coordinate_systems = 'gei_j2000'
 					
 					else:
-						satellite_coordinate_systems = st.text_input(
-							'Custom Coordinate Systems',
+						satellite_coordinate_systems = st.text_input( 'Custom Coordinate Systems',
 							value='gse',
 							help='Comma-separated coordinate systems accepted by SSCWeb.',
 							key='astro_satellite_coordinate_systems_custom' )
 					
-					satellite_resolution_factor = st.number_input(
-						'Resolution Factor',
+					satellite_resolution_factor = st.number_input( 'Resolution Factor',
 						min_value=1,
-						max_value=10000,
-						value=1,
-						step=1,
+						max_value=10000, value=1, step=1,
 						help='Return one out of every N location values.',
 						key='astro_satellite_resolution_factor' )
 					
@@ -7105,11 +6879,8 @@ elif mode == 'Astronomical':
 								start_value = ''
 								end_value = ''
 							
-							result = service.fetch(
-								mode=satellite_mode,
-								query=satellite_query,
-								start_time=start_value,
-								end_time=end_value,
+							result = service.fetch( mode=satellite_mode, query=satellite_query,
+								start_time=start_value, end_time=end_value,
 								coordinate_systems=satellite_coordinate_systems,
 								resolution_factor=int( satellite_resolution_factor ),
 								time=int( satellite_timeout ) )
@@ -7146,75 +6917,47 @@ elif mode == 'Astronomical':
 					'Uses the Open Astronomy Catalog API. Object Query retrieves a named object; '
 					'Cone Search retrieves objects around right ascension and declination.' )
 				
-				catalog_mode_labels = {
-						'Object Query': 'object_query',
-						'Cone Search': 'cone_search'
-				}
+				catalog_mode_labels = { 'Object Query': 'object_query',
+						'Cone Search': 'cone_search' }
 				
-				catalog_mode_label = st.selectbox(
-					'Mode',
-					options=list( catalog_mode_labels.keys( ) ),
-					key='astro_catalog_mode_label' )
+				catalog_mode_label = st.selectbox( 'Mode',
+					options=list( catalog_mode_labels.keys( ) ), key='astro_catalog_mode_label' )
 				
 				catalog_mode = catalog_mode_labels[ catalog_mode_label ]
 				
-				catalog_quantity_presets = {
-						'Default Object Record': '',
-						'Photometry': 'photometry',
-						'Spectra': 'spectra',
-						'Radio': 'radio',
-						'X-Ray': 'xray',
-						'Host': 'host',
-						'Redshift': 'redshift',
-						'Luminosity Distance': 'lumdist',
-						'Claimed Type': 'claimedtype',
-						'Sources': 'sources',
-						'Custom': 'custom'
-				}
+				catalog_quantity_presets = { 'Default Object Record': '',
+						'Photometry': 'photometry', 'Spectra': 'spectra', 'Radio': 'radio',
+						'X-Ray': 'xray', 'Host': 'host', 'Redshift': 'redshift',
+						'Luminosity Distance': 'lumdist', 'Claimed Type': 'claimedtype',
+						'Sources': 'sources', 'Custom': 'custom' }
 				
-				catalog_quantity_choice = st.selectbox(
-					'Quantity Preset',
+				catalog_quantity_choice = st.selectbox( 'Quantity Preset',
 					options=list( catalog_quantity_presets.keys( ) ),
 					key='astro_catalog_quantity_preset' )
 				
 				if catalog_quantity_choice == 'Custom':
-					catalog_quantity = st.text_input(
-						'Custom Quantity',
-						value='',
+					catalog_quantity = st.text_input( 'Custom Quantity', value='',
 						help='Optional Open Astronomy Catalog quantity path segment.',
 						key='astro_catalog_quantity_custom' )
 				else:
 					catalog_quantity = catalog_quantity_presets[ catalog_quantity_choice ]
 				
-				catalog_attributes = st.text_input(
-					'Attributes',
-					value='',
+				catalog_attributes = st.text_input( 'Attributes', value='',
 					help='Optional comma-separated attribute path segments.',
 					key='astro_catalog_attributes' )
 				
-				catalog_arguments = st.text_area(
-					'Arguments',
-					value='',
+				catalog_arguments = st.text_area( 'Arguments', value='',
 					help='Optional comma-separated or newline-separated key=value arguments.',
 					key='astro_catalog_arguments' )
 				
-				catalog_data_format = st.selectbox(
-					'Data Format',
-					options=[ 'json', 'csv' ],
+				catalog_data_format = st.selectbox( 'Data Format', options=[ 'json', 'csv' ],
 					key='astro_catalog_data_format' )
 				
-				catalog_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='astro_catalog_timeout' )
+				catalog_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='astro_catalog_timeout' )
 				
 				if catalog_mode == 'object_query':
-					catalog_query = st.text_input(
-						'Object Name',
-						value='SN2011fe',
+					catalog_query = st.text_input( 'Object Name', value='SN2011fe',
 						help='Example transient object name in the Open Astronomy Catalogs.',
 						key='astro_catalog_query' )
 					
@@ -7231,25 +6974,17 @@ elif mode == 'Astronomical':
 					catalog_coord_c1, catalog_coord_c2 = st.columns( 2 )
 					
 					with catalog_coord_c1:
-						catalog_ra = st.text_input(
-							'Right Ascension',
-							value='10:00:00',
+						catalog_ra = st.text_input( 'Right Ascension', value='10:00:00',
 							help='Right ascension accepted by the OAC wrapper.',
 							key='astro_catalog_ra' )
 					
 					with catalog_coord_c2:
-						catalog_dec = st.text_input(
-							'Declination',
-							value='+10:00:00',
+						catalog_dec = st.text_input( 'Declination', value='+10:00:00',
 							help='Declination accepted by the OAC wrapper.',
 							key='astro_catalog_dec' )
 					
-					catalog_radius = st.number_input(
-						'Radius',
-						min_value=1,
-						max_value=360,
-						value=2,
-						step=1,
+					catalog_radius = st.number_input( 'Radius', min_value=1, max_value=360,
+						value=2, step=1,
 						help='Cone-search radius passed directly to the AstroCatalog wrapper.',
 						key='astro_catalog_radius' )
 					
@@ -7264,16 +6999,10 @@ elif mode == 'Astronomical':
 							use_container_width=True ):
 						try:
 							service = AstroCatalog( )
-							result = service.fetch(
-								mode=catalog_mode,
-								query=catalog_query,
-								quantity=catalog_quantity,
-								attributes=catalog_attributes,
-								arguments=catalog_arguments,
-								ra=catalog_ra,
-								dec=catalog_dec,
-								radius=int( catalog_radius ),
-								data_format=catalog_data_format,
+							result = service.fetch( mode=catalog_mode, query=catalog_query,
+								quantity=catalog_quantity, attributes=catalog_attributes,
+								arguments=catalog_arguments, ra=catalog_ra, dec=catalog_dec,
+								radius=int( catalog_radius ), data_format=catalog_data_format,
 								time=int( catalog_timeout ) )
 							
 							st.session_state[ 'astro_last_source' ] = 'Astro Catalog'
@@ -7303,23 +7032,15 @@ elif mode == 'Astronomical':
 			# ------------------------------------------------------------------
 			with st.expander( '🌌 AstroQuery / SIMBAD', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.ASTRO_QUERY )
-				astroquery_mode = st.selectbox(
-					'Mode',
+				astroquery_mode = st.selectbox( 'Mode',
 					options=[ 'object_search', 'object_ids', 'region_search' ],
 					key='astro_astroquery_mode' )
 				
-				astroquery_row_limit = st.number_input(
-					'Row Limit',
-					min_value=1,
-					max_value=10000,
-					value=100,
-					step=1,
-					key='astro_astroquery_row_limit' )
+				astroquery_row_limit = st.number_input( 'Row Limit', min_value=1, max_value=10000,
+					value=100, step=1, key='astro_astroquery_row_limit' )
 				
 				if astroquery_mode in [ 'object_search', 'object_ids' ]:
-					astroquery_query = st.text_input(
-						'Object Name',
-						value='M31',
+					astroquery_query = st.text_input( 'Object Name', value='M31',
 						key='astro_astroquery_query' )
 					
 					astroquery_ra = ''
@@ -7329,29 +7050,18 @@ elif mode == 'Astronomical':
 				
 				else:
 					astroquery_query = ''
-					astroquery_ra = st.text_input(
-						'Right Ascension',
-						value='10.6847083',
+					astroquery_ra = st.text_input( 'Right Ascension', value='10.6847083',
 						key='astro_astroquery_ra' )
 					
-					astroquery_dec = st.text_input(
-						'Declination',
-						value='41.2687500',
+					astroquery_dec = st.text_input( 'Declination', value='41.2687500',
 						key='astro_astroquery_dec' )
 					
-					astroquery_radius = st.number_input(
-						'Radius',
-						min_value=0.001,
+					astroquery_radius = st.number_input( 'Radius', min_value=0.001,
 						max_value=180.0,
-						value=0.5,
-						step=0.1,
-						format='%.3f',
-						key='astro_astroquery_radius' )
+						value=0.5, step=0.1, format='%.3f', key='astro_astroquery_radius' )
 					
-					astroquery_radius_unit = st.selectbox(
-						'Radius Unit',
-						options=[ 'deg', 'arcmin', 'arcsec' ],
-						key='astro_astroquery_radius_unit' )
+					astroquery_radius_unit = st.selectbox( 'Radius Unit',
+						options=[ 'deg', 'arcmin', 'arcsec' ], key='astro_astroquery_radius_unit' )
 				
 				astroquery_btn_c1, astroquery_btn_c2 = st.columns( 2 )
 				
@@ -7360,11 +7070,8 @@ elif mode == 'Astronomical':
 							use_container_width=True ):
 						try:
 							service = AstroQuery( )
-							result = service.fetch(
-								mode=astroquery_mode,
-								query=astroquery_query,
-								ra=astroquery_ra,
-								dec=astroquery_dec,
+							result = service.fetch( mode=astroquery_mode, query=astroquery_query,
+								ra=astroquery_ra, dec=astroquery_dec,
 								radius=float( astroquery_radius ),
 								radius_unit=astroquery_radius_unit,
 								row_limit=int( astroquery_row_limit ) )
@@ -7403,28 +7110,17 @@ elif mode == 'Astronomical':
 					'and Snapshot attempts to retrieve a SKY-MAP snapshot page plus available '
 					'image links.' )
 				
-				starmap_mode_labels = {
-						'Object Link': 'object_link',
-						'Coordinate Link': 'coordinate_link',
-						'Snapshot': 'snapshot'
-				}
+				starmap_mode_labels = { 'Object Link': 'object_link',
+						'Coordinate Link': 'coordinate_link', 'Snapshot': 'snapshot' }
 				
-				starmap_mode_label = st.selectbox(
-					'Mode',
-					options=list( starmap_mode_labels.keys( ) ),
-					key='astro_starmap_mode_label' )
+				starmap_mode_label = st.selectbox( 'Mode',
+					options=list( starmap_mode_labels.keys( ) ), key='astro_starmap_mode_label' )
 				
 				starmap_mode = starmap_mode_labels[ starmap_mode_label ]
 				
-				starmap_example = st.selectbox(
-					'Coordinate Example',
-					options=[
-							'Andromeda Galaxy / M31',
-							'Orion Nebula / M42',
-							'Galactic Center',
-							'Custom'
-					],
-					key='astro_starmap_coordinate_example' )
+				starmap_example = st.selectbox( 'Coordinate Example',
+					options=[ 'Andromeda Galaxy / M31', 'Orion Nebula / M42', 'Galactic Center',
+							'Custom' ], key='astro_starmap_coordinate_example' )
 				
 				if starmap_example == 'Andromeda Galaxy / M31':
 					starmap_default_object = 'M31'
@@ -7446,37 +7142,26 @@ elif mode == 'Astronomical':
 					starmap_default_ra = 0.7117
 					starmap_default_dec = 41.2670
 				
-				starmap_zoom = st.number_input(
-					'Zoom',
-					min_value=1,
-					max_value=20,
-					value=5,
-					step=1,
+				starmap_zoom = st.number_input( 'Zoom', min_value=1, max_value=20, value=5, step=1,
 					key='astro_starmap_zoom' )
 				
-				starmap_image_source_choice = st.selectbox(
-					'Image Source',
+				starmap_image_source_choice = st.selectbox( 'Image Source',
 					options=[ 'DSS2', 'SDSS', 'GALEX', 'IRAS', 'RASS', 'Custom' ],
 					key='astro_starmap_image_source_choice' )
 				
 				if starmap_image_source_choice == 'Custom':
-					starmap_image_source = st.text_input(
-						'Custom Image Source',
-						value='DSS2',
+					starmap_image_source = st.text_input( 'Custom Image Source', value='DSS2',
 						help='Enter the SKY-MAP image source value accepted by the API.',
 						key='astro_starmap_image_source_custom' )
 				else:
 					starmap_image_source = starmap_image_source_choice
 				
-				starmap_box_color = st.selectbox(
-					'Box Color',
+				starmap_box_color = st.selectbox( 'Box Color',
 					options=[ 'yellow', 'red', 'green', 'blue', 'white' ],
 					key='astro_starmap_box_color' )
 				
 				if starmap_mode == 'object_link':
-					starmap_query = st.text_input(
-						'Object Name',
-						value=starmap_default_object,
+					starmap_query = st.text_input( 'Object Name', value=starmap_default_object,
 						help='Object name or catalog identifier. Examples: M31, M42, Sirius.',
 						key='astro_starmap_query' )
 					
@@ -7489,68 +7174,45 @@ elif mode == 'Astronomical':
 				else:
 					starmap_query = ''
 					starmap_coord_c1, starmap_coord_c2 = st.columns( 2 )
-					
 					with starmap_coord_c1:
-						starmap_ra = st.number_input(
-							'Right Ascension',
-							value=float( starmap_default_ra ),
-							format='%.7f',
-							help='Right ascension in decimal hours for SKY-MAP link/snapshot endpoints.',
+						starmap_ra = st.number_input( 'Right Ascension',
+							value=float( starmap_default_ra ), format='%.7f',
+							help='Right ascension in decimal hours for SKY-MAP link/snapshot '
+							     'endpoints.',
 							key='astro_starmap_ra' )
 					
 					with starmap_coord_c2:
-						starmap_dec = st.number_input(
-							'Declination',
-							value=float( starmap_default_dec ),
-							format='%.7f',
-							help='Declination in decimal degrees.',
-							key='astro_starmap_dec' )
+						starmap_dec = st.number_input( 'Declination',
+							value=float( starmap_default_dec ), format='%.7f',
+							help='Declination in decimal degrees.', key='astro_starmap_dec' )
 					
 					if starmap_mode == 'coordinate_link':
-						st.caption(
-							'Coordinate Link builds a SKY-MAP page centered on right ascension '
+						st.caption( 'Coordinate Link builds a SKY-MAP page centered on right ascension '
 							'and declination.' )
 					else:
-						st.caption(
-							'Snapshot requests the SKY-MAP snapshot endpoint and attempts to extract '
+						st.caption( 'Snapshot requests the SKY-MAP snapshot endpoint and attempts to extract '
 							'available save-as image links.' )
 				
 				starmap_options_c1, starmap_options_c2 = st.columns( 2 )
-				
 				with starmap_options_c1:
-					starmap_show_box = st.checkbox(
-						'Show Box',
-						value=True,
+					starmap_show_box = st.checkbox( 'Show Box', value=True,
 						key='astro_starmap_show_box' )
 					
-					starmap_show_grid = st.checkbox(
-						'Show Grid',
-						value=True,
+					starmap_show_grid = st.checkbox( 'Show Grid', value=True,
 						key='astro_starmap_show_grid' )
 				
 				with starmap_options_c2:
-					starmap_show_lines = st.checkbox(
-						'Show Lines',
-						value=True,
+					starmap_show_lines = st.checkbox( 'Show Lines', value=True,
 						key='astro_starmap_show_lines' )
 					
-					starmap_show_boundaries = st.checkbox(
-						'Show Boundaries',
-						value=True,
+					starmap_show_boundaries = st.checkbox( 'Show Boundaries', value=True,
 						key='astro_starmap_show_boundaries' )
 				
-				starmap_show_const_names = st.checkbox(
-					'Show Constellation Names',
-					value=False,
+				starmap_show_const_names = st.checkbox( 'Show Constellation Names', value=False,
 					key='astro_starmap_show_const_names' )
 				
-				starmap_timeout = st.number_input(
-					'Timeout',
-					min_value=1,
-					max_value=60,
-					value=20,
-					step=1,
-					key='astro_starmap_timeout' )
+				starmap_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
+					step=1, key='astro_starmap_timeout' )
 				
 				starmap_btn_c1, starmap_btn_c2 = st.columns( 2 )
 				
@@ -7559,15 +7221,10 @@ elif mode == 'Astronomical':
 							use_container_width=True ):
 						try:
 							service = StarMap( )
-							result = service.fetch(
-								mode=starmap_mode,
-								query=starmap_query,
-								ra=float( starmap_ra ),
-								dec=float( starmap_dec ),
-								zoom=int( starmap_zoom ),
-								image_source=starmap_image_source,
-								box_color=starmap_box_color,
-								show_box=bool( starmap_show_box ),
+							result = service.fetch( mode=starmap_mode, query=starmap_query,
+								ra=float( starmap_ra ), dec=float( starmap_dec ),
+								zoom=int( starmap_zoom ), image_source=starmap_image_source,
+								box_color=starmap_box_color, show_box=bool( starmap_show_box ),
 								show_grid=bool( starmap_show_grid ),
 								show_lines=bool( starmap_show_lines ),
 								show_boundaries=bool( starmap_show_boundaries ),
@@ -7576,13 +7233,11 @@ elif mode == 'Astronomical':
 							
 							result_url = ''
 							if isinstance( result, dict ):
-								result_url = (
-										result.get( 'preferred_image_url', '' )
+								result_url = (result.get( 'preferred_image_url', '' )
 										or result.get( 'snapshot_page_url', '' )
 										or result.get( 'object_page_url', '' )
 										or result.get( 'coordinate_page_url', '' )
-										or result.get( 'url', '' )
-								)
+										or result.get( 'url', '' ) )
 							
 							st.session_state[ 'astro_last_source' ] = 'Star Map'
 							st.session_state[ 'astro_last_result' ] = normalize( result ) or { }
@@ -7607,7 +7262,7 @@ elif mode == 'Astronomical':
 					'astro_last_source', 'Star Map', 'astro_starmap_processing' )
 
 		with astro_c2:
-			render_mode_document_tabs( 'astro', '📄 Source Document' )
+			render_mode_document_tabs( 'astro', '📄 Source' )
 
 			# ------------------------------------------------------------------
 			# ASTRONOMICAL RESULTS
