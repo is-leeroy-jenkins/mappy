@@ -1764,8 +1764,7 @@ def read_missing_report_locations( table_name: str, limit: Optional[ int ] = Non
 		return pd.DataFrame( )
 
 def preview_report_coordinate_updates( table_name: str, geocoder: Geocoder, places: Place,
-                                       use_places: bool = True,
-                                       limit: Optional[ int ] = None ) -> pd.DataFrame:
+                                       use_places: bool=True, limit: Optional[ int ]=None ) -> pd.DataFrame:
 	"""Handle the preview report coordinate updates workflow.
 	
 	Purpose:
@@ -1794,9 +1793,7 @@ def preview_report_coordinate_updates( table_name: str, geocoder: Geocoder, plac
 	try:
 		throw_if( 'table_name', table_name )
 		throw_if( 'geocoder', geocoder )
-		
 		df_locations = read_missing_report_locations( table_name, limit )
-		
 		if df_locations.empty:
 			return pd.DataFrame( )
 		
@@ -1805,10 +1802,9 @@ def preview_report_coordinate_updates( table_name: str, geocoder: Geocoder, plac
 		for row in df_locations.itertuples( index=False ):
 			query = compose_location_query( row.City, row.State, row.Country )
 			
-			record = { 'City': row.City, 'State': row.State, 'Country': row.Country, 'Query':
-				query,
-					'RowCount': row.RowCount, 'Latitude': None, 'Longitude': None, 'Source': '',
-					'Status': '', 'Message': '', }
+			record = { 'City': row.City, 'State': row.State, 'Country': row.Country, 'Query': query,
+			           'RowCount': row.RowCount, 'Latitude': None, 'Longitude': None, 'Source': '',
+			           'Status': '', 'Message': '', }
 			
 			if not query:
 				record[ 'Status' ] = 'Skipped'
@@ -9327,7 +9323,6 @@ elif mode == 'Data Management':
 						value=100, step=25, key='reports_geocode_limit' )
 				
 				location_limit = int( limit ) if limit_enabled else None
-				
 				required_cols = [ 'City', 'State', 'Country', 'Latitude', 'Longitude' ]
 				schema = create_schema( table )
 				table_cols = [ row[ 1 ] for row in schema ]
