@@ -1,11 +1,85 @@
+[client]
+toolbarMode = "minimal"
+
 [theme]
-base = 'dark'
-backgroundColor = '#141414'
-secondaryBackgroundColor = '#414141'
-textColor = '#FFFFFF'
-dataframeBorderColor = '#00254C'
-primaryColor = '#0078FC'
-borderColor = '#565557'
-dataframeHeaderBackgroundColor = '#023770'
-font = 'Roboto Regular'
-baseFontSize = 14
+base = "dark"
+primaryColor = "#8AA6B6"
+backgroundColor = "#050A0F"
+secondaryBackgroundColor = "#091119"
+textColor = "#D6DDE2"
+linkColor = "#9DB4C2"
+linkUnderline = false
+codeTextColor = "#C8D3DA"
+codeBackgroundColor = "#0D1720"
+
+baseRadius = "2px"
+buttonRadius = "2px"
+borderColor = "#22303B"
+dataframeBorderColor = "#22303B"
+dataframeHeaderBackgroundColor = "#0D1720"
+
+showWidgetBorder = true
+showSidebarBorder = true
+
+baseFontSize = 16
+baseFontWeight = 400
+headingFontWeights = [500, 500, 500, 500, 500, 500]
+codeFontWeight = 400
+metricValueFontWeight = 500
+
+chartCategoricalColors = [
+    "#8AA6B6",
+    "#526D7C",
+    "#89A98D",
+    "#C0A46B",
+    "#BD7777",
+    "#6C7F8B",
+    "#9DB4C2",
+    "#415965",
+    "#A8B4BB",
+    "#70848F"
+]
+
+chartSequentialColors = [
+    "#0D1720",
+    "#16232C",
+    "#20313C",
+    "#2C414E",
+    "#3A5361",
+    "#4A6776",
+    "#5D7C8C",
+    "#7292A0",
+    "#8AA6B6",
+    "#B7C7D0"
+]
+
+chartDivergingColors = [
+    "#7F4F4F",
+    "#996262",
+    "#B27777",
+    "#C89494",
+    "#D9B5B5",
+    "#D6DDE2",
+    "#B8C9D2",
+    "#95B1BF",
+    "#7398A9",
+    "#526D7C"
+]
+
+[theme.sidebar]
+primaryColor = "#8AA6B6"
+backgroundColor = "#091119"
+secondaryBackgroundColor = "#0D1720"
+textColor = "#C8D3DA"
+linkColor = "#9DB4C2"
+linkUnderline = false
+codeTextColor = "#C8D3DA"
+codeBackgroundColor = "#0D1720"
+
+baseRadius = "2px"
+buttonRadius = "2px"
+borderColor = "#22303B"
+dataframeBorderColor = "#22303B"
+dataframeHeaderBackgroundColor = "#0D1720"
+
+showWidgetBorder = true
