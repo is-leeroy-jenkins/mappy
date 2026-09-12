@@ -4635,8 +4635,8 @@ elif mode == 'Weather':
 					historical_count = st.number_input( 'Geocoding Result Count', min_value=1,
 						max_value=100, value=10, step=1, key='weather_historical_count' )
 					
-				historical_btn_c1, historical_btn_c2 = st.columns( 2 )
-				with historical_btn_c1:
+				hist_c1, hist_c2 = st.columns( 2 )
+				with hist_c1:
 					if st.button( label='Run', icon='🏃', key='weather_historical_run',
 							use_container_width=True ):
 						
@@ -4655,7 +4655,7 @@ elif mode == 'Weather':
 					set_global_coordinates_from_result( weather_latitude, weather_longitude,
 						location=historical_location, description='Historical Weather result' )
 			
-				with historical_btn_c2:
+				with hist_c2:
 					if st.button( label='Clear', icon='🧹', key='weather_historical_clear',
 							use_container_width=True ):
 						
