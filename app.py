@@ -4640,38 +4640,29 @@ elif mode == 'Weather':
 					if st.button( label='Run', icon='🏃', key='weather_historical_run',
 							use_container_width=True ):
 						
-						if not historical_location:
-							st.warning( 'Enter a location.' )
-						else:
-							try:
-								weather = HistoricalWeather( )
-								result = weather.fetch( location=historical_location,
-									date=historical_date, zone=historical_zone,
-									count=int( historical_count ) )
-								
-								weather_latitude = getattr( weather, 'latitude', None )
-								weather_longitude = getattr( weather, 'longitude', None )
-								st.session_state[ 'weather_last_source' ] = 'Historical Weather'
-								st.session_state[ 'weather_last_result' ] = result or { }
-								st.session_state[ 'weather_last_latitude' ] = weather_latitude
-								st.session_state[ 'weather_last_longitude' ] = weather_longitude
-								
-								set_global_coordinates_from_result( weather_latitude,
-									weather_longitude, location=historical_location,
-									description='Historical Weather result' )
-								
-								st.success( 'Historical Weather request completed.' )
+							weather = HistoricalWeather( )
+							result = weather.fetch( location=historical_location,
+								date=historical_date, zone=historical_zone,
+								count=int( historical_count ) )
 							
-							except Exception as ex:
-								st.error( f'Historical Weather request failed: {ex}' )
-					
-					with historical_btn_c2:
-						if st.button( label='Clear', icon='🧹', key='weather_historical_clear',
-								use_container_width=True ):
-							st.session_state[ 'weather_last_source' ] = ''
-							st.session_state[ 'weather_last_result' ] = { }
-							st.session_state[ 'weather_last_latitude' ] = None
-							st.session_state[ 'weather_last_longitude' ] = None
+							weather_latitude = getattr( weather, 'latitude', None )
+							weather_longitude = getattr( weather, 'longitude', None )
+							st.session_state[ 'weather_last_source' ] = 'Historical Weather'
+							st.session_state[ 'weather_last_result' ] = result or { }
+							st.session_state[ 'weather_last_latitude' ] = weather_latitude
+							st.session_state[ 'weather_last_longitude' ] = weather_longitude
+							
+							set_global_coordinates_from_result( weather_latitude, weather_longitude,
+								location=historical_location, description='Historical Weather result' )
+				
+				with historical_btn_c2:
+					if st.button( label='Clear', icon='🧹', key='weather_historical_clear',
+							use_container_width=True ):
+						
+						st.session_state[ 'weather_last_source' ] = ''
+						st.session_state[ 'weather_last_result' ] = { }
+						st.session_state[ 'weather_last_latitude' ] = None
+						st.session_state[ 'weather_last_longitude' ] = None
 				
 				st.divider( )
 				
