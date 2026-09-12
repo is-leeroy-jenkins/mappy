@@ -4540,7 +4540,6 @@ elif mode == 'Weather':
 			# ------------------------------------------------------------------
 			with st.expander( '🌤️ OpenWeather / Open-Meteo', expanded=False ):
 				st.caption( 'API', help=cfg.OPEN_WEATHER )
-				
 				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with loc_c1:
 					open_location = st.text_input( 'Location', value=global_location,
@@ -4609,7 +4608,7 @@ elif mode == 'Weather':
 			with st.expander( '🕰️ Historical Weather', expanded=False ):
 				st.badge( label='About API', color='blue', help=cfg.HISTORICAL_WEATHER )
 				
-				loc_c1, loc_2 = st.columns( 2, border=True, gap='xxsmall' )
+				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with loc_c1:
 					historical_location = st.text_input( 'Location', value=global_location,
 						key='weather_historical_location' )
@@ -4632,21 +4631,21 @@ elif mode == 'Weather':
 				with hist_c1:
 					if st.button( label='Run', icon='🏃', key='weather_historical_run',
 							use_container_width=True ):
+					
+						weather = HistoricalWeather( )
+						result = weather.fetch( location=historical_location,
+							date=historical_date, zone=historical_zone,
+							count=int( historical_count ) )
 						
-							weather = HistoricalWeather( )
-							result = weather.fetch( location=historical_location,
-								date=historical_date, zone=historical_zone,
-								count=int( historical_count ) )
-							
-							weather_latitude = getattr( weather, 'latitude', None )
-							weather_longitude = getattr( weather, 'longitude', None )
-							st.session_state[ 'weather_last_source' ] = 'Historical Weather'
-							st.session_state[ 'weather_last_result' ] = result or { }
-							st.session_state[ 'weather_last_latitude' ] = weather_latitude
-							st.session_state[ 'weather_last_longitude' ] = weather_longitude
+						weather_latitude = getattr( weather, 'latitude', None )
+						weather_longitude = getattr( weather, 'longitude', None )
+						st.session_state[ 'weather_last_source' ] = 'Historical Weather'
+						st.session_state[ 'weather_last_result' ] = result or { }
+						st.session_state[ 'weather_last_latitude' ] = weather_latitude
+						st.session_state[ 'weather_last_longitude' ] = weather_longitude
 						
-					set_global_coordinates_from_result( weather_latitude, weather_longitude,
-						location=historical_location, description='Historical Weather result' )
+						set_global_coordinates_from_result( weather_latitude, weather_longitude,
+							location=historical_location, description='Historical Weather result' )
 			
 				with hist_c2:
 					if st.button( label='Clear', icon='🧹', key='weather_historical_clear',
