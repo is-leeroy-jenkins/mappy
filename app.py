@@ -4429,7 +4429,7 @@ elif mode == 'Weather':
 			# GOOGLE WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '🌦️ Google Weather', expanded=True ):
-				st.caption( label='API', help=cfg.GOOGLE_WEATHER )
+				st.caption( 'API', help=cfg.GOOGLE_WEATHER )
 				google_address = st.text_input( 'Address or Location', value=global_location,
 					key='weather_google_address' )
 				
@@ -4443,7 +4443,6 @@ elif mode == 'Weather':
 						key='weather_google_units' )
 				
 				lang_c1, time_c2 = st.columns( 2 )
-				
 				with lang_c1:
 					google_language = st.text_input( 'Language Code', value='en',
 						key='weather_google_language' )
