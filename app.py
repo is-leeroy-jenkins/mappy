@@ -4275,16 +4275,14 @@ elif mode == 'Web Scraper':
 			button_c1, button_c2 = st.columns( 2 )
 			with button_c1:
 				run_scraper = st.button( label='Run Scraper', key='webfetcher_run',
-					width='stretch',
-					icon='🏃' )
+					width='stretch', icon='🏃' )
 			
 			with button_c2:
 				st.button( label='Clear', key='webfetcher_clear', width='stretch',
 					on_click=clear_webscrape_state, icon='🧹' )
 			
 			render_source_processing_controls( 'webscrape', 'webscrape_results',
-				'webscrape_source',
-				'Web Scraper', 'webscrape_processing' )
+				'webscrape_source', 'Web Scraper', 'webscrape_processing' )
 		
 		with col_right:
 			render_mode_document_tabs( 'webscrape', '📄 Source' )
@@ -4424,14 +4422,14 @@ elif mode == 'Weather':
 		
 		set_blue_divider( )
 		
-		weather_c1, weather_c2 = st.columns( [ 0.40, 0.60 ], border=True, gap='xsmall' )
+		weather_c1, weather_c2 = st.columns( [ 0.40, 0.60 ], border=True, gap='xxsmall' )
 		
 		with weather_c1:
 			# ------------------------------------------------------------------
 			# GOOGLE WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '🌦️ Google Weather', expanded=True ):
-				st.badge( label='About API', color='blue', help=cfg.GOOGLE_WEATHER )
+				st.caion( label='API', help=cfg.GOOGLE_WEATHER )
 				google_address = st.text_input( 'Address or Location', value=global_location,
 					key='weather_google_address' )
 				
@@ -4471,8 +4469,6 @@ elif mode == 'Weather':
 				with time_c2:
 					google_timeout = st.number_input( 'Timeout', min_value=1, max_value=60,
 						value=10, step=1, key='weather_google_timeout' )
-				
-				st.divider( )
 				
 				google_btn_c1, google_btn_c2 = st.columns( 2 )
 				with google_btn_c1:
@@ -4534,6 +4530,8 @@ elif mode == 'Weather':
 						st.session_state[ 'weather_last_result' ] = { }
 						st.session_state[ 'weather_last_latitude' ] = None
 						st.session_state[ 'weather_last_longitude' ] = None
+				
+				st.divider( )
 				
 				render_source_processing_controls( 'weather', 'weather_last_result',
 					'weather_last_source', 'Google Weather', 'weather_google_processing' )
