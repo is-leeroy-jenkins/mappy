@@ -4429,7 +4429,7 @@ elif mode == 'Weather':
 			# GOOGLE WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '🌦️ Google Weather', expanded=True ):
-				st.caion( label='API', help=cfg.GOOGLE_WEATHER )
+				st.caption( label='API', help=cfg.GOOGLE_WEATHER )
 				google_address = st.text_input( 'Address or Location', value=global_location,
 					key='weather_google_address' )
 				
