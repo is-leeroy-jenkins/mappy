@@ -4651,10 +4651,10 @@ elif mode == 'Weather':
 							st.session_state[ 'weather_last_result' ] = result or { }
 							st.session_state[ 'weather_last_latitude' ] = weather_latitude
 							st.session_state[ 'weather_last_longitude' ] = weather_longitude
-							
-							set_global_coordinates_from_result( weather_latitude, weather_longitude,
-								location=historical_location, description='Historical Weather result' )
-				
+						
+					set_global_coordinates_from_result( weather_latitude, weather_longitude,
+						location=historical_location, description='Historical Weather result' )
+			
 				with historical_btn_c2:
 					if st.button( label='Clear', icon='🧹', key='weather_historical_clear',
 							use_container_width=True ):
