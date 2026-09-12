@@ -4433,7 +4433,7 @@ elif mode == 'Weather':
 				google_address = st.text_input( 'Address or Location', value=global_location,
 					key='weather_google_address' )
 				
-				google_select_c1, google_select_c2 = st.columns( 2 )
+				google_select_c1, google_select_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with google_select_c1:
 					google_product = st.selectbox( 'Product',
 						options=[ 'Current Conditions', 'Hourly Forecast', 'Daily Forecast',
@@ -4442,7 +4442,7 @@ elif mode == 'Weather':
 					google_units = st.selectbox( 'Units System', options=[ 'METRIC', 'IMPERIAL' ],
 						key='weather_google_units' )
 				
-				lang_c1, time_c2 = st.columns( 2 )
+				lang_c1, time_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with lang_c1:
 					google_language = st.text_input( 'Language Code', value='en',
 						key='weather_google_language' )
@@ -4539,62 +4539,71 @@ elif mode == 'Weather':
 			# OPENWEATHER / OPEN-METEO
 			# ------------------------------------------------------------------
 			with st.expander( '🌤️ OpenWeather / Open-Meteo', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.OPEN_WEATHER )
-				open_location = st.text_input( 'Location', value=global_location,
-					key='weather_open_location' )
+				st.caption( 'API', help=cfg.OPEN_WEATHER )
 				
-				open_mode = st.selectbox( 'Mode', options=[ 'current', 'hourly', 'daily' ],
-					key='weather_open_mode' )
+				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
+				with loc_c1:
+					open_location = st.text_input( 'Location', value=global_location,
+						key='weather_open_location' )
 				
-				open_zone = st.text_input( 'Timezone', value='auto', key='weather_open_zone' )
-				open_forecast_days = st.number_input( 'Forecast Days', min_value=1, max_value=16,
-					value=7, step=1, key='weather_open_forecast_days' )
+				with loc_c2:
+					open_mode = st.selectbox( 'Mode', options=[ 'current', 'hourly', 'daily' ],
+						key='weather_open_mode' )
 				
-				open_past_days = st.number_input( 'Past Days', min_value=0, max_value=92, value=0,
-					step=1, key='weather_open_past_days' )
+				zone_c1, zone_c2 = st.columns( 2, border=True, gap='xxsmall' )
+				with zone_c1:
+					open_zone = st.text_input( 'Timezone', value='auto', key='weather_open_zone' )
 				
-				open_count = st.number_input( 'Geocoding Result Count', min_value=1, max_value=100,
-					value=10, step=1, key='weather_open_count' )
+				with zone_c2:
+					open_forecast_days = st.number_input( 'Forecast Days', min_value=1, max_value=16,
+						value=7, step=1, key='weather_open_forecast_days' )
 				
-				open_btn_c1, open_btn_c2 = st.columns( 2 )
+				day_c1, day_c2 = st.columns( 2, border=True, gap='xxsmall' )
+				with day_c1:
+					open_past_days = st.number_input( 'Past Days', min_value=0, max_value=92, value=0,
+						step=1, key='weather_open_past_days' )
 				
-				with open_btn_c1:
-					if st.button( label='Run', icon='🏃', key='weather_open_run',
-							use_container_width=True ):
-						if not open_location:
-							st.warning( 'Enter a location.' )
-						else:
-							try:
-								weather = OpenWeather( )
-								result = weather.fetch( location=open_location, mode=open_mode,
-									zone=open_zone, forecast_days=int( open_forecast_days ),
-									past_days=int( open_past_days ), count=int( open_count ) )
-								
-								weather_latitude = getattr( weather, 'latitude', None )
-								weather_longitude = getattr( weather, 'longitude', None )
-								
-								st.session_state[
-									'weather_last_source' ] = 'OpenWeather / Open-Meteo'
-								st.session_state[ 'weather_last_result' ] = result or { }
-								st.session_state[ 'weather_last_latitude' ] = weather_latitude
-								st.session_state[ 'weather_last_longitude' ] = weather_longitude
-								
-								set_global_coordinates_from_result( weather_latitude,
-									weather_longitude, location=open_location,
-									description='OpenWeather / Open-Meteo result' )
-								
-								st.success( 'OpenWeather request completed.' )
+				with day_c2:
+					open_count = st.number_input( 'Geocoding Result Count', min_value=1, max_value=100,
+						value=10, step=1, key='weather_open_count' )
+				
+				if st.button( label='Run', icon='🏃', key='weather_open_run',
+						use_container_width=True ):
+					if not open_location:
+						st.warning( 'Enter a location.' )
+					else:
+						try:
+							weather = OpenWeather( )
+							result = weather.fetch( location=open_location, mode=open_mode,
+								zone=open_zone, forecast_days=int( open_forecast_days ),
+								past_days=int( open_past_days ), count=int( open_count ) )
 							
-							except Exception as ex:
-								st.error( f'OpenWeather request failed: {ex}' )
+							weather_latitude = getattr( weather, 'latitude', None )
+							weather_longitude = getattr( weather, 'longitude', None )
+							
+							st.session_state[
+								'weather_last_source' ] = 'OpenWeather / Open-Meteo'
+							st.session_state[ 'weather_last_result' ] = result or { }
+							st.session_state[ 'weather_last_latitude' ] = weather_latitude
+							st.session_state[ 'weather_last_longitude' ] = weather_longitude
+							
+							set_global_coordinates_from_result( weather_latitude,
+								weather_longitude, location=open_location,
+								description='OpenWeather / Open-Meteo result' )
+							
+							st.success( 'OpenWeather request completed.' )
+						
+						except Exception as ex:
+							st.error( f'OpenWeather request failed: {ex}' )
+			
+				if st.button( label='Clear', icon='🧹', key='weather_open_clear',
+						use_container_width=True ):
+					st.session_state[ 'weather_last_source' ] = ''
+					st.session_state[ 'weather_last_result' ] = { }
+					st.session_state[ 'weather_last_latitude' ] = None
+					st.session_state[ 'weather_last_longitude' ] = None
 				
-				with open_btn_c2:
-					if st.button( label='Clear', icon='🧹', key='weather_open_clear',
-							use_container_width=True ):
-						st.session_state[ 'weather_last_source' ] = ''
-						st.session_state[ 'weather_last_result' ] = { }
-						st.session_state[ 'weather_last_latitude' ] = None
-						st.session_state[ 'weather_last_longitude' ] = None
+				st.divider( )
 				
 				render_source_processing_controls( 'weather', 'weather_last_result',
 					'weather_last_source', 'OpenWeather / Open-Meteo', 'weather_open_processing' )

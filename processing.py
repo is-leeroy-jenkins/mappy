@@ -186,7 +186,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 	"""Render Foo-style chunking, embedding, and vector-store controls."""
 	try:
 		throw_if( 'key_prefix', key_prefix )
-		chunk_col, overlap_col = st.columns( 2, border=True )
+		chunk_col, overlap_col = st.columns( 2, border=True, gap='xxsmall' )
 		with chunk_col:
 			chunk_size = st.slider( 'Chunk Size', min_value=1, max_value=5000, value=1000,
 				step=1, key=f'{key_prefix}_chunk_size' )
@@ -196,7 +196,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 				value=min( 200, max( 0, int( chunk_size ) - 1 ) ),
 				step=1, key=f'{key_prefix}_chunk_overlap' )
 
-		provider_col, model_col = st.columns( 2 )
+		provider_col, model_col = st.columns( 2, border=True, gap='xxsmall' )
 		with provider_col:
 			provider = st.selectbox( 'Embedding Provider', options=list( EMBEDDING_MODELS.keys( ) ),
 				index=list( EMBEDDING_MODELS.keys( ) ).index( 'Hugging Face' ),
@@ -210,7 +210,7 @@ def render_processing_inputs( key_prefix: str ) -> Dict[ str, object ]:
 			model_path = st.text_input( 'Local GGUF Model Path',
 				placeholder=r'C:\models\embedding-model.gguf', key=f'{key_prefix}_embedding_model_path' )
 
-		store_col, target_col = st.columns( 2 )
+		store_col, target_col = st.columns( 2, border=True, gap='xxsmall' )
 		with store_col:
 			vector_backend = st.selectbox( 'Vector Store', options=[ 'Chroma', 'Pinecone' ],
 				key=f'{key_prefix}_vector_backend' )
