@@ -44,10 +44,22 @@
   ******************************************************************************************
 '''
 from typing import Any, Dict, Optional, List
-from caches import BaseCache
-from exceptions import NotFound
-from maps import Maps
-from boogr import Error, Logger
+if __package__:
+	from .caches import BaseCache
+else:
+	from caches import BaseCache
+if __package__:
+	from .exceptions import NotFound
+else:
+	from exceptions import NotFound
+if __package__:
+	from .maps import Maps
+else:
+	from maps import Maps
+if __package__:
+	from .boogr import Error, Logger
+else:
+	from boogr import Error, Logger
 
 def throw_if( name: str, value: object ) -> None:
 	"""Validate that a required Places value is present.

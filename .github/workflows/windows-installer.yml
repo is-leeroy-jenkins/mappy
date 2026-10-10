@@ -1,0 +1,48 @@
+name: Build Mappy Windows desktop installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install application and packaging requirements
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements-desktop.txt
+      - name: Provision bundled Chromium
+        shell: pwsh
+        run: |
+          $env:PLAYWRIGHT_BROWSERS_PATH = "$pwd/playwright-browsers"
+          python -m playwright install chromium
+      - name: Validate launcher and configuration
+        shell: pwsh
+        run: |
+          python -m py_compile desktop.py config.py app.py
+      - name: Build Mappy executable directory
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean mappy.spec
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer\mappy.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mappy-Windows-Installer
+          path: dist-installer/*.exe
+          if-no-files-found: error

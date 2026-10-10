@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mappy-py"
+version = "0.2.0"
+description = "Streamlit geospatial application for mapping, environmental data, astronomy, and retrieval"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Terry Eppler"}]
+license = "MIT"
+license-files = ["LICENSE.txt"]
+dynamic = ["dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/is-leeroy-jenkins/mappy"
+Documentation = "https://is-leeroy-jenkins.github.io/mappy/"
+Issues = "https://github.com/is-leeroy-jenkins/mappy/issues"
+
+[project.scripts]
+mappy = "mappy.cli:desktop"
+mappy-browser = "mappy.cli:main"
+
+[project.optional-dependencies]
+local = ["llama-cpp-python"]
+
+[tool.setuptools]
+packages = ["mappy"]
+package-dir = {mappy = "."}
+include-package-data = false
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements-runtime.txt"]}
+
+[tool.setuptools.package-data]
+mappy = ["resources/images/**/*.png", "resources/images/**/*.ico", ".streamlit/config.toml", "assets/starmap/**/*"]

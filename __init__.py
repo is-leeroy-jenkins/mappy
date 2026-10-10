@@ -43,27 +43,43 @@
 	******************************************************************************************
 '''
 
-from .exceptions import MappyError, GatewayError, NotFound  # noqa: F401
-from .rates import RateLimiter  # noqa: F401
-from .caches import BaseCache, InMemoryCache, SQLiteCache  # noqa: F401
-from .maps import Maps  # noqa: F401
-from .geocode import Geocoder  # noqa: F401
-from .places import Places  # noqa: F401
-from .distances import DistanceMatrix  # noqa: F401
-from .timezones import Timezone  # noqa: F401
-from .staticmaps import StaticMap  # noqa: F401
-from .excel import Excel  # noqa: F401
+from importlib import import_module
 
-__version__ = "0.2.0"
+__version__ = '0.2.0'
+PUBLIC_INTERFACES = {
+    'MappyError': ('exceptions', 'MappyError'),
+    'GatewayError': ('exceptions', 'GatewayError'),
+    'NotFound': ('exceptions', 'NotFound'),
+    'RateLimiter': ('rates', 'RateLimiter'),
+    'BaseCache': ('caches', 'BaseCache'),
+    'InMemoryCache': ('caches', 'InMemoryCache'),
+    'SQLiteCache': ('caches', 'SQLiteCache'),
+    'Maps': ('maps', 'Maps'),
+    'Geocoder': ('geocode', 'Geocoder'),
+    'Place': ('places', 'Place'),
+    'Places': ('places', 'Place'),
+    'DistanceMatrix': ('distances', 'DistanceMatrix'),
+    'Timezone': ('timezones', 'Timezone'),
+    'StaticMap': ('staticmaps', 'StaticMap'),
+    'Excel': ('excel', 'Excel'),
+}
+__all__ = list( PUBLIC_INTERFACES )
 
 
+def __getattr__( name: str ) -> object:
+    """Resolve a public framework interface without initializing unused providers.
 
+    Args:
+        name (str): Requested public class name.
 
+    Returns:
+        object: Framework class, including the legacy Places alias.
 
-
-
-
-
-
-
-
+    Raises:
+        AttributeError: The name is not a public framework interface.
+    """
+    if name in PUBLIC_INTERFACES:
+        module_name, member_name = PUBLIC_INTERFACES[ name ]
+        module = import_module( '.' + module_name, __name__ )
+        return getattr( module, member_name )
+    raise AttributeError( f'Module {__name__} has no attribute {name}' )
