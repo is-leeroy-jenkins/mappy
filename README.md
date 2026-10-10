@@ -9,7 +9,7 @@
   &nbsp;&bull;&nbsp;
   <a href="#-application-modes">Modes</a>
   &nbsp;&bull;&nbsp;
-  <a href="#-installation">Installation</a>
+  <a href="resources/installation.md">Installation</a>
   &nbsp;&bull;&nbsp;
   <a href="#-configuration">Configuration</a>
   &nbsp;&bull;&nbsp;
@@ -28,6 +28,20 @@ ___
 
 
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/mappy/)
+
+## PyPI application
+
+```powershell
+python -m pip install mappy-py
+mappy
+```
+
+`mappy` opens the tabless Windows WebView2 window by default. Windows requires
+Edge WebView2 Runtime. Standard browser mode uses `mappy-browser`.
+The distribution is `mappy-py`; the Python import remains `mappy`.
+Do not install the unrelated PyPI `mappy` package in the same environment.
+See [installation](resources/installation.md) and
+[PyPI publishing](resources/pypi-release.md).
 
 `mappy` is a lightweight Python geospatial framework and Streamlit application for mapping,
 location enrichment, environmental data retrieval, astronomical data access, web scraping, and

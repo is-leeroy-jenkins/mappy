@@ -44,10 +44,22 @@
 import time
 from typing import Dict, Optional
 import requests
-from exceptions import GatewayError
-from rates import RateLimiter
-from boogr import Error, Logger
-import config as cfg
+if __package__:
+	from .exceptions import GatewayError
+else:
+	from exceptions import GatewayError
+if __package__:
+	from .rates import RateLimiter
+else:
+	from rates import RateLimiter
+if __package__:
+	from .boogr import Error, Logger
+else:
+	from boogr import Error, Logger
+if __package__:
+	from . import config as cfg
+else:
+	import config as cfg
 
 def throw_if( name: str, value: object ) -> None:
 	"""Validate that a required gateway value is present.

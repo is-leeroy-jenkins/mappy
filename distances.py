@@ -44,8 +44,14 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple, Union
 import pandas as pd
-from maps import Maps
-from boogr import Error, Logger
+if __package__:
+	from .maps import Maps
+else:
+	from maps import Maps
+if __package__:
+	from .boogr import Error, Logger
+else:
+	from boogr import Error, Logger
 
 def throw_if( name: str, value: object ) -> None:
 	"""Validate that a required distance-matrix value is present.

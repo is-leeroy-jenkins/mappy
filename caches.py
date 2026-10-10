@@ -46,7 +46,10 @@ import os
 import sqlite3
 import time
 from typing import Any, Dict, Optional
-from boogr import Error, Logger
+if __package__:
+	from .boogr import Error, Logger
+else:
+	from boogr import Error, Logger
 
 def throw_if( name: str, value: object ) -> None:
 	"""Validate that a required cache value is present.
