@@ -1,0 +1,113 @@
+package:
+  name: '{{ PACKAGE_NAME }}'
+  version: '{{ PACKAGE_VERSION }}'
+
+source:
+  path: ../src
+
+requirements:
+  run:
+    # Foundry Jupyter Workspace / Linux x86-64 / Python 3.13
+    - python 3.13.*
+    - ipykernel
+    - pip
+    - foundry-transforms-lib-python
+
+    # Streamlit application and visualization
+    - streamlit
+    - pandas
+    - numpy>=2,<3
+    - requests
+    - openpyxl
+    - xlrd
+    - plotly
+    - pydeck>=0.8.0
+    - matplotlib
+    - beautifulsoup4
+    - pillow
+
+    # GIS, mapping, and astronomy
+    - cartopy
+    - shapely
+    - pyproj
+    - owslib
+    - astropy
+    - astroquery
+
+    # Hosted AI provider APIs
+    - openai
+    - anthropic
+    - google-genai
+
+    # OpenTelemetry: preserve original coordinated version pins
+    - opentelemetry-api==1.39.1
+    - opentelemetry-sdk==1.39.1
+    - opentelemetry-semantic-conventions==0.60b1
+
+    # LangChain and integrations
+    # Previous Foo resolution: available community build
+    # required core >=1.4,<2.
+    # Compatibility candidates; not yet proven for Mappy.
+    - langchain-core>=1.4,<2
+    - langchain-community>=0.4,<0.5
+    - langchain-text-splitters
+    - langchain-openai
+    - langchain-google-genai
+    - langchain-mistralai
+    - langchain-huggingface
+    - langchain-chroma
+    - langchain-pinecone
+
+    # Retrieval, embeddings, and local inference
+    # Previously successful Bro-compatible version family
+    - sentence-transformers==5.1.2
+    - transformers>=4.41,<5
+    - huggingface_hub>=0.34,<1
+    - pytorch>=2.4,<2.7
+    - chromadb
+    - pinecone
+    - llama-cpp-python
+
+    # Web, documents, and browser automation
+    - arxiv
+    - wikipedia
+    - playwright
+    - pypdf
+    - docx2txt
+    - python-pptx
+
+    # Documentation and developer tooling
+    # Original: mkdocstrings[python]
+    - mkdocs
+    - mkdocs-material
+    - mkdocstrings
+    - mkdocstrings-python
+    - mkdocs-autorefs
+    - pymdown-extensions
+    - black
+
+    # Original requirements excluded or unverified in Foundry Conda
+    # - streamlit-extras
+    #   Foundry PyPI; prior Conda and UV installation failures.
+    # - streamlit-js-eval>=1.0.0
+    #   Conda availability unverified.
+    # - mistralai==2.4.5
+    #   Standalone SDK identity/build unverified.
+    # - sscws
+    #   Conda availability unverified.
+    # - grokipedia-api
+    #   Conda availability unverified.
+    # - langchain-googledrive
+    #   Separate integration; availability unverified.
+    # - xai-sdk
+    #   Do not substitute Conda 'xai'.
+    # - unstructured
+    #   Chonky: available Conda builds conflicted with Python 3.13.
+    # - jq
+    #   Verify Python binding, not just Conda CLI 'jq'.
+
+    # Windows-only source requirement; inapplicable to Foundry Linux
+    # - pyreadline3; sys_platform == "win32"
+
+    # Excluded Foundry baseline dependency (not in Mappy source)
+    # - python_sdk>=0.1.0
