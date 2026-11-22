@@ -4606,7 +4606,7 @@ elif mode == 'Weather':
 			# HISTORICAL WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '🕰️ Historical Weather', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.HISTORICAL_WEATHER )
+				st.caption( cfg.HISTORICAL_WEATHER )
 				
 				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with loc_c1:
@@ -4665,7 +4665,7 @@ elif mode == 'Weather':
 			# CLIMATE DATA
 			# ------------------------------------------------------------------
 			with st.expander( '🌡️ Climate Data', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.NOAA_CLIMATE_DATA )
+				st.caption( cfg.NOAA_CLIMATE_DATA )
 				climate_mode = st.selectbox( 'Mode', options=[ 'datasets', 'data' ],
 					key='weather_climate_mode' )
 				
@@ -4774,7 +4774,7 @@ elif mode == 'Weather':
 			# TIDES AND CURRENTS
 			# ------------------------------------------------------------------
 			with st.expander( '🌊 Tides & Currents', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.NOAA_TIDES_CURRENTS )
+				st.caption( cfg.NOAA_TIDES_CURRENTS )
 				tides_mode = st.selectbox( 'Mode',
 					options=[ 'station', 'water-level', 'tide-predictions' ],
 					key='weather_tides_mode' )
@@ -4860,44 +4860,6 @@ elif mode == 'Weather':
 		with weather_c2:
 			render_mode_document_tabs( 'weather', '📄 Source' )
 			
-			# ------------------------------------------------------------------
-			# WEATHER RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Weather Results' )
-			
-			weather_source = st.session_state.get( 'weather_last_source', '' )
-			weather_result = st.session_state.get( 'weather_last_result', { } )
-			weather_latitude = st.session_state.get( 'weather_last_latitude', None )
-			weather_longitude = st.session_state.get( 'weather_last_longitude', None )
-			
-			if not weather_result:
-				st.info( 'No weather results available. Run one of the Weather expanders.' )
-			
-			else:
-				if weather_source:
-					st.caption( f'Source: {weather_source}' )
-				
-				if weather_latitude is not None and weather_longitude is not None:
-					try:
-						lat_value = float( weather_latitude )
-						lng_value = float( weather_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=8,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				st.json( weather_result )
-
 # ==============================================================================
 # ENVIRONMENTAL MODE
 # ==============================================================================
@@ -4927,7 +4889,7 @@ elif mode == 'Environmental':
 			# AIRNOW AIR QUALITY
 			# ------------------------------------------------------------------
 			with st.expander( '🌫️ AirNow Air Quality', expanded=True ):
-				st.badge( label='About API', color='blue', help=cfg.AIR_NOW )
+				st.caption( cfg.AIR_NOW )
 				airnow_mode = st.selectbox( 'Mode',
 					options=[ 'Current by ZIP', 'Current by Coordinates', 'Forecast by ZIP',
 					          'Forecast by Coordinates' ], key='env_airnow_mode' )
@@ -5044,7 +5006,7 @@ elif mode == 'Environmental':
 			# UV INDEX
 			# ------------------------------------------------------------------
 			with st.expander( '☀️ UV Index', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.EPA_UV_INDEX )
+				st.caption( cfg.EPA_UV_INDEX )
 				uv_mode = st.selectbox( 'Mode',
 					options=[ 'Daily by ZIP', 'Daily by City / State', 'Hourly by ZIP',
 					          'Hourly by City / State' ], key='env_uv_mode' )
@@ -5127,7 +5089,7 @@ elif mode == 'Environmental':
 			# OPENAQ
 			# ------------------------------------------------------------------
 			with st.expander( '🧪 OpenAQ', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.OPEN_AQ )
+				st.caption( cfg.OPEN_AQ )
 				openaq_mode = st.selectbox( 'Mode',
 					options=[ 'Locations', 'Latest Measurements by Location',
 					          'Latest Measurements by Parameter', 'Countries', 'Providers',
@@ -5283,7 +5245,7 @@ elif mode == 'Environmental':
 			# PURPLEAIR SENSORS
 			# ------------------------------------------------------------------
 			with st.expander( '🟣 PurpleAir Sensors', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.PURPLE_AIR )
+				st.caption( cfg.PURPLE_AIR )
 				purple_mode = st.selectbox( 'Mode',
 					options=[ 'Sensors by Bounding Box', 'Single Sensor' ], key='env_purple_mode' )
 				
@@ -5410,7 +5372,7 @@ elif mode == 'Environmental':
 			# ENVIROFACTS
 			# ------------------------------------------------------------------
 			with st.expander( '🏭 EPA EnviroFacts Facilities', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.EPA_ENVIROFACTS )
+				st.caption( cfg.EPA_ENVIROFACTS )
 				envirofacts_table = st.selectbox( 'Table',
 					options=[ 'TRI_FACILITY', 'TRI_RELEASE', 'EF_W_EMISSIONS_SOURCE_GHG' ],
 					key='env_envirofacts_table' )
@@ -5462,7 +5424,7 @@ elif mode == 'Environmental':
 			# FIRMS FIRE / THERMAL ANOMALIES
 			# ------------------------------------------------------------------
 			with st.expander( '🔥 NASA FIRMS', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.NASA_FIRMS )
+				st.caption( cfg.NASA_FIRMS )
 				firms_select_c1, firms_select_c2 = st.columns( 2 )
 				with firms_select_c1:
 					firms_source = st.selectbox( 'Source',
@@ -5568,7 +5530,7 @@ elif mode == 'Environmental':
 			# EONET NATURAL EVENTS
 			# ------------------------------------------------------------------
 			with st.expander( '🌎 NASA Earth Observatory Natural Events', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.NASA_EONET )
+				st.caption( cfg.NASA_EONET )
 				eonet_mode = st.selectbox( 'Mode', options=[ 'events', 'categories' ],
 					key='env_eonet_mode' )
 				
@@ -5710,55 +5672,6 @@ elif mode == 'Environmental':
 		with enviro_c2:
 			render_mode_document_tabs( 'env', '📄 Source' )
 			
-			# ------------------------------------------------------------------
-			# ENVIRONMENTAL RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Environmental Results' )
-			env_source = st.session_state.get( 'env_last_source', '' )
-			env_result = st.session_state.get( 'env_last_result', { } )
-			env_latitude = st.session_state.get( 'env_last_latitude', None )
-			env_longitude = st.session_state.get( 'env_last_longitude', None )
-			if not env_result:
-				st.info(
-					'No environmental results available. Run one of the Environmental expanders.' )
-			else:
-				if env_source:
-					st.caption( f'Source: {env_source}' )
-				
-				summary = env_result.get( 'summary', None ) if isinstance( env_result,
-					dict ) else None
-				rows = env_result.get( 'rows', None ) if isinstance( env_result, dict ) else None
-				if isinstance( summary, dict ) and summary:
-					st.markdown( '##### Summary' )
-					st.data_editor( pd.DataFrame( [ summary ] ), key='env_summary_table',
-						use_container_width=True, disabled=True )
-				if env_latitude is not None and env_longitude is not None:
-					try:
-						lat_value = float( env_latitude )
-						lng_value = float( env_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=8,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				if isinstance( rows, list ) and rows:
-					st.markdown( '##### Rows' )
-					st.data_editor( pd.DataFrame( rows ), key='env_rows_table',
-						use_container_width=True, disabled=True )
-				
-				st.markdown( '##### Raw Result' )
-				st.json( env_result )
-
 # ==============================================================================
 # ASTRONOMICAL MODE
 # ==============================================================================
@@ -5787,7 +5700,7 @@ elif mode == 'Astronomical':
 			# NAVAL OBSERVATORY
 			# ------------------------------------------------------------------
 			with st.expander( '🧭 Naval Observatory', expanded=True ):
-				st.badge( label='About API', color='blue', help=cfg.US_NAVAL_OBSERVATORY )
+				st.caption( cfg.US_NAVAL_OBSERVATORY )
 				st.caption(
 					'Uses the U.S. Naval Observatory Celestial Navigation Data API. The endpoint '
 					'accepts date, time, and assumed observer coordinates as latitude,longitude.' )
@@ -5910,7 +5823,7 @@ elif mode == 'Astronomical':
 			# SPACE WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '☀️ Space Weather', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.SPACE_WEATHER )
+				st.caption( cfg.SPACE_WEATHER )
 				st.caption(
 					'Uses NASA DONKI. Controls are shown only when they apply to the selected '
 					'DONKI endpoint.' )
@@ -6057,7 +5970,7 @@ elif mode == 'Astronomical':
 			# STAR CHART
 			# ------------------------------------------------------------------
 			with st.expander( '✨ Star Chart', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.STAR_CHART )
+				st.caption( cfg.STAR_CHART )
 				st.caption(
 					'Uses SKY-MAP. Object Chart builds an object-centered link, Coordinate Chart '
 					'builds a coordinate-centered link, and Static Chart Image builds a direct '
@@ -6259,7 +6172,7 @@ elif mode == 'Astronomical':
 			# SATELLITE CENTER
 			# ------------------------------------------------------------------
 			with st.expander( '🛰️ Satellite Center', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.SATELLITE_CENTER )
+				st.caption( cfg.SATELLITE_CENTER )
 				st.caption(
 					'Uses NASA SSCWeb. Run Observatories first to discover valid observatory IDs, '
 					'then use Locations to retrieve basic position data for selected spacecraft.' )
@@ -6414,7 +6327,7 @@ elif mode == 'Astronomical':
 			# ASTRO CATALOG
 			# ------------------------------------------------------------------
 			with st.expander( '🔭 Astro Catalog', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.ASTRONOMY_CATALOG )
+				st.caption( cfg.ASTRONOMY_CATALOG )
 				st.caption(
 					'Uses the Open Astronomy Catalog API. Object Query retrieves a named object; '
 					'Cone Search retrieves objects around right ascension and declination.' )
@@ -6535,7 +6448,7 @@ elif mode == 'Astronomical':
 			# ASTROQUERY / SIMBAD
 			# ------------------------------------------------------------------
 			with st.expander( '🌌 AstroQuery / SIMBAD', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.ASTRO_QUERY )
+				st.caption( cfg.ASTRO_QUERY )
 				astroquery_mode = st.selectbox( 'Mode',
 					options=[ 'object_search', 'object_ids', 'region_search' ],
 					key='astro_astroquery_mode' )
@@ -6606,7 +6519,7 @@ elif mode == 'Astronomical':
 			# STAR MAP
 			# ------------------------------------------------------------------
 			with st.expander( '🗺️ Star Map', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.STAR_MAP )
+				st.caption( cfg.STAR_MAP )
 				st.caption( 'Uses SKY-MAP link and snapshot workflows. Object Link builds an '
 				            'object-centered page, Coordinate Link builds a coordinate-centered '
 				            'page, '
@@ -6772,82 +6685,6 @@ elif mode == 'Astronomical':
 		with astro_c2:
 			render_mode_document_tabs( 'astro', '📄 Source' )
 			
-			# ------------------------------------------------------------------
-			# ASTRONOMICAL RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Astronomical Results' )
-			
-			astro_source = st.session_state.get( 'astro_last_source', '' )
-			astro_result = st.session_state.get( 'astro_last_result', { } )
-			astro_latitude = st.session_state.get( 'astro_last_latitude', None )
-			astro_longitude = st.session_state.get( 'astro_last_longitude', None )
-			astro_url = st.session_state.get( 'astro_last_url', '' )
-			
-			if not astro_result:
-				st.info( 'No astronomical results available.' )
-			
-			else:
-				if astro_source:
-					st.caption( f'Source: {astro_source}' )
-				
-				if astro_latitude is not None and astro_longitude is not None:
-					try:
-						lat_value = float( astro_latitude )
-						lng_value = float( astro_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=6,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				if astro_url:
-					st.markdown( '##### Generated Link' )
-					st.markdown( f'[Open Generated Astronomical Resource]({astro_url})' )
-					
-					try:
-						ext = [ '.png', '.jpg', '.jpeg' ]
-						if any( astro_url.lower( ).endswith( ext ) for ext in ext ):
-							st.image( astro_url )
-					except Exception:
-						pass
-				
-				summary = astro_result.get( 'summary', None ) if isinstance( astro_result,
-					dict ) else None
-				
-				if isinstance( summary, dict ) and summary:
-					st.markdown( '##### Summary' )
-					st.data_editor( pd.DataFrame( [ summary ] ), key='astro_summary_table',
-						use_container_width=True, disabled=True )
-				
-				columns = astro_result.get( 'columns', None ) if isinstance( astro_result,
-					dict ) else None
-				rows = astro_result.get( 'rows', None ) if isinstance( astro_result,
-					dict ) else None
-				
-				if isinstance( rows, list ) and rows:
-					st.markdown( '##### Rows' )
-					
-					if isinstance( columns, list ) and columns:
-						df_astro_rows = pd.DataFrame( rows, columns=columns )
-					else:
-						df_astro_rows = pd.DataFrame( rows )
-					
-					st.data_editor( df_astro_rows, key='astro_rows_table',
-						use_container_width=True,
-						disabled=True )
-				
-				st.markdown( '##### Raw Result' )
-				st.json( astro_result )
-
 # ==============================================================================
 # CELESTIAL MAP MODE
 # ==============================================================================
@@ -6962,7 +6799,7 @@ elif mode == 'Geological':
 			# USGS EARTHQUAKES
 			# ------------------------------------------------------------------
 			with st.expander( '🌎 USGS Earthquakes', expanded=True ):
-				st.badge( label='About API', color='blue', help=cfg.USGS_EARTHQUAKES )
+				st.caption( cfg.USGS_EARTHQUAKES )
 				quake_mode = st.selectbox( 'Mode', options=[ 'feed', 'search' ],
 					key='geo_quake_mode' )
 				
@@ -7105,7 +6942,7 @@ elif mode == 'Geological':
 			# GLOBAL IMAGERY
 			# ------------------------------------------------------------------
 			with st.expander( '🛰️ Global Imagery', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.NASA_GLOBAL_IMAGERY )
+				st.caption( cfg.NASA_GLOBAL_IMAGERY )
 				st.caption(
 					'Uses NASA GIBS WMS imagery. The default product preserves the original '
 					'MODIS Terra corrected-reflectance request and output path.' )
@@ -7319,7 +7156,7 @@ elif mode == 'Geological':
 			# USGS WATER DATA
 			# ------------------------------------------------------------------
 			with st.expander( '💧 USGS Water Data', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.USGS_WATER )
+				st.caption( cfg.USGS_WATER )
 				st.caption(
 					'Uses the USGS Water Data API. Parameter presets are provided for common '
 					'USGS five-character time-series parameter codes.' )
@@ -7436,7 +7273,7 @@ elif mode == 'Geological':
 			# USGS THE NATIONAL MAP
 			# ------------------------------------------------------------------
 			with st.expander( '🗺️ USGS The National Map', expanded=False ):
-				st.badge( label='About API', color='blue', help=cfg.USGS_NATIONAL_MAP )
+				st.caption( cfg.USGS_NATIONAL_MAP )
 				st.caption(
 					'Uses TNMAccess for dataset discovery and downloadable National Map product '
 					'search. Presets are provided for common datasets and product formats, but '
@@ -7590,65 +7427,6 @@ elif mode == 'Geological':
 		with geo_c2:
 			render_mode_document_tabs( 'geo', '📄 Source Document' )
 			
-			# ------------------------------------------------------------------
-			# GEOLOGICAL RESULTS
-			# ------------------------------------------------------------------
-			st.markdown( '##### Geological Results' )
-			
-			geo_source = st.session_state.get( 'geo_last_source', '' )
-			geo_result = st.session_state.get( 'geo_last_result', { } )
-			geo_latitude = st.session_state.get( 'geo_last_latitude', None )
-			geo_longitude = st.session_state.get( 'geo_last_longitude', None )
-			geo_image_path = st.session_state.get( 'geo_last_image_path', '' )
-			
-			if not geo_result:
-				st.info( 'No geological results available.' )
-			
-			else:
-				if geo_source:
-					st.caption( f'Source: {geo_source}' )
-				
-				if geo_image_path and os.path.exists( geo_image_path ):
-					st.markdown( '##### Image Output' )
-					st.image( geo_image_path )
-				
-				summary = geo_result.get( 'summary', None ) if isinstance( geo_result,
-					dict ) else None
-				rows = geo_result.get( 'rows', None ) if isinstance( geo_result, dict ) else None
-				
-				if isinstance( summary, dict ) and summary:
-					st.markdown( '##### Summary' )
-					st.data_editor( pd.DataFrame( [ summary ] ), key='geo_summary_table',
-						use_container_width=True, disabled=True )
-				
-				if geo_latitude is not None and geo_longitude is not None:
-					try:
-						lat_value = float( geo_latitude )
-						lng_value = float( geo_longitude )
-						
-						lat_c, lng_c = st.columns( 2 )
-						with lat_c:
-							st.metric( 'Latitude', f'{lat_value:.6f}' )
-						with lng_c:
-							st.metric( 'Longitude', f'{lng_value:.6f}' )
-						
-						preview_url = static_maps.pin( lat=lat_value, lng=lng_value, zoom=5,
-							size='600x400' )
-						
-						st.image( preview_url )
-					
-					except Exception as ex:
-						st.warning( f'Static map preview failed: {ex}' )
-				
-				if isinstance( rows, list ) and rows:
-					st.markdown( '##### Rows' )
-					df_geo_rows = pd.DataFrame( rows )
-					st.data_editor( df_geo_rows, key='geo_rows_table', use_container_width=True,
-						disabled=True )
-				
-				st.markdown( '##### Raw Result' )
-				st.json( geo_result )
-
 # ==============================================================================
 # TEXT GENERATION MODE
 # ==============================================================================
