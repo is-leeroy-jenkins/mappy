@@ -1227,9 +1227,7 @@ def render_mode_document_tabs( prefix: str, loaded_label: str='📄 Loaded' ) ->
 			[ loaded_label, '✂️ Chunks', '🔣 Embeddings' ] )
 		with loaded_tab:
 			documents = st.session_state[ f'{prefix}_documents' ]
-			if not documents:
-				st.info( 'Run a source request to load a document.' )
-			else:
+			if documents:
 				rows = [ {
 					'Document': index, 'Source': ( document.metadata or { } ).get( 'source', '' ),
 					'Characters': len( document.page_content ), 'Metadata': document.metadata or { },
