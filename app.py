@@ -4606,7 +4606,7 @@ elif mode == 'Weather':
 			# HISTORICAL WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '🕰️ Historical Weather', expanded=False ):
-				st.caption( cfg.HISTORICAL_WEATHER )
+				st.caption( 'About API', help=cfg.HISTORICAL_WEATHER )
 				
 				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with loc_c1:
@@ -4665,7 +4665,7 @@ elif mode == 'Weather':
 			# CLIMATE DATA
 			# ------------------------------------------------------------------
 			with st.expander( '🌡️ Climate Data', expanded=False ):
-				st.caption( cfg.NOAA_CLIMATE_DATA )
+				st.caption( 'About API', help=cfg.NOAA_CLIMATE_DATA )
 				climate_mode = st.selectbox( 'Mode', options=[ 'datasets', 'data' ],
 					key='weather_climate_mode' )
 				
@@ -4774,7 +4774,7 @@ elif mode == 'Weather':
 			# TIDES AND CURRENTS
 			# ------------------------------------------------------------------
 			with st.expander( '🌊 Tides & Currents', expanded=False ):
-				st.caption( cfg.NOAA_TIDES_CURRENTS )
+				st.caption( 'About API', help=cfg.NOAA_TIDES_CURRENTS )
 				tides_mode = st.selectbox( 'Mode',
 					options=[ 'station', 'water-level', 'tide-predictions' ],
 					key='weather_tides_mode' )
@@ -4889,7 +4889,7 @@ elif mode == 'Environmental':
 			# AIRNOW AIR QUALITY
 			# ------------------------------------------------------------------
 			with st.expander( '🌫️ AirNow Air Quality', expanded=True ):
-				st.caption( cfg.AIR_NOW )
+				st.caption( 'About API', help=cfg.AIR_NOW )
 				airnow_mode = st.selectbox( 'Mode',
 					options=[ 'Current by ZIP', 'Current by Coordinates', 'Forecast by ZIP',
 					          'Forecast by Coordinates' ], key='env_airnow_mode' )
@@ -5006,7 +5006,7 @@ elif mode == 'Environmental':
 			# UV INDEX
 			# ------------------------------------------------------------------
 			with st.expander( '☀️ UV Index', expanded=False ):
-				st.caption( cfg.EPA_UV_INDEX )
+				st.caption( 'About API', help=cfg.EPA_UV_INDEX )
 				uv_mode = st.selectbox( 'Mode',
 					options=[ 'Daily by ZIP', 'Daily by City / State', 'Hourly by ZIP',
 					          'Hourly by City / State' ], key='env_uv_mode' )
@@ -5089,7 +5089,7 @@ elif mode == 'Environmental':
 			# OPENAQ
 			# ------------------------------------------------------------------
 			with st.expander( '🧪 OpenAQ', expanded=False ):
-				st.caption( cfg.OPEN_AQ )
+				st.caption( 'About API', help=cfg.OPEN_AQ )
 				openaq_mode = st.selectbox( 'Mode',
 					options=[ 'Locations', 'Latest Measurements by Location',
 					          'Latest Measurements by Parameter', 'Countries', 'Providers',
@@ -5245,7 +5245,7 @@ elif mode == 'Environmental':
 			# PURPLEAIR SENSORS
 			# ------------------------------------------------------------------
 			with st.expander( '🟣 PurpleAir Sensors', expanded=False ):
-				st.caption( cfg.PURPLE_AIR )
+				st.caption( 'About API', help=cfg.PURPLE_AIR )
 				purple_mode = st.selectbox( 'Mode',
 					options=[ 'Sensors by Bounding Box', 'Single Sensor' ], key='env_purple_mode' )
 				
@@ -5372,7 +5372,7 @@ elif mode == 'Environmental':
 			# ENVIROFACTS
 			# ------------------------------------------------------------------
 			with st.expander( '🏭 EPA EnviroFacts Facilities', expanded=False ):
-				st.caption( cfg.EPA_ENVIROFACTS )
+				st.caption( 'About API', help=cfg.EPA_ENVIROFACTS )
 				envirofacts_table = st.selectbox( 'Table',
 					options=[ 'TRI_FACILITY', 'TRI_RELEASE', 'EF_W_EMISSIONS_SOURCE_GHG' ],
 					key='env_envirofacts_table' )
@@ -5424,7 +5424,7 @@ elif mode == 'Environmental':
 			# FIRMS FIRE / THERMAL ANOMALIES
 			# ------------------------------------------------------------------
 			with st.expander( '🔥 NASA FIRMS', expanded=False ):
-				st.caption( cfg.NASA_FIRMS )
+				st.caption( 'About API', help=cfg.NASA_FIRMS )
 				firms_select_c1, firms_select_c2 = st.columns( 2 )
 				with firms_select_c1:
 					firms_source = st.selectbox( 'Source',
@@ -5530,7 +5530,7 @@ elif mode == 'Environmental':
 			# EONET NATURAL EVENTS
 			# ------------------------------------------------------------------
 			with st.expander( '🌎 NASA Earth Observatory Natural Events', expanded=False ):
-				st.caption( cfg.NASA_EONET )
+				st.caption( 'About API', help=cfg.NASA_EONET )
 				eonet_mode = st.selectbox( 'Mode', options=[ 'events', 'categories' ],
 					key='env_eonet_mode' )
 				
@@ -5700,7 +5700,7 @@ elif mode == 'Astronomical':
 			# NAVAL OBSERVATORY
 			# ------------------------------------------------------------------
 			with st.expander( '🧭 Naval Observatory', expanded=True ):
-				st.caption( cfg.US_NAVAL_OBSERVATORY )
+				st.caption( 'About API', help=cfg.US_NAVAL_OBSERVATORY )
 				st.caption(
 					'Uses the U.S. Naval Observatory Celestial Navigation Data API. The endpoint '
 					'accepts date, time, and assumed observer coordinates as latitude,longitude.' )
@@ -5823,7 +5823,7 @@ elif mode == 'Astronomical':
 			# SPACE WEATHER
 			# ------------------------------------------------------------------
 			with st.expander( '☀️ Space Weather', expanded=False ):
-				st.caption( cfg.SPACE_WEATHER )
+				st.caption( 'About API', help=cfg.SPACE_WEATHER )
 				st.caption(
 					'Uses NASA DONKI. Controls are shown only when they apply to the selected '
 					'DONKI endpoint.' )
@@ -5970,7 +5970,7 @@ elif mode == 'Astronomical':
 			# STAR CHART
 			# ------------------------------------------------------------------
 			with st.expander( '✨ Star Chart', expanded=False ):
-				st.caption( cfg.STAR_CHART )
+				st.caption( 'About API', help=cfg.STAR_CHART )
 				st.caption(
 					'Uses SKY-MAP. Object Chart builds an object-centered link, Coordinate Chart '
 					'builds a coordinate-centered link, and Static Chart Image builds a direct '
@@ -6172,7 +6172,7 @@ elif mode == 'Astronomical':
 			# SATELLITE CENTER
 			# ------------------------------------------------------------------
 			with st.expander( '🛰️ Satellite Center', expanded=False ):
-				st.caption( cfg.SATELLITE_CENTER )
+				st.caption( 'About API', help=cfg.SATELLITE_CENTER )
 				st.caption(
 					'Uses NASA SSCWeb. Run Observatories first to discover valid observatory IDs, '
 					'then use Locations to retrieve basic position data for selected spacecraft.' )
@@ -6327,7 +6327,7 @@ elif mode == 'Astronomical':
 			# ASTRO CATALOG
 			# ------------------------------------------------------------------
 			with st.expander( '🔭 Astro Catalog', expanded=False ):
-				st.caption( cfg.ASTRONOMY_CATALOG )
+				st.caption( 'About API', help=cfg.ASTRONOMY_CATALOG )
 				st.caption(
 					'Uses the Open Astronomy Catalog API. Object Query retrieves a named object; '
 					'Cone Search retrieves objects around right ascension and declination.' )
@@ -6448,7 +6448,7 @@ elif mode == 'Astronomical':
 			# ASTROQUERY / SIMBAD
 			# ------------------------------------------------------------------
 			with st.expander( '🌌 AstroQuery / SIMBAD', expanded=False ):
-				st.caption( cfg.ASTRO_QUERY )
+				st.caption( 'About API', help=cfg.ASTRO_QUERY )
 				astroquery_mode = st.selectbox( 'Mode',
 					options=[ 'object_search', 'object_ids', 'region_search' ],
 					key='astro_astroquery_mode' )
@@ -6519,7 +6519,7 @@ elif mode == 'Astronomical':
 			# STAR MAP
 			# ------------------------------------------------------------------
 			with st.expander( '🗺️ Star Map', expanded=False ):
-				st.caption( cfg.STAR_MAP )
+				st.caption( 'About API', help=cfg.STAR_MAP )
 				st.caption( 'Uses SKY-MAP link and snapshot workflows. Object Link builds an '
 				            'object-centered page, Coordinate Link builds a coordinate-centered '
 				            'page, '
@@ -6799,7 +6799,7 @@ elif mode == 'Geological':
 			# USGS EARTHQUAKES
 			# ------------------------------------------------------------------
 			with st.expander( '🌎 USGS Earthquakes', expanded=True ):
-				st.caption( cfg.USGS_EARTHQUAKES )
+				st.caption( 'About API', help=cfg.USGS_EARTHQUAKES )
 				quake_mode = st.selectbox( 'Mode', options=[ 'feed', 'search' ],
 					key='geo_quake_mode' )
 				
@@ -6942,7 +6942,7 @@ elif mode == 'Geological':
 			# GLOBAL IMAGERY
 			# ------------------------------------------------------------------
 			with st.expander( '🛰️ Global Imagery', expanded=False ):
-				st.caption( cfg.NASA_GLOBAL_IMAGERY )
+				st.caption( 'About API', help=cfg.NASA_GLOBAL_IMAGERY )
 				st.caption(
 					'Uses NASA GIBS WMS imagery. The default product preserves the original '
 					'MODIS Terra corrected-reflectance request and output path.' )
@@ -7156,7 +7156,7 @@ elif mode == 'Geological':
 			# USGS WATER DATA
 			# ------------------------------------------------------------------
 			with st.expander( '💧 USGS Water Data', expanded=False ):
-				st.caption( cfg.USGS_WATER )
+				st.caption( 'About API', help=cfg.USGS_WATER )
 				st.caption(
 					'Uses the USGS Water Data API. Parameter presets are provided for common '
 					'USGS five-character time-series parameter codes.' )
@@ -7273,7 +7273,7 @@ elif mode == 'Geological':
 			# USGS THE NATIONAL MAP
 			# ------------------------------------------------------------------
 			with st.expander( '🗺️ USGS The National Map', expanded=False ):
-				st.caption( cfg.USGS_NATIONAL_MAP )
+				st.caption( 'About API', help=cfg.USGS_NATIONAL_MAP )
 				st.caption(
 					'Uses TNMAccess for dataset discovery and downloadable National Map product '
 					'search. Presets are provided for common datasets and product formats, but '
