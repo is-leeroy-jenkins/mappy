@@ -5,10 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a01d879c-895e-45a1-98d8-ea8a00b4aec0" name="Changes" comment="update">
-      <change afterPath="$PROJECT_DIR$/palantir/meta.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/mappy.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/mappy.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mapping.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/storage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/mappy-py.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/mappy-py.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/caches.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/distances.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/geocode.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maps.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/places.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/staticmaps.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/timezones.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vector.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,6 +28,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Dockerfile" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -53,6 +63,65 @@
     &quot;accountId&quot;: &quot;78145f30-18cb-443d-a346-237522922b0e&quot;
   }
 }</component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0000000134128004" />
+      <entry key="S30" value="1.0091497612478795" />
+      <entry key="S60" value="1.2887733465927853" />
+      <entry key="M2" value="2.785177609365519" />
+      <entry key="M5" value="7.074356852939601" />
+      <entry key="M10" value="10.644485733129425" />
+      <entry key="M15" value="12.355087172497374" />
+      <entry key="M30" value="14.440278326138955" />
+      <entry key="H1" value="15.653484273339986" />
+      <entry key="H2" value="16.309049779688603" />
+      <entry key="H4" value="16.649965494068777" />
+      <entry key="D1" value="16.94101571729722" />
+      <entry key="W1" value="16.99155771468158" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.014680042956468931" />
+      <entry key="MS500" value="0.4298782431215032" />
+      <entry key="S2" value="0.8097227964605069" />
+      <entry key="S5" value="0.91904028068422" />
+      <entry key="S10" value="0.9586658979433785" />
+      <entry key="S30" value="0.994875750562218" />
+      <entry key="S60" value="1.2771678374144497" />
+      <entry key="M2" value="2.7681512749203008" />
+      <entry key="M5" value="7.055147812002374" />
+      <entry key="M10" value="10.62970231837063" />
+      <entry key="M15" value="12.343562734246321" />
+      <entry key="M30" value="14.433492466372114" />
+      <entry key="H1" value="15.649791980193903" />
+      <entry key="H2" value="16.307122520870877" />
+      <entry key="H4" value="16.648980743049727" />
+      <entry key="D1" value="16.94084858400778" />
+      <entry key="W1" value="16.99153376383621" />
+    </decayedShown>
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
 }</component>
@@ -78,7 +147,7 @@
     &quot;SHELLCHECK.PATH&quot;: &quot;C:\\Users\\terry\\AppData\\Roaming\\JetBrains\\PyCharm2025.2\\plugins\\Shell Script\\shellcheck.exe&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/terry/source/repos/mappy/resources/setup&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/terry/source/repos/mappy/palantir&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.jshint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -93,6 +162,7 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\terry\source\repos\mappy\palantir" />
       <recent name="C:\Users\terry\source\repos\mappy\resources\setup" />
       <recent name="C:\Users\terry\source\repos\mappy\resources\images" />
     </key>
@@ -100,8 +170,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-PY-262.10968.92" />
-        <option value="bundled-python-sdk-73a66231627c-5bd6d13a2a75-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-262.10968.92" />
+        <option value="bundled-js-predefined-d6986cc7102b-56aff7b04f6f-JavaScript-PY-263.7307.329" />
+        <option value="bundled-python-sdk-9e1d95ea72ba-e0583fc556d1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-263.7307.329" />
       </set>
     </attachedChunks>
   </component>
@@ -130,15 +200,9 @@
       <workItem from="1789150798271" duration="3063000" />
       <workItem from="1789159326644" duration="13009000" />
       <workItem from="1791669278690" duration="258000" />
-      <workItem from="1791852903143" duration="427000" />
-    </task>
-    <task id="LOCAL-00020" summary="update">
-      <option name="closed" value="true" />
-      <created>1785427497333</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1785427497333</updated>
+      <workItem from="1791852903143" duration="827000" />
+      <workItem from="1795312196154" duration="2225000" />
+      <workItem from="1795646919729" duration="2810000" />
     </task>
     <task id="LOCAL-00021" summary="update">
       <option name="closed" value="true" />
@@ -524,7 +588,15 @@
       <option name="project" value="LOCAL" />
       <updated>1789177351233</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="update">
+      <option name="closed" value="true" />
+      <created>1791853628765</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1791853628766</updated>
+    </task>
+    <option name="localTasksCounter" value="70" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

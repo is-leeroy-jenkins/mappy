@@ -23,25 +23,16 @@ import time
 from urllib.parse import urljoin, urlparse
 from pathlib import Path
 import config as cfg
-from maps import Maps
 from typing import Any, Optional, Dict, List, Tuple
-from geocode import Geocoder
-from places import Place
-from distances import DistanceMatrix
-from timezones import Timezone
-from staticmaps import StaticMap
+from mapping import Geocoder, Place, DistanceMatrix, Timezone, StaticMap, Map
 from excel import Excel
-from caches import InMemoryCache, SQLiteCache
+from storage import InMemoryCache, SQLiteCache
 from generators import Chat, Claude, Grok, Mistral, Gemini
 from fetchers import (GoogleWeather, OpenWeather, HistoricalWeather, ClimateData, TidesAndCurrents,
                       AirNow, UvIndex, OpenAQ, PurpleAir, EnviroFacts, Firms, EoNet,
                       USGSEarthquakes, USGSWaterData, USGSTheNationalMap, GlobalImagery,
                       NavalObservatory, SatelliteCenter, SpaceWeather, AstroCatalog, AstroQuery,
                       StarMap, StarChart, WebCrawler, WebFetcher)
-
-# ---------------------------------------------------------------------
-# SESSION STATE INITIALIZATION
-# ---------------------------------------------------------------------
 
 # ------- Data State
 
@@ -541,7 +532,7 @@ def normalize( obj: str ) -> str:
 			return str( obj )
 	return str( obj )
 
-def set_blue_divider( ) -> None:
+def blue_divider( ) -> None:
 	"""Set the blue divider used by the application.
 	
 	Purpose:
@@ -568,12 +559,11 @@ def log_step( msg: str ) -> None:
 
 # ------------- CELESTIAL MAP UTILITY
 
-def render_celestial_map( asset_root: str = 'assets/starmap', height: int = 1400,
-                          latitude: Optional[ float ] = None, longitude: Optional[ float ] = None,
-                          tile_url: Optional[ str ] = None,
-                          tile_attribution: Optional[ str ] = None,
-                          tile_subdomains: Optional[ str ] = None, location: Optional[ str ] = None,
-                          zoom: Optional[ int ] = None ) -> None:
+def render_celestial_map( asset_root: str = 'assets/starmap', height: int=1400,
+	latitude: Optional[ float ]=None, longitude: Optional[ float ]=None,
+	tile_url: Optional[ str ]=None, tile_attribution: Optional[ str ]=None,
+	tile_subdomains: Optional[ str ]=None, location: Optional[ str ]=None,
+	zoom: Optional[ int ]=None ) -> None:
 	"""Render the celestial map interface section.
 	
 	Purpose:
@@ -609,8 +599,7 @@ def render_celestial_map( asset_root: str = 'assets/starmap', height: int = 1400
 		style_path = root / 'style.css'
 		data_paths = { 'constellations': root / 'data' / 'constellations.json',
 				'lines': root / 'data' / 'constellations.lines.json',
-				'stars': root / 'data' / 'stars.6.json', 'dsos': root / 'data' /
-				                                                 'dsos.bright.json',
+				'stars': root / 'data' / 'stars.6.json', 'dsos': root / 'data' / 'dsos.bright.json',
 				'starnames': root / 'data' / 'starnames.json',
 				'planets': root / 'data' / 'planets.json', 'mw': root / 'data' / 'mw.json',
 				'constellationBorders': root / 'data' / 'constellations.borders.json',
@@ -840,10 +829,9 @@ def get_location_state( ) -> Dict[ str, object ]:
 	         'calendar_date': st.session_state.get( 'calendar_date', dt.date.today( ) ), }
 
 def set_location_state( location: Optional[ str ] = None, city: Optional[ str ] = None,
-                        state: Optional[ str ] = None, country: Optional[ str ] = None,
-                        zipcode: Optional[ str ] = None, description: Optional[ str ] = None,
-                        latitude: Optional[ float ] = None,
-                        longitude: Optional[ float ] = None ) -> None:
+	state: Optional[ str ]=None, country: Optional[ str ]=None, zipcode: Optional[ str ]=None,
+	description: Optional[ str ] = None, latitude: Optional[ float ] = None,
+	longitude: Optional[ float ] = None ) -> None:
 	"""Set the location state used by the application.
 	
 	Purpose:
@@ -1033,9 +1021,8 @@ def get_default_longitude( fallback: float = -77.036900 ) -> float:
 	
 	return float( fallback )
 
-def set_global_coordinates_from_result( latitude: object, longitude: object,
-                                        location: Optional[ str ] = None,
-                                        description: Optional[ str ] = None ) -> None:
+def set_global_coordinates_from_result( latitude: object, longitude: object, 
+	location: Optional[ str ]=None, description: Optional[ str ]=None ) -> None:
 	"""Set the global coordinates from result used by the application.
 	
 	Purpose:
@@ -1058,9 +1045,8 @@ def set_global_coordinates_from_result( latitude: object, longitude: object,
 	set_location_state( location=location, description=description, latitude=float( latitude ),
 		longitude=float( longitude ) )
 
-def create_bounding_box_from_center( latitude: object, longitude: object, delta: float = 0.125 ) \
-		-> \
-Dict[ str, float ]:
+def create_bounding_box_from_center( latitude: object, longitude: object,
+	delta: float=0.125 ) -> Dict[ str, float ]:
 	"""Create the bounding box from center used by the application.
 	
 	Purpose:
@@ -1512,7 +1498,7 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 				'style': { 'backgroundColor': 'rgba(0, 0, 0, 0.85)', 'color': 'white',
 						'fontSize': '12px', }, }
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		deck = pdk.Deck( layers=layers, initial_view_state=view_state, map_style=map_style,
 			tooltip=tooltip )
@@ -1764,7 +1750,7 @@ def read_missing_report_locations( table_name: str, limit: Optional[ int ] = Non
 		return pd.DataFrame( )
 
 def preview_report_coordinate_updates( table_name: str, geocoder: Geocoder, places: Place,
-                                       use_places: bool=True, limit: Optional[ int ]=None ) -> pd.DataFrame:
+	use_places: bool=True, limit: Optional[ int ]=None ) -> pd.DataFrame:
 	"""Handle the preview report coordinate updates workflow.
 	
 	Purpose:
@@ -2498,7 +2484,7 @@ def create_visualization( df: pd.DataFrame ) -> None:
 		df: pd.DataFrame value used by the `create_visualization` workflow.
 	"""
 	
-	set_blue_divider( )
+	blue_divider( )
 	
 	st.markdown( '##### Visualization Engine' )
 	
@@ -3249,7 +3235,7 @@ def get_loaded_dataset( ) -> pd.DataFrame | None:
 	return df_frame.copy( )
 
 def store_loaded_dataset( df_dataset: pd.DataFrame,
-                          df_original: pd.DataFrame | None = None ) -> None:
+	df_original: pd.DataFrame | None = None ) -> None:
 	"""Handle the store loaded dataset workflow.
 	
 	Purpose:
@@ -3433,7 +3419,7 @@ style_subheaders( )
 st.logo( cfg.LOGO, size='Large' )
 with st.sidebar:
 	# ------- Map Mode
-	set_blue_divider( )
+	blue_divider( )
 	st.markdown( '#### 🛰️ GIS Mapping' )
 	with st.expander( 'Mode', expanded=True ):
 		mode = st.radio( label='Mode', options=cfg.MODES, label_visibility='collapsed' )
@@ -3448,7 +3434,7 @@ with st.sidebar:
 			st.rerun( )
 	
 	# -------- Settings
-	set_blue_divider( )
+	blue_divider( )
 	st.markdown( '#### 🎚️ Configuration' )
 	
 	# ------- User Location
@@ -3496,7 +3482,7 @@ with st.sidebar:
 			cache = SQLiteCache( cache_path )
 	
 	# ------- Data
-	set_blue_divider( )
+	blue_divider( )
 	st.markdown( '#### 🏛️ Data' )
 	with st.expander( label='Source', expanded=False ):
 		st.caption( 'Sources' )
@@ -3594,7 +3580,7 @@ with st.sidebar:
 			store_loaded_dataset( df_default, df_original )
 	
 	# ------- Security
-	set_blue_divider( )
+	blue_divider( )
 	st.markdown( '#### 🔒 Credentials' )
 	with st.expander( label='API', expanded=False ):
 		google_key = st.text_input( 'Google API Key', type='password',
@@ -3888,20 +3874,17 @@ elif mode == 'Distances':
 	with center:
 		st.subheader( 'Distance Matrix' )
 		st.divider( )
-		
 		global_location = get_default_location( )
 		location_state = get_location_state( )
 		current_location = compose_location_from_state( )
-		
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', current_location if current_location else global_location )
 		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
 		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		dist_c1, dist_c2 = st.columns( [ 0.50, 0.50 ], border=True )
-		
 		with dist_c1:
 			use_global_origin = st.checkbox( 'Use User-Location as Origin',
 				value=bool( current_location ), key='distance_use_global_origin' )
@@ -3960,7 +3943,7 @@ elif mode == 'Distances':
 		
 		result = st.session_state.get( 'distance_last_result', { } )
 		if result:
-			set_blue_divider( )
+			blue_divider( )
 			st.markdown( '##### Distance Result' )
 			st.data_editor( pd.DataFrame( [ result ] ), key='distance_result_table',
 				use_container_width=True, disabled=True )
@@ -3974,17 +3957,15 @@ elif mode == 'Static Maps':
 	with center:
 		st.subheader( 'Static Map' )
 		st.divider( )
-		
 		global_location = get_default_location( )
 		location_state = get_location_state( )
 		has_global_coords = has_valid_global_coordinates( )
-		
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
 		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
 		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		map_c1, map_c2 = st.columns( [ 0.50, 0.50 ], border=True )
 		with map_c1:
@@ -4024,7 +4005,6 @@ elif mode == 'Static Maps':
 			zoom_default = int( st.session_state.get( 'zoom', 8 ) or 8 )
 			size_default = str( st.session_state.get( 'map_size', '600x400' ) or '600x400' )
 			size_options = [ '400x400', '600x400', '800x600' ]
-			
 			if size_default not in size_options:
 				size_default = '600x400'
 			
@@ -4061,9 +4041,8 @@ elif mode == 'Static Maps':
 					st.error( f'Static map generation failed: {ex}' )
 		
 		map_url = st.session_state.get( 'maps_last_url', '' )
-		
 		if map_url:
-			set_blue_divider( )
+			blue_divider( )
 			st.markdown( '##### Static Map Result' )
 			st.image( map_url )
 			st.code( map_url )
@@ -4076,17 +4055,15 @@ elif mode == 'Time Zones':
 	with center:
 		st.subheader( 'Time Zone Lookup' )
 		st.divider( )
-		
 		global_location = get_default_location( )
 		location_state = get_location_state( )
 		has_global_coords = has_valid_global_coordinates( )
-		
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
 		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
 		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		tz_c1, tz_c2 = st.columns( [ 0.50, 0.50 ], border=True )
 		with tz_c1:
@@ -4141,7 +4118,6 @@ elif mode == 'Time Zones':
 						set_coordinates( lat_tz, lng_tz )
 					
 					result = timezone.lookup( float( lat_tz ), float( lng_tz ) )
-					
 					st.session_state[ 'timezone_last_result' ] = result or { }
 					st.session_state[ 'timezone_last_latitude' ] = float( lat_tz )
 					st.session_state[ 'timezone_last_longitude' ] = float( lng_tz )
@@ -4153,9 +4129,10 @@ elif mode == 'Time Zones':
 		result = st.session_state.get( 'timezone_last_result', { } )
 		
 		if result:
-			set_blue_divider( )
-			st.markdown( '##### Time Zone Result' )
 			
+			blue_divider( )
+			
+			st.markdown( '##### Time Zone Result' )
 			lat_c, lng_c = st.columns( 2 )
 			with lat_c:
 				st.metric( 'Latitude',
@@ -4217,18 +4194,14 @@ elif mode == 'Web Scraper':
 			include_title = st.checkbox( 'Page Title', value=True, key='wf_page_title' )
 			include_basic_text = st.checkbox( 'Basic Text', value=True, key='wf_basic_text' )
 			include_raw_html = st.checkbox( 'Raw HTML', value=False, key='wf_raw_html' )
-			
 			st.markdown( cfg.BLUE_DIVIDER, unsafe_allow_html=True )
 			st.markdown( '##### Structured Extraction' )
-			
 			method_c1, method_c2 = st.columns( [ 0.5, 0.5 ] )
-			
 			registry_labels = { 'scrape_headings': 'Headings', 'scrape_paragraphs': 'Paragraphs',
-			                    'scrape_lists': 'Lists', 'scrape_tables': 'Tables',
-			                    'scrape_articles': 'Articles', 'scrape_sections': 'Sections',
-			                    'scrape_divisions': 'Divisions',
-			                    'scrape_blockquotes': 'Blockquotes',
-			                    'scrape_hyperlinks': 'Hyperlinks', 'scrape_images': 'Images', }
+				'scrape_lists': 'Lists', 'scrape_tables': 'Tables', 'scrape_articles': 'Articles',
+				'scrape_sections': 'Sections', 'scrape_divisions': 'Divisions',
+				'scrape_blockquotes': 'Blockquotes', 'scrape_hyperlinks': 'Hyperlinks',
+				'scrape_images': 'Images', }
 			
 			selected_methods = [ ]
 			registry_items = list( registry_labels.items( ) )
@@ -4247,7 +4220,6 @@ elif mode == 'Web Scraper':
 			st.markdown( '##### Crawl Controls' )
 			
 			enable_recursive = st.checkbox( 'Recursive Crawl', value=False, key='wf_recursive' )
-			
 			max_depth = st.number_input( 'Max Depth', min_value=0, max_value=10, value=1, step=1,
 				key='wf_max_depth', disabled=(not enable_recursive) )
 			
@@ -4292,15 +4264,14 @@ elif mode == 'Web Scraper':
 						raise ValueError( 'A target URL is required.' )
 					
 					crawler = WebCrawler( use_playwright=bool( use_playwright ) )
-					result = crawler.crawl( seed_url=target_url.strip( ),
-						include_title=bool( include_title ),
-						include_basic_text=bool( include_basic_text ),
+					result = crawler.crawl( seed_url=target_url.strip( ), include_title=bool(
+						include_title ), include_basic_text=bool( include_basic_text ),
 						include_raw_html=bool( include_raw_html ),
 						selected_methods=selected_methods, recursive=bool( enable_recursive ),
 						max_depth=int( max_depth ), max_pages=int( max_pages ),
-						same_domain_only=bool( same_domain_only ),
-						request_timeout=int( request_timeout ),
-						delay_seconds=float( delay_seconds ), max_bytes=int( max_bytes ) )
+						same_domain_only=bool( same_domain_only ), request_timeout=int(
+							request_timeout ), delay_seconds=float( delay_seconds ),
+						max_bytes=int( max_bytes ) )
 					
 					st.session_state[ 'webscrape_results' ] = result.get( 'pages', [ ] )
 					st.session_state[ 'webscrape_summary' ] = result.get( 'summary', { } )
@@ -4341,8 +4312,7 @@ elif mode == 'Web Scraper':
 					title = page.get( 'title', '' ) or page.get( 'url', f'Page {idx}' )
 					depth = page.get( 'depth', 0 )
 					
-					with st.expander( f'Page {idx} [Depth {depth}]: {title}', expanded=(idx ==
-					                                                                    1) ):
+					with st.expander( f'Page {idx} [Depth {depth}]: {title}', expanded=(idx == 1) ):
 						meta_col1, meta_col2 = st.columns( 2 )
 						with meta_col1:
 							st.markdown( f"**URL:** {page.get( 'url', '' )}" )
@@ -4410,20 +4380,17 @@ elif mode == 'Weather':
 	with center:
 		st.subheader( 'Weather Data' )
 		st.divider( )
-		
 		global_location = get_default_location( )
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
-		
 		location_c1, location_c2, location_c3 = st.columns( 3, border=True )
 		location_c1.metric( 'Location', global_location )
 		location_c2.metric( 'Latitude', f'{float( global_latitude ):.4f}' )
 		location_c3.metric( 'Longitude', f'{float( global_longitude ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		weather_c1, weather_c2 = st.columns( [ 0.40, 0.60 ], border=True, gap='xxsmall' )
-		
 		with weather_c1:
 			# ------------------------------------------------------------------
 			# GOOGLE WEATHER
@@ -4869,7 +4836,6 @@ elif mode == 'Environmental':
 	with center:
 		st.subheader( 'Environmental Data' )
 		st.divider( )
-		
 		global_location = get_default_location( )
 		global_zipcode = get_default_zipcode( )
 		global_latitude = get_default_latitude( )
@@ -4881,7 +4847,7 @@ elif mode == 'Environmental':
 		location_c3.metric( 'Latitude', f'{float( global_latitude ):.4f}' )
 		location_c4.metric( 'Longitude', f'{float( global_longitude ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		enviro_c1, enviro_c2 = st.columns( [ 0.40, 0.60 ], border=True, gap='xsmall' )
 		with enviro_c1:
@@ -4893,10 +4859,8 @@ elif mode == 'Environmental':
 				airnow_mode = st.selectbox( 'Mode',
 					options=[ 'Current by ZIP', 'Current by Coordinates', 'Forecast by ZIP',
 					          'Forecast by Coordinates' ], key='env_airnow_mode' )
-				
 				airnow_distance = st.number_input( 'Distance', min_value=0, max_value=250,
-					value=25,
-					step=1, key='input_env_airnow_distance' )
+					value=25, step=1, key='input_env_airnow_distance' )
 				
 				airnow_timeout = st.number_input( 'Timeout', min_value=1, max_value=60, value=20,
 					step=1, key='input_env_airnow_timeout' )
@@ -4928,7 +4892,6 @@ elif mode == 'Environmental':
 					airnow_date = None
 				
 				airnow_btn_c1, airnow_btn_c2 = st.columns( 2 )
-				
 				with airnow_btn_c1:
 					if st.button( label='Run', icon='🏃', key='input_env_airnow_run',
 							use_container_width=True ):
@@ -4978,7 +4941,6 @@ elif mode == 'Environmental':
 								st.session_state[ 'env_last_result' ] = result or { }
 								st.session_state[ 'env_last_latitude' ] = airnow_latitude
 								st.session_state[ 'env_last_longitude' ] = airnow_longitude
-								
 								set_global_coordinates_from_result( airnow_latitude,
 									airnow_longitude, location=global_location,
 									description='AirNow coordinate result' )
@@ -5025,7 +4987,6 @@ elif mode == 'Environmental':
 					uv_state = st.text_input( 'State', value='DC', key='env_uv_state' )
 				
 				uv_btn_c1, uv_btn_c2 = st.columns( 2 )
-				
 				with uv_btn_c1:
 					if st.button( label='Run', icon='🏃', key='env_uv_run',
 							use_container_width=True ):
@@ -5681,20 +5642,17 @@ elif mode == 'Astronomical':
 	with center:
 		st.subheader( 'Astronomical Data' )
 		st.divider( )
-		
 		global_location = get_default_location( )
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
-		
 		location_c1, location_c2, location_c3 = st.columns( 3, border=True )
 		location_c1.metric( 'Observer Location', global_location )
 		location_c2.metric( 'Observer Latitude', f'{float( global_latitude ):.4f}' )
 		location_c3.metric( 'Observer Longitude', f'{float( global_longitude ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		astro_c1, astro_c2 = st.columns( [ 0.40, 0.60 ], border=True, gap='xsmall' )
-		
 		with astro_c1:
 			# ------------------------------------------------------------------
 			# NAVAL OBSERVATORY
@@ -5827,21 +5785,17 @@ elif mode == 'Astronomical':
 				st.caption(
 					'Uses NASA DONKI. Controls are shown only when they apply to the selected '
 					'DONKI endpoint.' )
-				
 				space_mode_labels = { 'Coronal Mass Ejection': 'cme',
-				                      'CME Analysis': 'cme_analysis', 'Geomagnetic Storm': 'gst',
-				                      'Interplanetary Shock': 'ips', 'Solar Flare': 'flr',
-				                      'Solar Energetic Particle': 'sep',
-				                      'Magnetopause Crossing': 'mpc',
-				                      'Radiation Belt Enhancement': 'rbe',
-				                      'High Speed Stream': 'hss', 'WSA-ENLIL Model': 'wsa_enlil',
-				                      'Notifications': 'notifications' }
+					'CME Analysis': 'cme_analysis', 'Geomagnetic Storm': 'gst',
+					'Interplanetary Shock': 'ips', 'Solar Flare': 'flr',
+					'Solar Energetic Particle': 'sep', 'Magnetopause Crossing': 'mpc',
+					'Radiation Belt Enhancement': 'rbe', 'High Speed Stream': 'hss',
+					'WSA-ENLIL Model': 'wsa_enlil', 'Notifications': 'notifications' }
 				
 				space_mode_label = st.selectbox( 'Mode', options=list( space_mode_labels.keys( ) ),
 					key='astro_space_mode_label' )
 				
 				space_mode = space_mode_labels[ space_mode_label ]
-				
 				space_date_c1, space_date_c2 = st.columns( 2 )
 				
 				with space_date_c1:
@@ -5876,7 +5830,6 @@ elif mode == 'Astronomical':
 						key='astro_space_cme_analysis_catalog' )
 					
 					space_c1, space_c2 = st.columns( 2 )
-					
 					with space_c1:
 						space_most_accurate_only = st.checkbox( 'Most Accurate Only', value=True,
 							key='astro_space_most_accurate_only' )
@@ -5911,8 +5864,7 @@ elif mode == 'Astronomical':
 				elif space_mode == 'notifications':
 					st.caption(
 						'Notifications supports the notification type filter. The wrapper '
-						'preserves '
-						'the selected date range.' )
+						'preserves the selected date range.' )
 					
 					space_notification_type = st.selectbox( 'Notification Type',
 						options=[ 'all', 'FLR', 'SEP', 'CME', 'IPS', 'MPC', 'GST', 'RBE', 'HSS',
@@ -5927,7 +5879,6 @@ elif mode == 'Astronomical':
 					step=1, key='astro_space_timeout' )
 				
 				space_btn_c1, space_btn_c2 = st.columns( 2 )
-				
 				with space_btn_c1:
 					if st.button( label='Run', icon='🏃', key='astro_space_run',
 							use_container_width=True ):
@@ -6186,10 +6137,8 @@ elif mode == 'Astronomical':
 					key='astro_satellite_mode_label' )
 				
 				satellite_mode = satellite_mode_labels[ satellite_mode_label ]
-				
 				satellite_timeout = st.number_input( 'Timeout', min_value=1, max_value=60,
-					value=20,
-					step=1, key='astro_satellite_timeout' )
+					value=20, step=1, key='astro_satellite_timeout' )
 				
 				satellite_query = ''
 				satellite_start_date = dt.date.today( )
@@ -6252,14 +6201,10 @@ elif mode == 'Astronomical':
 					
 					else:
 						satellite_coordinate_systems = st.text_input( 'Custom Coordinate Systems',
-							value='gse',
-							help='Comma-separated coordinate systems accepted by SSCWeb.',
+							value='gse', help='Comma-separated coordinate systems',
 							key='astro_satellite_coordinate_systems_custom' )
-					
 					satellite_resolution_factor = st.number_input( 'Resolution Factor',
-						min_value=1,
-						max_value=10000, value=1, step=1,
-						help='Return one out of every N location values.',
+						min_value=1, max_value=10000, value=1, step=1,
 						key='astro_satellite_resolution_factor' )
 					
 					if satellite_start_date > satellite_end_date:
@@ -6339,14 +6284,11 @@ elif mode == 'Astronomical':
 					options=list( catalog_mode_labels.keys( ) ), key='astro_catalog_mode_label' )
 				
 				catalog_mode = catalog_mode_labels[ catalog_mode_label ]
-				
 				catalog_quantity_presets = { 'Default Object Record': '',
-				                             'Photometry': 'photometry', 'Spectra': 'spectra',
-				                             'Radio': 'radio', 'X-Ray': 'xray', 'Host': 'host',
-				                             'Redshift': 'redshift',
-				                             'Luminosity Distance': 'lumdist',
-				                             'Claimed Type': 'claimedtype', 'Sources': 'sources',
-				                             'Custom': 'custom' }
+					'Photometry': 'photometry', 'Spectra': 'spectra', 'Radio': 'radio',
+					'X-Ray': 'xray', 'Host': 'host', 'Redshift': 'redshift',
+					'Luminosity Distance': 'lumdist', 'Claimed Type': 'claimedtype',
+					'Sources': 'sources', 'Custom': 'custom' }
 				
 				catalog_quantity_choice = st.selectbox( 'Quantity Preset',
 					options=list( catalog_quantity_presets.keys( ) ),
@@ -6381,7 +6323,6 @@ elif mode == 'Astronomical':
 					catalog_ra = ''
 					catalog_dec = ''
 					catalog_radius = 2
-					
 					st.caption( 'Object Query ignores right ascension, declination, and radius.' )
 				
 				else:
@@ -6398,12 +6339,8 @@ elif mode == 'Astronomical':
 						catalog_dec = st.text_input( 'Declination', value='+10:00:00',
 							help='Declination accepted by the OAC wrapper.',
 							key='astro_catalog_dec' )
-					
 					catalog_radius = st.number_input( 'Radius', min_value=1, max_value=360,
-						value=2,
-						step=1,
-						help='Cone-search radius passed directly to the AstroCatalog wrapper.',
-						key='astro_catalog_radius' )
+						value=2, step=1, key='astro_catalog_radius' )
 					
 					st.caption(
 						'Cone Search ignores Object Name and uses right ascension, declination, '
@@ -6703,7 +6640,7 @@ elif mode == 'Celestial Map':
 		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
 		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		control_c1, control_c2 = st.columns( [ 0.50, 0.50 ], border=True )
 		
@@ -6765,7 +6702,7 @@ elif mode == 'Celestial Map':
 				longitude=float( celestial_longitude ) )
 			st.session_state[ 'zoom' ] = int( celestial_zoom )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		render_celestial_map( asset_root='assets/starmap', height=1400,
 			latitude=float( celestial_latitude ), longitude=float( celestial_longitude ),
@@ -6791,7 +6728,7 @@ elif mode == 'Geological':
 		location_c2.metric( 'Latitude', f'{float( global_latitude ):.4f}' )
 		location_c3.metric( 'Longitude', f'{float( global_longitude ):.4f}' )
 		
-		set_blue_divider( )
+		blue_divider( )
 		
 		geo_c1, geo_c2 = st.columns( [ 0.40, 0.60 ], border=True, gap='xsmall' )
 		with geo_c1:
@@ -8848,7 +8785,7 @@ elif mode == 'Data Management':
 			if tables:
 				table = st.selectbox( 'Table', tables, key='table_name' )
 				
-				set_blue_divider( )
+				blue_divider( )
 				
 				df = read_table( table )
 				st.data_editor( df, key='dm_browse_key' )
@@ -8878,7 +8815,7 @@ elif mode == 'Data Management':
 				with crud_header_c3:
 					st.metric( 'Columns', len( type_map ) )
 				
-				set_blue_divider( )
+				blue_divider( )
 				
 				insert_col, update_col = st.columns( [ 0.50, 0.50 ], border=True )
 				
@@ -8957,7 +8894,7 @@ elif mode == 'Data Management':
 						st.success( 'Row updated.' )
 						st.rerun( )
 				
-				set_blue_divider( )
+				blue_divider( )
 				
 				delete_col, preview_col = st.columns( [ 0.35, 0.65 ], border=True )
 				
@@ -9000,7 +8937,7 @@ elif mode == 'Data Management':
 					offset = (page - 1) * page_size
 					df_page = read_table( table, page_size, offset )
 				
-				set_blue_divider( )
+				blue_divider( )
 				
 				st.data_editor( data=df_page, num_rows='dynamic', hide_index=False )
 		
@@ -9021,7 +8958,7 @@ elif mode == 'Data Management':
 					if value:
 						df = df[ df[ column ].astype( str ).str.contains( value ) ]
 				
-				set_blue_divider( )
+				blue_divider( )
 				
 				st.data_editor( df, key='dm_filter_key' )
 		
@@ -9273,7 +9210,7 @@ elif mode == 'Data Management':
 			if tables:
 				table = st.selectbox( 'Table', tables, key='admin_table' )
 			
-			set_blue_divider( )
+			blue_divider( )
 			
 			st.markdown( '##### Data Profiling' )
 			tables = list_tables( )
@@ -9324,7 +9261,7 @@ elif mode == 'Data Management':
 					create_index( table, col )
 					st.success( 'Index created.' )
 			
-			set_blue_divider( )
+			blue_divider( )
 			
 			st.markdown( '##### Create Custom Table' )
 			new_table_name = st.text_input( 'Table Name' )
@@ -9354,7 +9291,7 @@ elif mode == 'Data Management':
 				except Exception as e:
 					st.error( f'Error: {e}' )
 			
-			set_blue_divider( )
+			blue_divider( )
 			st.markdown( '##### Schema Viewer' )
 			
 			tables = list_tables( )
@@ -9388,7 +9325,7 @@ elif mode == 'Data Management':
 				else:
 					st.info( "No indexes defined." )
 			
-			set_blue_divider( )
+			blue_divider( )
 			st.markdown( '##### ALTER TABLE Operations' )
 			
 			tables = list_tables( )
