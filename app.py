@@ -786,6 +786,9 @@ def set_coordinates( latitude: object, longitude: object ) -> None:
 	lat_value = float( latitude )
 	lon_value = float( longitude )
 	
+	if (lat_value, lon_value) != st.session_state.get( 'coordinates', ( ) ):
+		for field in ( 'location', 'city', 'state', 'country', 'zipcode', 'description' ):
+			st.session_state[ field ] = ''
 	st.session_state[ 'latitude' ] = lat_value
 	st.session_state[ 'longitude' ] = lon_value
 	st.session_state[ 'coordinates' ] = (lat_value, lon_value)
@@ -851,6 +854,10 @@ def set_location_state( location: Optional[ str ] = None, city: Optional[ str ] 
 		longitude: Optional[float] value used by the `set_location_state` workflow. Defaults to
 			`None`.
 	"""
+	if latitude is not None and longitude is not None:
+		if not has_valid_coordinates( latitude, longitude ):
+			return
+		set_coordinates( latitude, longitude )
 	if location is not None:
 		st.session_state[ 'location' ] = str( location ).strip( )
 	
@@ -869,8 +876,6 @@ def set_location_state( location: Optional[ str ] = None, city: Optional[ str ] 
 	if description is not None:
 		st.session_state[ 'description' ] = str( description ).strip( )
 	
-	if latitude is not None and longitude is not None:
-		set_coordinates( latitude, longitude )
 
 def compose_location_from_state( ) -> str:
 	"""Handle the compose location from state workflow.
@@ -1036,8 +1041,47 @@ def set_global_coordinates_from_result( latitude: object, longitude: object,
 	if not has_valid_coordinates( latitude, longitude ):
 		return
 	
-	set_location_state( location=location, description=description, latitude=float( latitude ),
+	set_location_state( description=description, latitude=float( latitude ),
 		longitude=float( longitude ) )
+	if location and not st.session_state.get( 'location' ):
+		set_location_state( location=location )
+	if not st.session_state.get( 'city' ):
+		resolve_active_location( float( latitude ), float( longitude ), geocoder )
+
+def resolve_active_location( latitude: float, longitude: float, geocoder: Geocoder ) -> None:
+	"""Resolve an active coordinate pair to a human-readable geographic location.
+
+	Purpose:
+		Preserve valid existing metadata for unchanged coordinates and resolve changed
+		coordinates without overwriting the original browser location.
+
+	Args:
+		latitude (float): Active latitude in decimal degrees.
+		longitude (float): Active longitude in decimal degrees.
+		geocoder (Geocoder): Existing reverse-geocoding provider.
+	"""
+	try:
+		throw_if( 'latitude', latitude )
+		throw_if( 'longitude', longitude )
+		throw_if( 'geocoder', geocoder )
+		if not has_valid_coordinates( latitude, longitude ):
+			raise ValueError( 'Invalid location coordinates.' )
+		if (latitude, longitude) == st.session_state.get( 'coordinates', ( ) ) and \
+				st.session_state.get( 'city' ):
+			return
+		set_coordinates( latitude, longitude )
+		result = geocoder.reverse( latitude, longitude ) or { }
+		city = result.get( 'locality' ) or result.get( 'admin_level_2' ) or ''
+		state = result.get( 'admin_level_1' ) or ''
+		country = result.get( 'country_code' ) or ''
+		label = ', '.join( part for part in ( city, state, country ) if part )
+		set_location_state( location=label or result.get( 'formatted_address' ) or
+			f'{latitude:.6f},{longitude:.6f}', city=city, state=state,
+			country=country, zipcode=result.get( 'postal_code' ) or '' )
+	except Exception:
+		# Keep valid coordinates available when the optional address lookup fails.
+		return
+
 
 def create_bounding_box_from_center( latitude: object, longitude: object,
 	delta: float=0.125 ) -> Dict[ str, float ]:
@@ -3891,8 +3935,8 @@ if mode == 'Mapping':
 			has_global_coords = has_valid_global_coordinates( )
 			status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 			status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-			status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-			status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+			status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+			status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 			blue_divider( )
 		
@@ -3954,7 +3998,7 @@ if mode == 'Mapping':
 				else:
 					try:
 						if save_coordinates:
-							set_coordinates( lat, lng )
+							resolve_active_location( lat, lng, geocoder )
 							st.session_state[ 'zoom' ] = int( zoom )
 							st.session_state[ 'map_size' ] = str( size )
 					
@@ -3986,8 +4030,8 @@ if mode == 'Mapping':
 			has_global_coords = has_valid_global_coordinates( )
 			status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 			status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-			status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-			status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+			status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+			status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 			blue_divider( )
 		
@@ -4041,7 +4085,7 @@ if mode == 'Mapping':
 				else:
 					try:
 						if save_coordinates:
-							set_coordinates( lat_tz, lng_tz )
+							resolve_active_location( lat_tz, lng_tz, geocoder )
 					
 						result = timezone.lookup( float( lat_tz ), float( lng_tz ) )
 						st.session_state[ 'timezone_last_result' ] = result or { }
@@ -4182,8 +4226,8 @@ elif mode == 'Distances':
 		current_location = compose_location_from_state( )
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', current_location if current_location else global_location )
-		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+		status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+		status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 		blue_divider( )
 		
@@ -5051,7 +5095,7 @@ elif mode == 'Environmental':
 								st.session_state[ 'env_last_latitude' ] = airnow_latitude
 								st.session_state[ 'env_last_longitude' ] = airnow_longitude
 								set_global_coordinates_from_result( airnow_latitude,
-									airnow_longitude, location=global_location,
+									airnow_longitude, location=None,
 									description='AirNow coordinate result' )
 								
 								if airnow_zip:
@@ -5293,7 +5337,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = lng_value
 							
 							set_global_coordinates_from_result( lat_value, lng_value,
-								location=global_location, description='OpenAQ coordinate result' )
+								location=None, description='OpenAQ coordinate result' )
 							
 							st.success( 'OpenAQ request completed.' )
 						
@@ -5419,7 +5463,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = purple_center_longitude
 							
 							set_global_coordinates_from_result( purple_center_latitude,
-								purple_center_longitude, location=global_location,
+								purple_center_longitude, location=None,
 								description='PurpleAir bounding-box center' )
 							
 							st.success( 'PurpleAir request completed.' )
@@ -5577,7 +5621,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = firms_center_longitude
 							
 							set_global_coordinates_from_result( firms_center_latitude,
-								firms_center_longitude, location=global_location,
+								firms_center_longitude, location=None,
 								description='FIRMS bounding-box center' )
 							
 							st.success( 'FIRMS request completed.' )
@@ -5720,7 +5764,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = eonet_center_longitude
 							
 							set_global_coordinates_from_result( eonet_center_latitude,
-								eonet_center_longitude, location=global_location,
+								eonet_center_longitude, location=None,
 								description='EONET bounding-box center' )
 							
 							st.success( 'EONET request completed.' )
@@ -6746,8 +6790,8 @@ elif mode == 'Celestial Map':
 		
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+		status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+		status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 		blue_divider( )
 		
@@ -6805,10 +6849,8 @@ elif mode == 'Celestial Map':
 			st.stop( )
 		
 		if save_coordinates:
-			set_location_state( location=celestial_location,
-				description='Celestial Map observer location', latitude=float(
-					celestial_latitude ),
-				longitude=float( celestial_longitude ) )
+			resolve_active_location( celestial_latitude, celestial_longitude, geocoder )
+			celestial_location = get_default_location( )
 			st.session_state[ 'zoom' ] = int( celestial_zoom )
 		
 		blue_divider( )
@@ -6964,7 +7006,7 @@ elif mode == 'Geological':
 								st.session_state[ 'radius' ] = float( quake_radius )
 							
 							set_global_coordinates_from_result( quake_latitude, quake_longitude,
-								location=global_location,
+								location=None,
 								description='USGS Earthquake search center' )
 							
 							st.success( 'USGS Earthquake request completed.' )
@@ -7450,7 +7492,7 @@ elif mode == 'Geological':
 							st.session_state[ 'geo_last_image_path' ] = ''
 							
 							set_global_coordinates_from_result( tnm_center_latitude,
-								tnm_center_longitude, location=global_location,
+								tnm_center_longitude, location=None,
 								description='USGS The National Map bounding-box center' )
 							
 							st.success( 'USGS The National Map request completed.' )
