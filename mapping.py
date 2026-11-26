@@ -1784,7 +1784,9 @@ class StaticMap( ):
 	Attributes:
 		api_key (Optional[ str ]): Google Maps credential attached to static URLs.
 		zoom (Optional[ int ]): Zoom level for the current static map.
-		size (Optional[ str ]): Map image dimensions in pixels.
+		size (Optional[ str ]): Base map image dimensions in pixels.
+		scale (int): Native image resolution multiplier (1 or 2).
+		image_format (str): Google Static Maps output format.
 		latitude (Optional[ float ]): Latitude of the current marker.
 		longitude (Optional[ float ]): Longitude of the current marker.
 		params (Optional[ Dict ]): Current Static Maps query parameters.
@@ -1802,6 +1804,8 @@ class StaticMap( ):
 	api_key: Optional[ str ]
 	zoom: Optional[ int ]
 	size: Optional[ str ]
+	scale: int
+	image_format: str
 	latitude: Optional[ float ]
 	longitude: Optional[ float ]
 	params: Optional[ Dict ]
@@ -1828,6 +1832,8 @@ class StaticMap( ):
 		self.api_key = cfg.GOOGLEMAPS_API_KEY
 		self.zoom = None
 		self.size = None
+		self.scale = 2
+		self.image_format = 'png32'
 		self.latitude = None
 		self.longitude = None
 		self.params = None
@@ -1954,8 +1960,8 @@ class StaticMap( ):
 			Logger( ).write( exception )
 			raise exception
 	
-	def pin( self, lat: float, lng: float, zoom: int = 12, size: str = '400x300',
-		scale: int = 1 ) -> str | None:
+	def pin( self, lat: float, lng: float, zoom: int = 12, size: str = '640x480',
+		scale: int = 2, image_format: str = 'png32' ) -> str | None:
 		"""
 
 			Purpose:
@@ -1972,10 +1978,13 @@ class StaticMap( ):
 					Zoom level from 1 through 20.
 
 				size (str):
-					Image dimensions in WxH format.
+					Base dimensions in WxH format; each axis must be 1 through 640 pixels.
 
 				scale (int):
 					Google Static Maps image resolution multiplier, 1 or 2.
+
+				image_format (str):
+					Supported output format: png, png8, png32, gif, jpg, or jpg-baseline.
 
 			Returns:
 				str | None:
@@ -1986,26 +1995,39 @@ class StaticMap( ):
 			throw_if( 'lat', lat )
 			throw_if( 'lng', lng )
 			latitude, longitude = self.validate_coordinate( lat, lng )
-			zoom_value = max( 1, min( int( zoom or 12 ), 20 ) )
+			if type( zoom ) is not int or not 1 <= zoom <= 20:
+				raise ValueError( 'zoom must be an integer between 1 and 20.' )
 			if type( scale ) is not int or scale not in (1, 2):
 				raise ValueError( 'scale must be 1 or 2.' )
-			size_value = size or '400x300'
+			throw_if( 'size', size )
+			throw_if( 'image_format', image_format )
+			if not isinstance( size, str ):
+				raise TypeError( 'size must be a string in WxH format.' )
+			dimensions = size.split( 'x' )
+			if len( dimensions ) != 2 or any( not part.isascii( ) or not part.isdecimal( )
+					for part in dimensions ) or any( not 1 <= int( part ) <= 640 for part in dimensions ):
+				raise ValueError( 'size must specify width and height between 1 and 640 pixels.' )
+			if not isinstance( image_format, str ) or image_format not in (
+					'png', 'png8', 'png32', 'gif', 'jpg', 'jpg-baseline' ):
+				raise ValueError( 'Unsupported Static Maps image format.' )
 			marker_value = f'{latitude},{longitude}'
 			self.latitude = latitude
 			self.longitude = longitude
-			self.zoom = zoom_value
-			self.size = size_value
+			self.zoom = zoom
+			self.size = size
 			self.scale = scale
+			self.image_format = image_format
 			self.markers = marker_value
 			self.params = { 'center': f'{self.latitude},{self.longitude}', 'zoom': str( self.zoom ),
-				'size': self.size, 'scale': self.scale, 'markers': self.markers }
+				'size': self.size, 'scale': self.scale, 'format': self.image_format,
+				'markers': self.markers }
 			return self.build_url( self.params )
 		except Exception as e:
 			exception = Error( e )
 			exception.module = 'mapping'
 			exception.cause = 'StaticMap'
 			exception.method = ("pin( self, lat: float, lng: float, zoom: int=12, "
-			                    "size: str='400x300', scale: int=1 ) -> str | None")
+			                    "size: str='640x480', scale: int=2, image_format: str='png32' ) -> str | None")
 			Logger( ).write( exception )
 			raise exception
 	
