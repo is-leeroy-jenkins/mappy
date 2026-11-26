@@ -1,1 +1,3 @@
-::: places
+# Places
+
+::: mapping.Place

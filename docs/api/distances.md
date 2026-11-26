@@ -1,1 +1,3 @@
-::: distances
+# Distance Matrix
+
+::: mapping.DistanceMatrix
