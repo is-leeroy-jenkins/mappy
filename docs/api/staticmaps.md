@@ -1,1 +1,3 @@
-::: staticmaps
+# Static Maps
+
+::: mapping.StaticMap
