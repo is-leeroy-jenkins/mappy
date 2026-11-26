@@ -1,1 +1,3 @@
-::: timezones
+# Time Zones
+
+::: mapping.Timezone
