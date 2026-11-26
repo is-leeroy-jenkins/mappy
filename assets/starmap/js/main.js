@@ -55,10 +55,10 @@
 			this.customColors =
 			{
 				constellations: 'rgba(255, 255, 255, 0.6)',
-				dsos: '#F8A205',
-				background: '#141414',
-				planets: '#2FF249',
-				graticule: 'rgba(255, 255, 255, 0.2)'
+				dsos: '#4DA3FF',
+				background: '#05070B',
+				planets: '#FFD700',
+				graticule: 'rgba(0, 120, 252, 0.28)'
 			};
 			
 			this.animationInterval = null;

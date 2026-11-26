@@ -210,6 +210,9 @@ if 'calendar_date' not in st.session_state:
 if 'browser_geolocation' not in st.session_state:
 	st.session_state[ 'browser_geolocation' ] = None
 
+if 'browser_location_state' not in st.session_state:
+	st.session_state[ 'browser_location_state' ] = { }
+
 if 'browser_geolocation_loaded' not in st.session_state:
 	st.session_state[ 'browser_geolocation_loaded' ] = False
 
@@ -783,6 +786,9 @@ def set_coordinates( latitude: object, longitude: object ) -> None:
 	lat_value = float( latitude )
 	lon_value = float( longitude )
 	
+	if (lat_value, lon_value) != st.session_state.get( 'coordinates', ( ) ):
+		for field in ( 'location', 'city', 'state', 'country', 'zipcode', 'description' ):
+			st.session_state[ field ] = ''
 	st.session_state[ 'latitude' ] = lat_value
 	st.session_state[ 'longitude' ] = lon_value
 	st.session_state[ 'coordinates' ] = (lat_value, lon_value)
@@ -848,6 +854,10 @@ def set_location_state( location: Optional[ str ] = None, city: Optional[ str ] 
 		longitude: Optional[float] value used by the `set_location_state` workflow. Defaults to
 			`None`.
 	"""
+	if latitude is not None and longitude is not None:
+		if not has_valid_coordinates( latitude, longitude ):
+			return
+		set_coordinates( latitude, longitude )
 	if location is not None:
 		st.session_state[ 'location' ] = str( location ).strip( )
 	
@@ -866,8 +876,6 @@ def set_location_state( location: Optional[ str ] = None, city: Optional[ str ] 
 	if description is not None:
 		st.session_state[ 'description' ] = str( description ).strip( )
 	
-	if latitude is not None and longitude is not None:
-		set_coordinates( latitude, longitude )
 
 def compose_location_from_state( ) -> str:
 	"""Handle the compose location from state workflow.
@@ -926,7 +934,7 @@ def resolve_table_name( requested: str, tables: List[ str ] ) -> Optional[ str ]
 	
 	return None
 
-def get_default_location( fallback: str = 'Washington, DC' ) -> str:
+def get_default_location( fallback: str = '' ) -> str:
 	"""Return the default location used by the application.
 	
 	Purpose:
@@ -936,8 +944,7 @@ def get_default_location( fallback: str = 'Washington, DC' ) -> str:
 		defined by the application code.
 	
 	Args:
-		fallback: str value used by the `get_default_location` workflow. Defaults to
-			`'Washington, DC'`.
+		fallback: str value used by the `get_default_location` workflow. Defaults to an empty string.
 	
 	Returns:
 		str: Result produced by the `get_default_location` workflow.
@@ -946,9 +953,11 @@ def get_default_location( fallback: str = 'Washington, DC' ) -> str:
 	if location:
 		return location
 	
+	if has_valid_global_coordinates( ):
+		return f"{st.session_state[ 'latitude' ]:.6f},{st.session_state[ 'longitude' ]:.6f}"
 	return fallback
 
-def get_default_zipcode( fallback: str = '20001' ) -> str:
+def get_default_zipcode( fallback: str = '' ) -> str:
 	"""Return the default zipcode used by the application.
 	
 	Purpose:
@@ -958,7 +967,7 @@ def get_default_zipcode( fallback: str = '20001' ) -> str:
 		defined by the application code.
 	
 	Args:
-		fallback: str value used by the `get_default_zipcode` workflow. Defaults to `'20001'`.
+		fallback: str value used by the `get_default_zipcode` workflow. Defaults to an empty string.
 	
 	Returns:
 		str: Result produced by the `get_default_zipcode` workflow.
@@ -1032,8 +1041,47 @@ def set_global_coordinates_from_result( latitude: object, longitude: object,
 	if not has_valid_coordinates( latitude, longitude ):
 		return
 	
-	set_location_state( location=location, description=description, latitude=float( latitude ),
+	set_location_state( description=description, latitude=float( latitude ),
 		longitude=float( longitude ) )
+	if location and not st.session_state.get( 'location' ):
+		set_location_state( location=location )
+	if not st.session_state.get( 'city' ):
+		resolve_active_location( float( latitude ), float( longitude ), geocoder )
+
+def resolve_active_location( latitude: float, longitude: float, geocoder: Geocoder ) -> None:
+	"""Resolve an active coordinate pair to a human-readable geographic location.
+
+	Purpose:
+		Preserve valid existing metadata for unchanged coordinates and resolve changed
+		coordinates without overwriting the original browser location.
+
+	Args:
+		latitude (float): Active latitude in decimal degrees.
+		longitude (float): Active longitude in decimal degrees.
+		geocoder (Geocoder): Existing reverse-geocoding provider.
+	"""
+	try:
+		throw_if( 'latitude', latitude )
+		throw_if( 'longitude', longitude )
+		throw_if( 'geocoder', geocoder )
+		if not has_valid_coordinates( latitude, longitude ):
+			raise ValueError( 'Invalid location coordinates.' )
+		if (latitude, longitude) == st.session_state.get( 'coordinates', ( ) ) and \
+				st.session_state.get( 'city' ):
+			return
+		set_coordinates( latitude, longitude )
+		result = geocoder.reverse( latitude, longitude ) or { }
+		city = result.get( 'locality' ) or result.get( 'admin_level_2' ) or ''
+		state = result.get( 'admin_level_1' ) or ''
+		country = result.get( 'country_code' ) or ''
+		label = ', '.join( part for part in ( city, state, country ) if part )
+		set_location_state( location=label or result.get( 'formatted_address' ) or
+			f'{latitude:.6f},{longitude:.6f}', city=city, state=state,
+			country=country, zipcode=result.get( 'postal_code' ) or '' )
+	except Exception:
+		# Keep valid coordinates available when the optional address lookup fails.
+		return
+
 
 def create_bounding_box_from_center( latitude: object, longitude: object,
 	delta: float=0.125 ) -> Dict[ str, float ]:
@@ -1163,10 +1211,14 @@ def update_location_from_browser( geo: Dict[ str, object ] ) -> bool:
 					'Browser geolocation returned invalid coordinates.')
 			return False
 		
-		set_location_state( description=f'Browser geolocation. Accuracy: {accuracy} meters.',
+		set_location_state( location='', city='', state='', country='', zipcode='',
+			description=f'Browser geolocation. Accuracy: {accuracy} meters.',
 			latitude=float( latitude ), longitude=float( longitude ) )
 		
 		st.session_state[ 'browser_geolocation' ] = geo
+		st.session_state[ 'browser_location_state' ] = {
+			key: st.session_state[ key ] for key in
+			( 'latitude', 'longitude', 'location', 'city', 'state', 'country', 'zipcode', 'description' ) }
 		st.session_state[ 'browser_geolocation_loaded' ] = True
 		st.session_state[ 'browser_geolocation_permission_denied' ] = False
 		st.session_state[ 'browser_geolocation_error' ] = ''
@@ -1210,23 +1262,35 @@ def bootstrap_browser_geolocation( geocoder: Geocoder ) -> None:
 			return
 		
 		if not st.session_state.get( 'browser_geolocation_reverse_geocoded', False ):
-			latitude = st.session_state.get( 'latitude', None )
-			longitude = st.session_state.get( 'longitude', None )
-			
-			if geocoder is not None and has_valid_coordinates( latitude, longitude ):
+			latitude = st.session_state[ 'latitude' ]
+			longitude = st.session_state[ 'longitude' ]
+			location_text = f'{latitude:.6f},{longitude:.6f}'
+			if geocoder is not None:
 				try:
-					location_text = f'{float( latitude ):.6f},{float( longitude ):.6f}'
-					geocoder.freeform( location_text )
-					
-					if not st.session_state.get( 'location', '' ):
-						st.session_state[ 'location' ] = location_text
-					
-					st.session_state[ 'browser_geolocation_reverse_geocoded' ] = True
-				
+					result = geocoder.reverse( latitude, longitude ) or { }
+					city = result.get( 'locality' ) or result.get( 'admin_level_2' ) or ''
+					state = result.get( 'admin_level_1' ) or ''
+					country = result.get( 'country_code' ) or ''
+					zipcode = result.get( 'postal_code' ) or ''
+					location_text = ', '.join( part for part in ( city, state, country ) if part ) \
+						or result.get( 'formatted_address' ) or location_text
+					set_location_state( location=location_text, city=city, state=state,
+						country=country, zipcode=zipcode )
+					st.session_state[ 'browser_geolocation_reverse_geocoded' ] = bool( result )
 				except Exception:
-					st.session_state[ 'location' ] = (
-							f'{float( latitude ):.6f},{float( longitude ):.6f}')
-		
+					set_location_state( location=location_text )
+			else:
+				set_location_state( location=location_text )
+			st.session_state[ 'browser_location_state' ] = {
+				key: st.session_state[ key ] for key in
+				( 'latitude', 'longitude', 'location', 'city', 'state', 'country', 'zipcode', 'description' ) }
+
+		for key in ( 'maps_use_global_coordinates', 'timezone_use_global_coordinates',
+			'celestial_use_global_coordinates', 'distance_use_global_origin',
+			'mapping_geocoding_query', 'mapping_places_country', 'maps_manual_latitude',
+			'maps_manual_longitude', 'timezone_manual_latitude', 'timezone_manual_longitude',
+			'celestial_manual_latitude', 'celestial_manual_longitude', 'celestial_location_label' ):
+			st.session_state.pop( key, None )
 		st.rerun( )
 	
 	except Exception as ex:
@@ -1428,8 +1492,16 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 		else:
 			df_view = df_user_map
 		
-		view_state = pdk.ViewState( latitude=float( df_view[ 'Latitude' ].median( ) ),
-			longitude=float( df_view[ 'Longitude' ].median( ) ), zoom=zoom_level, pitch=0 )
+		center_on_user = st.checkbox( 'Center on User Location',
+			value=has_valid_global_coordinates( ), key=f'{key_prefix}_center_user' )
+		browser = st.session_state.get( 'browser_location_state', { } )
+		center_latitude = browser.get( 'latitude', get_default_latitude( ) )
+		center_longitude = browser.get( 'longitude', get_default_longitude( ) )
+		if not center_on_user or not has_valid_coordinates( center_latitude, center_longitude ):
+			center_latitude = float( df_view[ 'Latitude' ].median( ) )
+			center_longitude = float( df_view[ 'Longitude' ].median( ) )
+		view_state = pdk.ViewState( latitude=center_latitude, longitude=center_longitude,
+			zoom=zoom_level, pitch=0 )
 		
 		layers = [ ]
 		
@@ -1963,8 +2035,14 @@ def append_geocoding_map_result( query: str, source: str, result: object ) -> No
 			st.warning( 'The geocoding result did not contain usable coordinates for the map.' )
 			return
 		
-		set_location_state( location=query, description=f'{source} result for {query}',
-			latitude=latitude, longitude=longitude )
+		details = result if isinstance( result, dict ) else { }
+		city = details.get( 'locality' ) or details.get( 'admin_level_2' ) or ''
+		state = details.get( 'admin_level_1' ) or ''
+		country = details.get( 'country_code' ) or ''
+		label = ', '.join( part for part in ( city, state, country ) if part )
+		set_location_state( location=label or details.get( 'formatted_address' ) or query,
+			city=city, state=state, country=country, zipcode=details.get( 'postal_code' ) or '',
+			description=f'{source} result for {query}', latitude=latitude, longitude=longitude )
 		
 		df_new = pd.DataFrame( [ { 'ID': f'GEOCODED-{int( time.time( ) )}',
 				'CalendarDate': dt.datetime.now( ).strftime( '%Y-%m-%d %H:%M:%S' ), 'City': query,
@@ -3383,8 +3461,18 @@ with st.sidebar:
 		
 		if st.session_state.get( 'browser_geolocation_loaded', False ):
 			st.success( 'Browser location loaded.' )
-			st.write( f"Latitude: {float( st.session_state.get( 'latitude', 0.0 ) ):.6f}" )
-			st.write( f"Longitude: {float( st.session_state.get( 'longitude', 0.0 ) ):.6f}" )
+			browser = st.session_state.get( 'browser_location_state', { } )
+			if browser:
+				st.write( browser.get( 'location' ) or 'Browser coordinates' )
+				st.write( f"Latitude: {browser[ 'latitude' ]:.6f}" )
+				st.write( f"Longitude: {browser[ 'longitude' ]:.6f}" )
+				if st.button( 'Restore Browser Location', key='restore_browser_location', width='stretch' ):
+					set_location_state( location=browser[ 'location' ], city=browser[ 'city' ],
+						state=browser[ 'state' ], country=browser[ 'country' ], zipcode=browser[ 'zipcode' ],
+						description=browser[ 'description' ], latitude=browser[ 'latitude' ],
+						longitude=browser[ 'longitude' ] )
+					st.rerun( )
+			st.caption( f'Active location: {get_default_location( ) or "Not set"}' )
 		
 		elif st.session_state.get( 'browser_geolocation_permission_denied', False ):
 			st.warning( 'Browser location permission was denied.' )
@@ -3398,6 +3486,7 @@ with st.sidebar:
 		
 		if st.button( 'Reset', key='browser_geolocation_reset', width='stretch' ):
 			st.session_state[ 'browser_geolocation' ] = None
+			st.session_state[ 'browser_location_state' ] = { }
 			st.session_state[ 'browser_geolocation_loaded' ] = False
 			st.session_state[ 'browser_geolocation_reverse_geocoded' ] = False
 			st.session_state[ 'browser_geolocation_error' ] = ''
@@ -3720,14 +3809,17 @@ if mode == 'Mapping':
 							st.warning( 'Enter a Location.' )
 						else:
 							try:
-								result = geocoder.freeform( query )
+								result = geocoder.freeform( query, country='' )
 								append_geocoding_map_result( query, 'Geocoder', result )
 								st.json( result )
 							except NotFound:
 								if use_places:
 									try:
 										st.warning( 'Geocoding failed.' )
-										result = places.text_to_location( query )
+										result = places.text_to_location( query,
+											country=st.session_state.get( 'country', '' ),
+											latitude=get_default_latitude( ) if has_valid_global_coordinates( ) else None,
+											longitude=get_default_longitude( ) if has_valid_global_coordinates( ) else None )
 										append_geocoding_map_result( query, 'Places', result )
 										st.json( result )
 									except Exception as e:
@@ -3770,7 +3862,7 @@ if mode == 'Mapping':
 			place_c1, place_c2 = st.columns( [ 0.50, 0.50 ], border=True )
 			with place_c1:
 				place_query = st.text_input( 'Place or Business', key='mapping_places_query' )
-				place_country = st.text_input( 'Region (ISO-2)', value='US',
+				place_country = st.text_input( 'Region (ISO-2)', value=st.session_state.get( 'country', '' ),
 					key='mapping_places_country' )
 				add_to_map = st.checkbox( 'Add to Geocoded Overlay', value=True,
 					key='mapping_places_overlay' )
@@ -3781,7 +3873,9 @@ if mode == 'Mapping':
 						st.warning( 'Enter a two-letter region code.' )
 					else:
 						try:
-							place_result = places.text_to_location( place_query, country=place_country )
+							place_result = places.text_to_location( place_query, country=place_country,
+								latitude=get_default_latitude( ) if has_valid_global_coordinates( ) else None,
+								longitude=get_default_longitude( ) if has_valid_global_coordinates( ) else None )
 							st.session_state[ 'mapping_places_result' ] = place_result
 							if place_result and add_to_map:
 								append_geocoding_map_result( place_query, 'Places', place_result )
@@ -3847,13 +3941,13 @@ if mode == 'Mapping':
 		with center:
 			st.subheader( 'Static Map' )
 			st.divider( )
-			global_location = get_default_location( )
+			global_location = get_default_location( ) or 'Washington, DC (fallback)'
 			location_state = get_location_state( )
 			has_global_coords = has_valid_global_coordinates( )
 			status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 			status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-			status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-			status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+			status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+			status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 			blue_divider( )
 		
@@ -3877,10 +3971,10 @@ if mode == 'Mapping':
 			
 				else:
 					manual_default_lat = (
-						float( location_state[ 'latitude' ] ) if has_global_coords else 0.0)
+						float( location_state[ 'latitude' ] ) if has_global_coords else get_default_latitude( ))
 				
 					manual_default_lng = (
-						float( location_state[ 'longitude' ] ) if has_global_coords else 0.0)
+						float( location_state[ 'longitude' ] ) if has_global_coords else get_default_longitude( ))
 				
 					coord_c1, coord_c2 = st.columns( 2 )
 					with coord_c1:
@@ -3915,7 +4009,7 @@ if mode == 'Mapping':
 				else:
 					try:
 						if save_coordinates:
-							set_coordinates( lat, lng )
+							resolve_active_location( lat, lng, geocoder )
 							st.session_state[ 'zoom' ] = int( zoom )
 							st.session_state[ 'map_size' ] = str( size )
 					
@@ -3934,7 +4028,7 @@ if mode == 'Mapping':
 			if map_url:
 				blue_divider( )
 				st.markdown( '##### Static Map Result' )
-				st.image( map_url )
+				st.image( map_url, width='stretch' )
 				st.code( map_url )
 
 	with timezones_tab:
@@ -3942,13 +4036,13 @@ if mode == 'Mapping':
 		with center:
 			st.subheader( 'Time Zone Lookup' )
 			st.divider( )
-			global_location = get_default_location( )
+			global_location = get_default_location( ) or 'Washington, DC (fallback)'
 			location_state = get_location_state( )
 			has_global_coords = has_valid_global_coordinates( )
 			status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 			status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-			status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-			status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+			status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+			status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 			blue_divider( )
 		
@@ -3972,10 +4066,10 @@ if mode == 'Mapping':
 			
 				else:
 					manual_default_lat = (
-							float( location_state[ 'latitude' ] ) if has_global_coords else 0.0)
+							float( location_state[ 'latitude' ] ) if has_global_coords else get_default_latitude( ))
 				
 					manual_default_lng = (
-							float( location_state[ 'longitude' ] ) if has_global_coords else 0.0)
+							float( location_state[ 'longitude' ] ) if has_global_coords else get_default_longitude( ))
 				
 					coord_c1, coord_c2 = st.columns( 2 )
 					with coord_c1:
@@ -4002,7 +4096,7 @@ if mode == 'Mapping':
 				else:
 					try:
 						if save_coordinates:
-							set_coordinates( lat_tz, lng_tz )
+							resolve_active_location( lat_tz, lng_tz, geocoder )
 					
 						result = timezone.lookup( float( lat_tz ), float( lng_tz ) )
 						st.session_state[ 'timezone_last_result' ] = result or { }
@@ -4034,12 +4128,12 @@ if mode == 'Mapping':
 	# Prefer the most recently generated map position, otherwise use global coordinates.
 	map_position_available = ('maps_last_latitude' in st.session_state
 		and 'maps_last_longitude' in st.session_state)
-	if map_position_available:
-		view_latitude = st.session_state[ 'maps_last_latitude' ]
-		view_longitude = st.session_state[ 'maps_last_longitude' ]
-	elif has_valid_global_coordinates( ):
+	if has_valid_global_coordinates( ):
 		view_latitude = get_location_state( )[ 'latitude' ]
 		view_longitude = get_location_state( )[ 'longitude' ]
+	elif map_position_available:
+		view_latitude = st.session_state[ 'maps_last_latitude' ]
+		view_longitude = st.session_state[ 'maps_last_longitude' ]
 	else:
 		view_latitude = None
 		view_longitude = None
@@ -4138,13 +4232,13 @@ elif mode == 'Distances':
 	with center:
 		st.subheader( 'Distance Matrix' )
 		st.divider( )
-		global_location = get_default_location( )
+		global_location = get_default_location( ) or 'Washington, DC (fallback)'
 		location_state = get_location_state( )
 		current_location = compose_location_from_state( )
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', current_location if current_location else global_location )
-		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+		status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+		status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 		blue_divider( )
 		
@@ -4450,7 +4544,7 @@ elif mode == 'Weather':
 	with center:
 		st.subheader( 'Weather Data' )
 		st.divider( )
-		global_location = get_default_location( )
+		global_location = get_default_location( ) or 'Washington, DC (fallback)'
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
 		location_c1, location_c2, location_c3 = st.columns( 3, border=True )
@@ -4467,7 +4561,7 @@ elif mode == 'Weather':
 			# ------------------------------------------------------------------
 			with st.expander( '🌦️ Google Weather', expanded=True ):
 				st.caption( 'API', help=cfg.GOOGLE_WEATHER )
-				google_address = st.text_input( 'Address or Location', value=global_location,
+				google_address = st.text_input( 'Address or Location', value=get_default_location( ) or 'Washington, DC',
 					key='weather_google_address' )
 				
 				google_select_c1, google_select_c2 = st.columns( 2, border=True, gap='xxsmall' )
@@ -4579,7 +4673,7 @@ elif mode == 'Weather':
 				st.caption( 'API', help=cfg.OPEN_WEATHER )
 				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with loc_c1:
-					open_location = st.text_input( 'Location', value=global_location,
+					open_location = st.text_input( 'Location', value=get_default_location( ) or 'Washington, DC',
 						key='weather_open_location' )
 				
 				with loc_c2:
@@ -4647,7 +4741,7 @@ elif mode == 'Weather':
 				
 				loc_c1, loc_c2 = st.columns( 2, border=True, gap='xxsmall' )
 				with loc_c1:
-					historical_location = st.text_input( 'Location', value=global_location,
+					historical_location = st.text_input( 'Location', value=get_default_location( ) or 'Washington, DC',
 						key='weather_historical_location' )
 				
 				with loc_c2:
@@ -4906,7 +5000,7 @@ elif mode == 'Environmental':
 	with center:
 		st.subheader( 'Environmental Data' )
 		st.divider( )
-		global_location = get_default_location( )
+		global_location = get_default_location( ) or 'Washington, DC (fallback)'
 		global_zipcode = get_default_zipcode( )
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
@@ -5012,7 +5106,7 @@ elif mode == 'Environmental':
 								st.session_state[ 'env_last_latitude' ] = airnow_latitude
 								st.session_state[ 'env_last_longitude' ] = airnow_longitude
 								set_global_coordinates_from_result( airnow_latitude,
-									airnow_longitude, location=global_location,
+									airnow_longitude, location=None,
 									description='AirNow coordinate result' )
 								
 								if airnow_zip:
@@ -5047,14 +5141,14 @@ elif mode == 'Environmental':
 					step=1, key='env_uv_timeout' )
 				
 				if 'ZIP' in uv_mode:
-					uv_zip = st.text_input( 'ZIP Code', value='20001', key='env_uv_zip' )
+					uv_zip = st.text_input( 'ZIP Code', value=global_zipcode, key='env_uv_zip' )
 					uv_city = ''
 					uv_state = ''
 				
 				else:
 					uv_zip = ''
-					uv_city = st.text_input( 'City', value='Washington', key='env_uv_city' )
-					uv_state = st.text_input( 'State', value='DC', key='env_uv_state' )
+					uv_city = st.text_input( 'City', value=st.session_state.get( 'city', '' ), key='env_uv_city' )
+					uv_state = st.text_input( 'State', value=st.session_state.get( 'state', '' ), key='env_uv_state' )
 				
 				uv_btn_c1, uv_btn_c2 = st.columns( 2 )
 				with uv_btn_c1:
@@ -5254,7 +5348,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = lng_value
 							
 							set_global_coordinates_from_result( lat_value, lng_value,
-								location=global_location, description='OpenAQ coordinate result' )
+								location=None, description='OpenAQ coordinate result' )
 							
 							st.success( 'OpenAQ request completed.' )
 						
@@ -5380,7 +5474,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = purple_center_longitude
 							
 							set_global_coordinates_from_result( purple_center_latitude,
-								purple_center_longitude, location=global_location,
+								purple_center_longitude, location=None,
 								description='PurpleAir bounding-box center' )
 							
 							st.success( 'PurpleAir request completed.' )
@@ -5538,7 +5632,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = firms_center_longitude
 							
 							set_global_coordinates_from_result( firms_center_latitude,
-								firms_center_longitude, location=global_location,
+								firms_center_longitude, location=None,
 								description='FIRMS bounding-box center' )
 							
 							st.success( 'FIRMS request completed.' )
@@ -5681,7 +5775,7 @@ elif mode == 'Environmental':
 							st.session_state[ 'env_last_longitude' ] = eonet_center_longitude
 							
 							set_global_coordinates_from_result( eonet_center_latitude,
-								eonet_center_longitude, location=global_location,
+								eonet_center_longitude, location=None,
 								description='EONET bounding-box center' )
 							
 							st.success( 'EONET request completed.' )
@@ -5712,7 +5806,7 @@ elif mode == 'Astronomical':
 	with center:
 		st.subheader( 'Astronomical Data' )
 		st.divider( )
-		global_location = get_default_location( )
+		global_location = get_default_location( ) or 'Washington, DC (fallback)'
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
 		location_c1, location_c2, location_c3 = st.columns( 3, border=True )
@@ -6701,14 +6795,14 @@ elif mode == 'Celestial Map':
 		st.subheader( 'Celestial Map' )
 		st.divider( )
 		
-		global_location = get_default_location( )
+		global_location = get_default_location( ) or 'Washington, DC (fallback)'
 		location_state = get_location_state( )
 		has_global_coords = has_valid_global_coordinates( )
 		
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
 		status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+		status_c2.metric( 'Latitude', f'{get_default_latitude( ):.4f}' )
+		status_c3.metric( 'Longitude', f'{get_default_longitude( ):.4f}' )
 		
 		blue_divider( )
 		
@@ -6765,11 +6859,10 @@ elif mode == 'Celestial Map':
 			st.warning( 'Provide valid coordinates before rendering the Celestial Map.' )
 			st.stop( )
 		
-		if save_coordinates:
-			set_location_state( location=celestial_location,
-				description='Celestial Map observer location', latitude=float(
-					celestial_latitude ),
-				longitude=float( celestial_longitude ) )
+		if save_coordinates and (has_global_coords or
+				(celestial_latitude, celestial_longitude) != (get_default_latitude( ), get_default_longitude( ))):
+			resolve_active_location( celestial_latitude, celestial_longitude, geocoder )
+			celestial_location = get_default_location( )
 			st.session_state[ 'zoom' ] = int( celestial_zoom )
 		
 		blue_divider( )
@@ -6788,7 +6881,7 @@ elif mode == 'Geological':
 		st.subheader( 'Geological Data' )
 		st.divider( )
 		
-		global_location = get_default_location( )
+		global_location = get_default_location( ) or 'Washington, DC (fallback)'
 		global_latitude = get_default_latitude( )
 		global_longitude = get_default_longitude( )
 		global_box = create_bounding_box_from_center( global_latitude, global_longitude )
@@ -6925,7 +7018,7 @@ elif mode == 'Geological':
 								st.session_state[ 'radius' ] = float( quake_radius )
 							
 							set_global_coordinates_from_result( quake_latitude, quake_longitude,
-								location=global_location,
+								location=None,
 								description='USGS Earthquake search center' )
 							
 							st.success( 'USGS Earthquake request completed.' )
@@ -7411,7 +7504,7 @@ elif mode == 'Geological':
 							st.session_state[ 'geo_last_image_path' ] = ''
 							
 							set_global_coordinates_from_result( tnm_center_latitude,
-								tnm_center_longitude, location=global_location,
+								tnm_center_longitude, location=None,
 								description='USGS The National Map bounding-box center' )
 							
 							st.success( 'USGS The National Map request completed.' )
