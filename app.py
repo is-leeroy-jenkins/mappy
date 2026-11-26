@@ -1285,6 +1285,12 @@ def bootstrap_browser_geolocation( geocoder: Geocoder ) -> None:
 				key: st.session_state[ key ] for key in
 				( 'latitude', 'longitude', 'location', 'city', 'state', 'country', 'zipcode', 'description' ) }
 
+		for key in ( 'maps_use_global_coordinates', 'timezone_use_global_coordinates',
+			'celestial_use_global_coordinates', 'distance_use_global_origin',
+			'mapping_geocoding_query', 'mapping_places_country', 'maps_manual_latitude',
+			'maps_manual_longitude', 'timezone_manual_latitude', 'timezone_manual_longitude',
+			'celestial_manual_latitude', 'celestial_manual_longitude', 'celestial_location_label' ):
+			st.session_state.pop( key, None )
 		st.rerun( )
 	
 	except Exception as ex:
@@ -3803,14 +3809,17 @@ if mode == 'Mapping':
 							st.warning( 'Enter a Location.' )
 						else:
 							try:
-								result = geocoder.freeform( query )
+								result = geocoder.freeform( query, country='' )
 								append_geocoding_map_result( query, 'Geocoder', result )
 								st.json( result )
 							except NotFound:
 								if use_places:
 									try:
 										st.warning( 'Geocoding failed.' )
-										result = places.text_to_location( query )
+										result = places.text_to_location( query,
+											country=st.session_state.get( 'country', '' ),
+											latitude=get_default_latitude( ) if has_valid_global_coordinates( ) else None,
+											longitude=get_default_longitude( ) if has_valid_global_coordinates( ) else None )
 										append_geocoding_map_result( query, 'Places', result )
 										st.json( result )
 									except Exception as e:
@@ -3864,7 +3873,9 @@ if mode == 'Mapping':
 						st.warning( 'Enter a two-letter region code.' )
 					else:
 						try:
-							place_result = places.text_to_location( place_query, country=place_country )
+							place_result = places.text_to_location( place_query, country=place_country,
+								latitude=get_default_latitude( ) if has_valid_global_coordinates( ) else None,
+								longitude=get_default_longitude( ) if has_valid_global_coordinates( ) else None )
 							st.session_state[ 'mapping_places_result' ] = place_result
 							if place_result and add_to_map:
 								append_geocoding_map_result( place_query, 'Places', place_result )
@@ -6848,7 +6859,8 @@ elif mode == 'Celestial Map':
 			st.warning( 'Provide valid coordinates before rendering the Celestial Map.' )
 			st.stop( )
 		
-		if save_coordinates:
+		if save_coordinates and (has_global_coords or
+				(celestial_latitude, celestial_longitude) != (get_default_latitude( ), get_default_longitude( ))):
 			resolve_active_location( celestial_latitude, celestial_longitude, geocoder )
 			celestial_location = get_default_location( )
 			st.session_state[ 'zoom' ] = int( celestial_zoom )
