@@ -1591,23 +1591,20 @@ def extract_coordinates( result: object ) -> Tuple[ Optional[ float ], Optional[
 	"""
 	if result is None:
 		return None, None
-	
 	lat_paths = [ [ 'lat' ], [ 'latitude' ], [ 'location', 'lat' ], [ 'location', 'latitude' ],
-			[ 'geometry', 'location', 'lat' ], [ 'geometry', 'location', 'latitude' ],
-			[ 'result', 'geometry', 'location', 'lat' ],
-			[ 'results', 0, 'geometry', 'location', 'lat' ],
-			[ 'candidates', 0, 'geometry', 'location', 'lat' ], ]
-	
+		[ 'geometry', 'location', 'lat' ], [ 'geometry', 'location', 'latitude' ],
+		[ 'result', 'geometry', 'location', 'lat' ],
+		[ 'results', 0, 'geometry', 'location', 'lat' ],
+		[ 'candidates', 0, 'geometry', 'location', 'lat' ], ]
 	lon_paths = [ [ 'lng' ], [ 'lon' ], [ 'longitude' ], [ 'location', 'lng' ],
-			[ 'location', 'lon' ], [ 'location', 'longitude' ], [ 'geometry', 'location', 'lng' ],
-			[ 'geometry', 'location', 'lon' ], [ 'geometry', 'location', 'longitude' ],
-			[ 'result', 'geometry', 'location', 'lng' ],
-			[ 'results', 0, 'geometry', 'location', 'lng' ],
-			[ 'candidates', 0, 'geometry', 'location', 'lng' ], ]
+		[ 'location', 'lon' ], [ 'location', 'longitude' ], [ 'geometry', 'location', 'lng' ],
+		[ 'geometry', 'location', 'lon' ], [ 'geometry', 'location', 'longitude' ],
+		[ 'result', 'geometry', 'location', 'lng' ],
+		[ 'results', 0, 'geometry', 'location', 'lng' ],
+		[ 'candidates', 0, 'geometry', 'location', 'lng' ], ]
 	
 	lat_value = None
 	lon_value = None
-	
 	for path in lat_paths:
 		lat_value = get_value_by_path( result, path )
 		if lat_value is not None:
