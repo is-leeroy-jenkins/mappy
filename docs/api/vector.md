@@ -1,3 +1,5 @@
 # Vector Stores
 
-::: vector
+::: storage.ChromaStore
+
+::: storage.PineconeStore
