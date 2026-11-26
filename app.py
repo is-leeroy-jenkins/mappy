@@ -573,25 +573,15 @@ def render_celestial_map( asset_root: str = 'assets/starmap', height: int=1400,
 		defined by the application code.
 	
 	Args:
-		asset_root: str value used by the `render_celestial_map` workflow. Defaults to
-			`'assets/starmap'`.
-		height: int value used by the `render_celestial_map` workflow. Defaults to `1400`.
-		latitude: Optional[float] value used by the `render_celestial_map` workflow. Defaults to
-			`None`.
-		longitude: Optional[float] value used by the `render_celestial_map` workflow. Defaults to
-			`None`.
-		tile_url: Optional[str] value used by the `render_celestial_map` workflow. Defaults to
-			`None`.
-		tile_attribution: Optional[str] value used by the `render_celestial_map` workflow.
-		Defaults to
-			`None`.
-		tile_subdomains: Optional[str] value used by the `render_celestial_map` workflow.
-		Defaults to
-			`None`.
-		location: Optional[str] value used by the `render_celestial_map` workflow. Defaults to
-			`None`.
-		zoom: Optional[int] value used by the `render_celestial_map` workflow. Defaults to
-			`None`.
+		asset_root (str): str value used by the `render_celestial_map` workflow.
+		height (int): int value used by the `render_celestial_map` workflow. Defaults to `1400`.
+		latitude (float): Optional[float] value used by the `render_celestial_map` workflow.
+		longitude (float): Optional[float] value used by the `render_celestial_map` workflow.
+		tile_url (str): Optional[str] value used by the `render_celestial_map` workflow.
+		tile_attribution (str): Optional[str] value used by the `render_celestial_map` workflow.
+		tile_subdomains (str): Optional[str] value used by the `render_celestial_map` workflow.
+		location (str): Optional[str] value used by the `render_celestial_map` workflow.
+		zoom (int): Optional[int] value used by the `render_celestial_map` workflow. Defaults to
 	"""
 	try:
 		root = Path( asset_root )
@@ -1255,13 +1245,10 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 		defined by the application code.
 	
 	Args:
-		df: pd.DataFrame value used by the `create_reports_map` workflow.
-		df_overlay: Optional[pd.DataFrame] value used by the `create_reports_map` workflow.
-			Defaults to `None`.
-		use_user_location: bool value used by the `create_reports_map` workflow. Defaults to
-		`True`.
-		key_prefix: str value used by the `create_reports_map` workflow. Defaults to
-			`'reports_map'`.
+		df (pd.DataFrame): pd.DataFrame value used by the `create_reports_map` workflow.
+		df_overlay (pd.DataFrame): Optional[pd.DataFrame] value used by the `create_reports_map` workflow.
+		use_user_location (bool): bool value used by the `create_reports_map` workflow.
+		key_prefix (str): str value used by the `create_reports_map` workflow.
 	"""
 	try:
 		st.subheader( 'Locations' )
@@ -2605,8 +2592,8 @@ def insert_data( table_name: str, df: pd.DataFrame ) -> None:
 		Supports the Mappy Streamlit application by executing the insert data workflow.
 	
 	Args:
-		table_name: str value representing the name of the table.
-		df: pd.DataFrame value used by the `insert_data` workflow.
+		table_name (str): str value representing the name of the table.
+		df (pd.DataFrame): pd.DataFrame value used by the `insert_data` workflow.
 	"""
 	df = df.copy( )
 	quoted_table = '"' + table_name.replace( '"', '""' ) + '"'
