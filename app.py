@@ -1082,7 +1082,6 @@ def resolve_active_location( latitude: float, longitude: float, geocoder: Geocod
 		# Keep valid coordinates available when the optional address lookup fails.
 		return
 
-
 def create_bounding_box_from_center( latitude: object, longitude: object,
 	delta: float=0.125 ) -> Dict[ str, float ]:
 	"""Create the bounding box from center used by the application.
@@ -1299,7 +1298,7 @@ def bootstrap_browser_geolocation( geocoder: Geocoder ) -> None:
 # ------------- VISUALIZATION UTILITIES
 
 def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] = None,
-                        use_user_location: bool = True, key_prefix: str = 'reports_map' ) -> None:
+	use_user_location: bool = True, key_prefix: str = 'reports_map' ) -> None:
 	"""Create the reports map used by the application.
 	
 	Purpose:
@@ -3420,10 +3419,6 @@ def _render_output( placeholder: object, result: Any ) -> None:
 	except Exception as ex:
 		st.error( f'Unable to render provider output: {ex}' )
 
-# ---------------------------------------------------------------------
-# PAGE CONFIGURATION
-# ---------------------------------------------------------------------
-
 st.set_page_config( page_title='Mappy', layout='wide', page_icon=cfg.FAVICON,
 	initial_sidebar_state='expanded', )
 
@@ -3768,24 +3763,18 @@ with st.sidebar:
 	places = Place( maps, cache=cache )
 	static_maps = StaticMap( )
 
-# ------------------------------------------------------------------------------
-# BROWSER GEOLOCATION BOOTSTRAP
-# ------------------------------------------------------------------------------
 bootstrap_browser_geolocation( geocoder )
 
 # ==============================================================================
 # MAPPING MODE
 # ==============================================================================
 if mode == 'Mapping':
-	interactive_tab, geocoding_tab, static_tab, timezones_tab, places_tab, street_tab, satellites_tab = st.tabs(
-		[ 'Interactive Map', 'Geocoding', 'Static Maps', 'Time Zones', 'Places', 'Street View', 'Satellite' ] )
+	tabs = [ 'Interactive', 'Geocoding', 'Static', 'Timezones', 'Places', 'Street', 'Satellite' ]
+	interactive, geocoding, static, timezones, place, street, satellites = st.tabs( tabs )
 
-	with geocoding_tab:
+	with geocoding:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Geocoding' )
-			st.divider( )
-		
 			geo_c1, geo_c2 = st.columns( [ 0.60, 0.40 ], border=True, gap='small' )
 			with geo_c2:
 				st.caption( '' )
@@ -3854,11 +3843,9 @@ if mode == 'Mapping':
 			except Exception as e:
 				st.error( f'Reports map failed: {e}' )
 
-	with places_tab:
+	with place:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Places' )
-			st.divider( )
 			place_c1, place_c2 = st.columns( [ 0.50, 0.50 ], border=True )
 			with place_c1:
 				place_query = st.text_input( 'Place or Business', key='mapping_places_query' )
@@ -3893,11 +3880,9 @@ if mode == 'Mapping':
 				else:
 					st.info( 'Search for a place to display its details.' )
 
-	with interactive_tab:
+	with interactive:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Interactive Map' )
-			st.divider( )
 			tables = list_spatial_tables( )
 			if not tables:
 				st.info( 'No tables available.' )
@@ -3936,11 +3921,9 @@ if mode == 'Mapping':
 						st.data_editor( df_overlay, key='map_mode_overlay_records',
 							use_container_width=True, disabled=True )
 
-	with static_tab:
+	with static:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Static Map' )
-			st.divider( )
 			global_location = get_default_location( ) or 'Washington, DC (fallback)'
 			location_state = get_location_state( )
 			has_global_coords = has_valid_global_coordinates( )
@@ -4031,11 +4014,9 @@ if mode == 'Mapping':
 				st.image( map_url, width='stretch' )
 				st.code( map_url )
 
-	with timezones_tab:
+	with timezones:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Time Zone Lookup' )
-			st.divider( )
 			global_location = get_default_location( ) or 'Washington, DC (fallback)'
 			location_state = get_location_state( )
 			has_global_coords = has_valid_global_coordinates( )
@@ -4124,8 +4105,6 @@ if mode == 'Mapping':
 			
 				st.json( result )
 
-	# ----- Street View and satellite imagery share the same Mapping Tools tab bar.
-	# Prefer the most recently generated map position, otherwise use global coordinates.
 	map_position_available = ('maps_last_latitude' in st.session_state
 		and 'maps_last_longitude' in st.session_state)
 	if has_valid_global_coordinates( ):
@@ -4139,11 +4118,9 @@ if mode == 'Mapping':
 		view_longitude = None
 	map_embed_key = st.session_state.get( 'googlemaps_api_key' ) or cfg.GOOGLEMAPS_API_KEY
 
-	with street_tab:
+	with street:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Street View' )
-			st.divider( )
 			if view_latitude is None or view_longitude is None:
 				st.info( 'Set global coordinates or generate a static map to view Street View.' )
 			elif not map_embed_key:
@@ -4156,11 +4133,9 @@ if mode == 'Mapping':
 				st.caption( 'Street View availability depends on imagery coverage. '
 					'The Google Maps Embed API must be enabled for your API key.' )
 
-	with satellites_tab:
+	with satellites:
 		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 		with center:
-			st.subheader( 'Satellite View' )
-			st.divider( )
 			if view_latitude is None or view_longitude is None:
 				st.info( 'Set global coordinates or generate a static map to view satellite imagery.' )
 			else:
@@ -4230,9 +4205,7 @@ function showMapError() {{
 elif mode == 'Distances':
 	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 	with center:
-		st.subheader( 'Distance Matrix' )
-		st.divider( )
-		global_location = get_default_location( ) or 'Washington, DC (fallback)'
+		global_location = get_default_location( )
 		location_state = get_location_state( )
 		current_location = compose_location_from_state( )
 		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
@@ -7533,7 +7506,7 @@ elif mode == 'Geological':
 elif mode == 'Generative':
 	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
 	with (center):
-		st.subheader( f'🧠  Generative AI' )
+		st.subheader( f'🧠  Artificial Intelligence' )
 		st.divider( )
 		
 		# -------- ChatGPT
