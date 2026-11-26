@@ -193,7 +193,10 @@ if 'zoom' not in st.session_state:
 	st.session_state[ 'zoom' ] = 8
 
 if 'map_size' not in st.session_state:
-	st.session_state[ 'map_size' ] = '600x400'
+	st.session_state[ 'map_size' ] = '640x480'
+
+if 'map_scale' not in st.session_state:
+	st.session_state[ 'map_scale' ] = 2
 
 if 'year' not in st.session_state:
 	st.session_state[ 'year' ] = dt.datetime.now( ).year
@@ -818,7 +821,7 @@ def get_location_state( ) -> Dict[ str, object ]:
 	         'destination': st.session_state.get( 'destination', '' ),
 	         'radius': st.session_state.get( 'radius', 25.0 ),
 	         'zoom': st.session_state.get( 'zoom', 8 ),
-	         'map_size': st.session_state.get( 'map_size', '600x400' ),
+	         'map_size': st.session_state.get( 'map_size', '640x480' ),
 	         'year': st.session_state.get( 'year', dt.datetime.now( ).year ),
 	         'month': st.session_state.get( 'month', dt.datetime.now( ).month ),
 	         'day': st.session_state.get( 'day', dt.datetime.now( ).day ),
@@ -3987,16 +3990,22 @@ if mode == 'Mapping':
 		
 			with map_c2:
 				zoom_default = int( st.session_state.get( 'zoom', 8 ) or 8 )
-				size_default = str( st.session_state.get( 'map_size', '600x400' ) or '600x400' )
-				size_options = [ '400x400', '600x400', '800x600' ]
+				size_default = st.session_state.get( 'map_size', '640x480' )
+				size_options = [ '400x400', '600x400', '640x360', '640x480', '640x640' ]
 				if size_default not in size_options:
-					size_default = '600x400'
+					size_default = '640x480'
+				scale_default = st.session_state.get( 'map_scale', 2 )
 			
 				zoom = st.slider( 'Zoom', min_value=1, max_value=20, value=zoom_default,
 					key='maps_zoom' )
 			
 				size = st.selectbox( 'Image Size', size_options,
 					index=size_options.index( size_default ), key='maps_size' )
+				scale = st.selectbox( 'Resolution', [ 1, 2 ],
+					index=0 if scale_default == 1 else 1, key='maps_scale',
+					format_func=lambda value: 'High (2x)' if value == 2 else 'Standard (1x)' )
+				image_width, image_height = (int( part ) for part in size.split( 'x' ))
+				st.caption( f'Native image resolution: {image_width * scale} × {image_height * scale} pixels' )
 			
 				save_coordinates = st.checkbox( 'Save Coordinates to Global State', value=True,
 					key='maps_save_coordinates' )
@@ -4011,10 +4020,11 @@ if mode == 'Mapping':
 						if save_coordinates:
 							resolve_active_location( lat, lng, geocoder )
 							st.session_state[ 'zoom' ] = int( zoom )
-							st.session_state[ 'map_size' ] = str( size )
+							st.session_state[ 'map_size' ] = size
+							st.session_state[ 'map_scale' ] = scale
 					
 						url = static_maps.pin( lat=float( lat ), lng=float( lng ), zoom=int( zoom ),
-							size=str( size ) )
+							size=size, scale=scale, image_format='png32' )
 					
 						st.session_state[ 'maps_last_url' ] = url
 						st.session_state[ 'maps_last_latitude' ] = float( lat )
