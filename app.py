@@ -20,7 +20,7 @@ import re
 import datetime as dt
 from typing import Optional
 import time
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlencode
 from pathlib import Path
 import config as cfg
 from typing import Any, Optional, Dict, List, Tuple
@@ -128,7 +128,7 @@ if 'messages' not in st.session_state:
 # ------- Mappy State
 
 if 'mode' not in st.session_state:
-	st.session_state[ 'mode' ] = 'Geocoding'
+	st.session_state[ 'mode' ] = 'Mapping'
 
 if 'previous_mode' not in st.session_state:
 	st.session_state[ 'previous_mode' ] = ''
@@ -1503,7 +1503,7 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 		deck = pdk.Deck( layers=layers, initial_view_state=view_state, map_style=map_style,
 			tooltip=tooltip )
 		
-		st.pydeck_chart( deck, use_container_width=True )
+		st.pydeck_chart( deck, use_container_width=True, key=f'{key_prefix}_chart' )
 		
 		show_table = st.checkbox( 'Show mapped records table', value=False,
 			key=f'{key_prefix}_show_table' )
@@ -3426,7 +3426,7 @@ with st.sidebar:
 		if mode:
 			st.session_state[ 'mode' ] = mode
 		else:
-			st.sessionn_state[ 'mode' ] = 'Geocoding'
+			st.session_state[ 'mode' ] = 'Mapping'
 		
 		previous_mode = st.session_state.get( 'previous_mode', None )
 		if previous_mode != mode:
@@ -3748,123 +3748,449 @@ with st.sidebar:
 bootstrap_browser_geolocation( geocoder )
 
 # ==============================================================================
-# GEOCODING MODE
+# MAPPING MODE
 # ==============================================================================
-if mode == 'Geocoding':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
-	with center:
-		st.subheader( 'Geocoding' )
-		st.divider( )
+if mode == 'Mapping':
+	interactive_tab, geocoding_tab, static_tab, timezones_tab, places_tab, street_tab, satellites_tab = st.tabs(
+		[ 'Interactive Map', 'Geocoding', 'Static Maps', 'Time Zones', 'Places', 'Street View', 'Satellite' ] )
+
+	with geocoding_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Geocoding' )
+			st.divider( )
 		
-		geo_c1, geo_c2 = st.columns( [ 0.60, 0.40 ], border=True, gap='small' )
-		with geo_c2:
-			st.caption( '' )
-			geosub_c1, geosub_c2 = st.columns( 2 )
-			with geosub_c1:
-				use_places = st.checkbox( 'Use Places fallback', value=True,
-					key='geocoding_fallback' )
+			geo_c1, geo_c2 = st.columns( [ 0.60, 0.40 ], border=True, gap='small' )
+			with geo_c2:
+				st.caption( '' )
+				geosub_c1, geosub_c2 = st.columns( 2 )
+				with geosub_c1:
+					use_places = st.checkbox( 'Use Places fallback', value=True,
+						key='geocoding_fallback' )
 			
-			with geosub_c2:
-				if st.button( label='Clear Map Results', icon='💫', width='stretch',
-						key='clear_map_results' ):
-					st.session_state[ 'df_geocoding_map_results' ] = pd.DataFrame( )
-					st.rerun( )
+				with geosub_c2:
+					if st.button( label='Clear Map Results', icon='💫', width='stretch',
+							key='clear_map_results' ):
+						st.session_state[ 'df_geocoding_map_results' ] = pd.DataFrame( )
+						st.rerun( )
 		
-		with geo_c1:
-			query = st.text_input( 'Enter Address or Location', key='location' )
-			btn_c1, btn_c2 = st.columns( 2 )
-			with btn_c1:
-				if st.button( 'Resolve Location', width='stretch', icon='📍' ):
-					if not query:
-						st.warning( 'Enter a Location.' )
+			with geo_c1:
+				query = st.text_input( 'Enter Address or Location', value=st.session_state.get( 'location', '' ), key='mapping_geocoding_query' )
+				btn_c1, btn_c2 = st.columns( 2 )
+				with btn_c1:
+					if st.button( 'Resolve Location', width='stretch', icon='📍' ):
+						if not query:
+							st.warning( 'Enter a Location.' )
+						else:
+							try:
+								result = geocoder.freeform( query )
+								append_geocoding_map_result( query, 'Geocoder', result )
+								st.json( result )
+							except NotFound:
+								if use_places:
+									try:
+										st.warning( 'Geocoding failed.' )
+										result = places.text_to_location( query )
+										append_geocoding_map_result( query, 'Places', result )
+										st.json( result )
+									except Exception as e:
+										st.error( str( e ) )
+								else:
+									st.warning( 'Geocoding failed and Places fallback is disabled.' )
+							except Exception as e:
+								st.error( str( e ) )
+			
+				with btn_c2:
+					if st.button( label='Clear Location', width='stretch', icon='🧹' ):
+						st.info( 'Use Ctrl+A / Backspace to clear the location field.' )
+		
+			st.divider( )
+		
+			# ------------------------------------------------------------------------------
+			# REPORTS MAP
+			# ------------------------------------------------------------------------------
+			try:
+				tables = list_tables( )
+				if cfg.DEFAULT_DATA not in tables:
+					st.warning( f'Default table "{cfg.DEFAULT_DATA}" was not found in {cfg.DB_PATH}.' )
+				else:
+					df_reports = read_table( cfg.DEFAULT_DATA )
+					df_overlay = st.session_state.get( 'df_geocoding_map_results', pd.DataFrame( ) )
+					create_reports_map( df_reports, df_overlay=df_overlay, key_prefix='geocoding_reports_map' )
+					if df_overlay is not None and not df_overlay.empty:
+						with st.expander( 'Geocoded Map Results', expanded=False ):
+							st.data_editor( df_overlay, key='geocoding_map_results_table',
+								use_container_width=True, disabled=True )
+		
+			except Exception as e:
+				st.error( f'Reports map failed: {e}' )
+
+	with places_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Places' )
+			st.divider( )
+			place_c1, place_c2 = st.columns( [ 0.50, 0.50 ], border=True )
+			with place_c1:
+				place_query = st.text_input( 'Place or Business', key='mapping_places_query' )
+				place_country = st.text_input( 'Region (ISO-2)', value='US',
+					key='mapping_places_country' )
+				add_to_map = st.checkbox( 'Add to Geocoded Overlay', value=True,
+					key='mapping_places_overlay' )
+				if st.button( 'Search Places', icon='📍', width='stretch', key='mapping_places_search' ):
+					if not place_query.strip( ):
+						st.warning( 'Enter a place or business.' )
+					elif place_country and (len( place_country ) != 2 or not place_country.isalpha( )):
+						st.warning( 'Enter a two-letter region code.' )
 					else:
 						try:
-							result = geocoder.freeform( query )
-							append_geocoding_map_result( query, 'Geocoder', result )
-							st.json( result )
-						except NotFound:
-							if use_places:
-								try:
-									st.warning( 'Geocoding failed.' )
-									result = places.text_to_location( query )
-									append_geocoding_map_result( query, 'Places', result )
-									st.json( result )
-								except Exception as e:
-									st.error( str( e ) )
-							else:
-								st.warning( 'Geocoding failed and Places fallback is disabled.' )
-						except Exception as e:
-							st.error( str( e ) )
-			
-			with btn_c2:
-				if st.button( label='Clear Location', width='stretch', icon='🧹' ):
-					st.info( 'Use Ctrl+A / Backspace to clear the location field.' )
-		
-		st.divider( )
-		
-		# ------------------------------------------------------------------------------
-		# REPORTS MAP
-		# ------------------------------------------------------------------------------
-		try:
-			tables = list_tables( )
-			if cfg.DEFAULT_DATA not in tables:
-				st.warning( f'Default table "{cfg.DEFAULT_DATA}" was not found in {cfg.DB_PATH}.' )
-			else:
-				df_reports = read_table( cfg.DEFAULT_DATA )
-				df_overlay = st.session_state.get( 'df_geocoding_map_results', pd.DataFrame( ) )
-				create_reports_map( df_reports, df_overlay=df_overlay )
-				if df_overlay is not None and not df_overlay.empty:
-					with st.expander( 'Geocoded Map Results', expanded=False ):
-						st.data_editor( df_overlay, key='geocoding_map_results_table',
-							use_container_width=True, disabled=True )
-		
-		except Exception as e:
-			st.error( f'Reports map failed: {e}' )
+							place_result = places.text_to_location( place_query, country=place_country )
+							st.session_state[ 'mapping_places_result' ] = place_result
+							if place_result and add_to_map:
+								append_geocoding_map_result( place_query, 'Places', place_result )
+							if not place_result:
+								st.info( 'No matching place found.' )
+						except Exception as ex:
+							st.session_state.pop( 'mapping_places_result', None )
+							st.error( f'Places search failed: {ex}' )
+				if st.button( 'Clear Results', icon='🧹', width='stretch', key='mapping_places_clear' ):
+					st.session_state.pop( 'mapping_places_result', None )
+			with place_c2:
+				place_result = st.session_state.get( 'mapping_places_result' )
+				if place_result:
+					st.json( place_result )
+				else:
+					st.info( 'Search for a place to display its details.' )
 
-# ==============================================================================
-# MAP MODE
-# ==============================================================================
-elif mode == 'Interactive Map':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
-	with center:
-		st.subheader( 'Interactive Map' )
-		st.divider( )
-		tables = list_tables( )
-		if not tables:
-			st.info( 'No tables available.' )
-		else:
-			default_table = resolve_table_name( cfg.DEFAULT_DATA, tables )
-			if default_table is None:
-				default_table = tables[ 0 ]
+	with interactive_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Interactive Map' )
+			st.divider( )
+			tables = list_tables( )
+			if not tables:
+				st.info( 'No tables available.' )
+			else:
+				default_table = resolve_table_name( cfg.DEFAULT_DATA, tables )
+				if default_table is None:
+					default_table = tables[ 0 ]
 			
-			default_index = tables.index( default_table )
+				default_index = tables.index( default_table )
 			
-			control_c1, control_c2, control_c3 = st.columns( [ 0.35, 0.35, 0.30 ], border=True )
-			with control_c1:
-				table = st.selectbox( 'Table', tables, index=default_index, key='map_mode_table' )
+				control_c1, control_c2, control_c3 = st.columns( [ 0.35, 0.35, 0.30 ], border=True )
+				with control_c1:
+					table = st.selectbox( 'Table', tables, index=default_index, key='map_mode_table' )
 			
-			with control_c2:
-				include_overlay = st.checkbox( 'Show Geocoded Overlay', value=True,
-					key='map_mode_show_overlay' )
+				with control_c2:
+					include_overlay = st.checkbox( 'Show Geocoded Overlay', value=True,
+						key='map_mode_show_overlay' )
 			
-			with control_c3:
-				refresh_map = st.button( label='Refresh Map', key='map_mode_refresh', icon='🔄',
-					width='stretch' )
+				with control_c3:
+					refresh_map = st.button( label='Refresh Map', key='map_mode_refresh', icon='🔄',
+						width='stretch' )
 				
-				if refresh_map:
-					st.rerun( )
+					if refresh_map:
+						st.rerun( )
 			
-			df_map_source = read_table( table )
-			df_overlay = pd.DataFrame( )
+				df_map_source = read_table( table )
+				df_overlay = pd.DataFrame( )
 			
-			if include_overlay:
-				df_overlay = st.session_state.get( 'df_geocoding_map_results', pd.DataFrame( ) )
+				if include_overlay:
+					df_overlay = st.session_state.get( 'df_geocoding_map_results', pd.DataFrame( ) )
 			
-			create_reports_map( df_map_source, df_overlay=df_overlay )
-			if include_overlay and df_overlay is not None and not df_overlay.empty:
-				with st.expander( 'Geocoded Overlay Records', expanded=False ):
-					st.data_editor( df_overlay, key='map_mode_overlay_records',
-						use_container_width=True, disabled=True )
+				create_reports_map( df_map_source, df_overlay=df_overlay )
+				if include_overlay and df_overlay is not None and not df_overlay.empty:
+					with st.expander( 'Geocoded Overlay Records', expanded=False ):
+						st.data_editor( df_overlay, key='map_mode_overlay_records',
+							use_container_width=True, disabled=True )
+
+	with static_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Static Map' )
+			st.divider( )
+			global_location = get_default_location( )
+			location_state = get_location_state( )
+			has_global_coords = has_valid_global_coordinates( )
+			status_c1, status_c2, status_c3 = st.columns( 3, border=True )
+			status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
+			status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
+			status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+		
+			blue_divider( )
+		
+			map_c1, map_c2 = st.columns( [ 0.50, 0.50 ], border=True )
+			with map_c1:
+				use_global_coordinates = st.checkbox( 'Use User-Location', value=has_global_coords,
+					key='maps_use_global_coordinates' )
+			
+				if use_global_coordinates:
+					lat = float( location_state[ 'latitude' ] )
+					lng = float( location_state[ 'longitude' ] )
+				
+					coord_c1, coord_c2 = st.columns( 2 )
+					with coord_c1:
+						st.number_input( 'Latitude', value=lat, format='%.4f',
+							key='maps_global_latitude_display', disabled=True )
+				
+					with coord_c2:
+						st.number_input( 'Longitude', value=lng, format='%.4f',
+							key='maps_global_longitude_display', disabled=True )
+			
+				else:
+					manual_default_lat = (
+						float( location_state[ 'latitude' ] ) if has_global_coords else 0.0)
+				
+					manual_default_lng = (
+						float( location_state[ 'longitude' ] ) if has_global_coords else 0.0)
+				
+					coord_c1, coord_c2 = st.columns( 2 )
+					with coord_c1:
+						lat = st.number_input( 'Latitude', value=manual_default_lat, format='%.4f',
+							key='maps_manual_latitude' )
+				
+					with coord_c2:
+						lng = st.number_input( 'Longitude', value=manual_default_lng, format='%.4f',
+							key='maps_manual_longitude' )
+		
+			with map_c2:
+				zoom_default = int( st.session_state.get( 'zoom', 8 ) or 8 )
+				size_default = str( st.session_state.get( 'map_size', '600x400' ) or '600x400' )
+				size_options = [ '400x400', '600x400', '800x600' ]
+				if size_default not in size_options:
+					size_default = '600x400'
+			
+				zoom = st.slider( 'Zoom', min_value=1, max_value=20, value=zoom_default,
+					key='maps_zoom' )
+			
+				size = st.selectbox( 'Image Size', size_options,
+					index=size_options.index( size_default ), key='maps_size' )
+			
+				save_coordinates = st.checkbox( 'Save Coordinates to Global State', value=True,
+					key='maps_save_coordinates' )
+		
+			if st.button( 'Generate Map', icon='🗺️', key='maps_generate', width='content' ):
+				if use_global_coordinates and not has_global_coords:
+					st.warning( 'User coordinates are not set.' )
+				elif not has_valid_coordinates( lat, lng ):
+					st.warning( 'Provide valid coordinates before generating a map.' )
+				else:
+					try:
+						if save_coordinates:
+							set_coordinates( lat, lng )
+							st.session_state[ 'zoom' ] = int( zoom )
+							st.session_state[ 'map_size' ] = str( size )
+					
+						url = static_maps.pin( lat=float( lat ), lng=float( lng ), zoom=int( zoom ),
+							size=str( size ) )
+					
+						st.session_state[ 'maps_last_url' ] = url
+						st.session_state[ 'maps_last_latitude' ] = float( lat )
+						st.session_state[ 'maps_last_longitude' ] = float( lng )
+						st.success( 'Static map generated.' )
+				
+					except Exception as ex:
+						st.error( f'Static map generation failed: {ex}' )
+		
+			map_url = st.session_state.get( 'maps_last_url', '' )
+			if map_url:
+				blue_divider( )
+				st.markdown( '##### Static Map Result' )
+				st.image( map_url )
+				st.code( map_url )
+
+	with timezones_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Time Zone Lookup' )
+			st.divider( )
+			global_location = get_default_location( )
+			location_state = get_location_state( )
+			has_global_coords = has_valid_global_coordinates( )
+			status_c1, status_c2, status_c3 = st.columns( 3, border=True )
+			status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
+			status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
+			status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
+		
+			blue_divider( )
+		
+			tz_c1, tz_c2 = st.columns( [ 0.50, 0.50 ], border=True )
+			with tz_c1:
+				use_global_coordinates = st.checkbox( 'User Location', value=has_global_coords,
+					key='timezone_use_global_coordinates' )
+			
+				if use_global_coordinates:
+					lat_tz = float( location_state[ 'latitude' ] )
+					lng_tz = float( location_state[ 'longitude' ] )
+				
+					coord_c1, coord_c2 = st.columns( 2 )
+					with coord_c1:
+						st.number_input( 'Latitude', value=lat_tz, format='%.6f',
+							key='timezone_global_latitude_display', disabled=True )
+				
+					with coord_c2:
+						st.number_input( 'Longitude', value=lng_tz, format='%.6f',
+							key='timezone_global_longitude_display', disabled=True )
+			
+				else:
+					manual_default_lat = (
+							float( location_state[ 'latitude' ] ) if has_global_coords else 0.0)
+				
+					manual_default_lng = (
+							float( location_state[ 'longitude' ] ) if has_global_coords else 0.0)
+				
+					coord_c1, coord_c2 = st.columns( 2 )
+					with coord_c1:
+						lat_tz = st.number_input( 'Latitude', value=manual_default_lat, format='%.6f',
+							key='timezone_manual_latitude' )
+				
+					with coord_c2:
+						lng_tz = st.number_input( 'Longitude', value=manual_default_lng, format='%.6f',
+							key='timezone_manual_longitude' )
+		
+			with tz_c2:
+				save_coordinates = st.checkbox( 'Save Coordinates to Global State', value=True,
+					key='timezone_save_coordinates' )
+			
+				run_timezone = st.button( 'Lookup Time Zone', key='timezone_lookup', icon='🔍',
+					width='content' )
+		
+			if run_timezone:
+				if use_global_coordinates and not has_global_coords:
+					st.warning(
+						'Global coordinates are not set. Resolve a location first or enter manually.' )
+				elif not has_valid_coordinates( lat_tz, lng_tz ):
+					st.warning( 'Provide valid coordinates before looking up a time zone.' )
+				else:
+					try:
+						if save_coordinates:
+							set_coordinates( lat_tz, lng_tz )
+					
+						result = timezone.lookup( float( lat_tz ), float( lng_tz ) )
+						st.session_state[ 'timezone_last_result' ] = result or { }
+						st.session_state[ 'timezone_last_latitude' ] = float( lat_tz )
+						st.session_state[ 'timezone_last_longitude' ] = float( lng_tz )
+						st.success( 'Time zone lookup completed.' )
+				
+					except Exception as ex:
+						st.error( f'Time zone lookup failed: {ex}' )
+		
+			result = st.session_state.get( 'timezone_last_result', { } )
+		
+			if result:
+			
+				blue_divider( )
+			
+				st.markdown( '##### Time Zone Result' )
+				lat_c, lng_c = st.columns( 2 )
+				with lat_c:
+					st.metric( 'Latitude',
+						f'{float( st.session_state.get( "timezone_last_latitude", 0.0 ) ):.6f}' )
+				with lng_c:
+					st.metric( 'Longitude',
+						f'{float( st.session_state.get( "timezone_last_longitude", 0.0 ) ):.6f}' )
+			
+				st.json( result )
+
+	# ----- Street View and satellite imagery share the same Mapping Tools tab bar.
+	# Prefer the most recently generated map position, otherwise use global coordinates.
+	map_position_available = ('maps_last_latitude' in st.session_state
+		and 'maps_last_longitude' in st.session_state)
+	if map_position_available:
+		view_latitude = st.session_state[ 'maps_last_latitude' ]
+		view_longitude = st.session_state[ 'maps_last_longitude' ]
+	elif has_valid_global_coordinates( ):
+		view_latitude = get_location_state( )[ 'latitude' ]
+		view_longitude = get_location_state( )[ 'longitude' ]
+	else:
+		view_latitude = None
+		view_longitude = None
+	map_embed_key = st.session_state.get( 'googlemaps_api_key' ) or cfg.GOOGLEMAPS_API_KEY
+
+	with street_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Street View' )
+			st.divider( )
+			if view_latitude is None or view_longitude is None:
+				st.info( 'Set global coordinates or generate a static map to view Street View.' )
+			elif not map_embed_key:
+				st.warning( 'Google Maps API key is required for Street View.' )
+			else:
+				map_center = f'{float( view_latitude ):.6f},{float( view_longitude ):.6f}'
+				street_url = ( 'https://www.google.com/maps/embed/v1/streetview?'
+					+ urlencode( { 'key': map_embed_key, 'location': map_center } ) )
+				components.iframe( street_url, height=650, scrolling=False )
+				st.caption( 'Street View availability depends on imagery coverage. '
+					'The Google Maps Embed API must be enabled for your API key.' )
+
+	with satellites_tab:
+		left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
+		with center:
+			st.subheader( 'Satellite View' )
+			st.divider( )
+			if view_latitude is None or view_longitude is None:
+				st.info( 'Set global coordinates or generate a static map to view satellite imagery.' )
+			else:
+				map_center = f'{float( view_latitude ):.6f},{float( view_longitude ):.6f}'
+				satellite_mode = st.radio( 'Satellite Rendering',
+					options=[ '3D Satellite', '2D Satellite' ], horizontal=True,
+					key='maps_satellite_rendering' )
+				if not map_embed_key:
+					st.warning( 'Google Maps API key is required for satellite imagery.' )
+				elif satellite_mode == '3D Satellite':
+					st.caption( 'Interactive photorealistic 3D terrain and buildings where '
+						'Google imagery coverage is available. Drag to explore the map.' )
+					maps3d_script_url = ( 'https://maps.googleapis.com/maps/api/js?'
+						+ urlencode( { 'key': map_embed_key, 'v': 'weekly',
+								'loading': 'async', 'libraries': 'maps3d' } ) )
+					maps3d_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html, body {{ width: 100%; height: 100%; margin: 0; overflow: hidden; }}
+gmp-map-3d {{ display: block; width: 100%; height: 100%; }}
+#map-error {{
+    display: none; padding: 18px; font-family: sans-serif;
+    color: #fafafa; background: #27272a;
+}}
+</style>
+</head>
+<body>
+<gmp-map-3d center="{map_center},0" range="3000" tilt="65"
+    heading="0" mode="SATELLITE"></gmp-map-3d>
+<div id="map-error" role="alert">Unable to load Google 3D Maps.
+Verify the Maps JavaScript API, billing, and browser graphics acceleration.
+Choose 2D Satellite above if 3D rendering is unavailable.</div>
+<script>
+function showMapError() {{
+    document.querySelector("gmp-map-3d").style.display = "none";
+    document.getElementById("map-error").style.display = "block";
+}}
+</script>
+<script async src="{html_lib.escape( maps3d_script_url, quote=True )}"
+    onerror="showMapError()"></script>
+</body>
+</html>
+"""
+					components.html( maps3d_html, height=700, scrolling=False )
+					st.caption( '3D requires the Maps JavaScript API, WebGL-capable '
+						'hardware acceleration, and applicable Google Maps billing. '
+						'Use 2D Satellite if the 3D viewer is unavailable.' )
+				else:
+					st.caption( 'Google Maps 2D satellite imagery.' )
+					satellite_url = ( 'https://www.google.com/maps/embed/v1/view?'
+						+ urlencode( { 'key': map_embed_key, 'center': map_center,
+							'zoom': int( st.session_state.get( 'maps_zoom', 8 ) ),
+							'maptype': 'satellite' } ) )
+					components.iframe( satellite_url, height=700, scrolling=False )
+				earth_url = ( 'https://earth.google.com/web/search/'
+					+ urlencode( { 'q': map_center } ).split( '=', 1 )[ 1 ] )
+				st.link_button( 'Open Google Earth', earth_url )
+
 
 # ==============================================================================
 # DISTANCES MODE
@@ -3947,200 +4273,6 @@ elif mode == 'Distances':
 			st.markdown( '##### Distance Result' )
 			st.data_editor( pd.DataFrame( [ result ] ), key='distance_result_table',
 				use_container_width=True, disabled=True )
-			st.json( result )
-
-# ==============================================================================
-# MAPS MODE
-# ==============================================================================
-elif mode == 'Static Maps':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
-	with center:
-		st.subheader( 'Static Map' )
-		st.divider( )
-		global_location = get_default_location( )
-		location_state = get_location_state( )
-		has_global_coords = has_valid_global_coordinates( )
-		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
-		status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
-		
-		blue_divider( )
-		
-		map_c1, map_c2 = st.columns( [ 0.50, 0.50 ], border=True )
-		with map_c1:
-			use_global_coordinates = st.checkbox( 'Use User-Location', value=has_global_coords,
-				key='maps_use_global_coordinates' )
-			
-			if use_global_coordinates:
-				lat = float( location_state[ 'latitude' ] )
-				lng = float( location_state[ 'longitude' ] )
-				
-				coord_c1, coord_c2 = st.columns( 2 )
-				with coord_c1:
-					st.number_input( 'Latitude', value=lat, format='%.4f',
-						key='maps_global_latitude_display', disabled=True )
-				
-				with coord_c2:
-					st.number_input( 'Longitude', value=lng, format='%.4f',
-						key='maps_global_longitude_display', disabled=True )
-			
-			else:
-				manual_default_lat = (
-					float( location_state[ 'latitude' ] ) if has_global_coords else 0.0)
-				
-				manual_default_lng = (
-					float( location_state[ 'longitude' ] ) if has_global_coords else 0.0)
-				
-				coord_c1, coord_c2 = st.columns( 2 )
-				with coord_c1:
-					lat = st.number_input( 'Latitude', value=manual_default_lat, format='%.4f',
-						key='maps_manual_latitude' )
-				
-				with coord_c2:
-					lng = st.number_input( 'Longitude', value=manual_default_lng, format='%.4f',
-						key='maps_manual_longitude' )
-		
-		with map_c2:
-			zoom_default = int( st.session_state.get( 'zoom', 8 ) or 8 )
-			size_default = str( st.session_state.get( 'map_size', '600x400' ) or '600x400' )
-			size_options = [ '400x400', '600x400', '800x600' ]
-			if size_default not in size_options:
-				size_default = '600x400'
-			
-			zoom = st.slider( 'Zoom', min_value=1, max_value=20, value=zoom_default,
-				key='maps_zoom' )
-			
-			size = st.selectbox( 'Image Size', size_options,
-				index=size_options.index( size_default ), key='maps_size' )
-			
-			save_coordinates = st.checkbox( 'Save Coordinates to Global State', value=True,
-				key='maps_save_coordinates' )
-		
-		if st.button( 'Generate Map', icon='🗺️', key='maps_generate', width='content' ):
-			if use_global_coordinates and not has_global_coords:
-				st.warning( 'User coordinates are not set.' )
-			elif not has_valid_coordinates( lat, lng ):
-				st.warning( 'Provide valid coordinates before generating a map.' )
-			else:
-				try:
-					if save_coordinates:
-						set_coordinates( lat, lng )
-						st.session_state[ 'zoom' ] = int( zoom )
-						st.session_state[ 'map_size' ] = str( size )
-					
-					url = static_maps.pin( lat=float( lat ), lng=float( lng ), zoom=int( zoom ),
-						size=str( size ) )
-					
-					st.session_state[ 'maps_last_url' ] = url
-					st.session_state[ 'maps_last_latitude' ] = float( lat )
-					st.session_state[ 'maps_last_longitude' ] = float( lng )
-					st.success( 'Static map generated.' )
-				
-				except Exception as ex:
-					st.error( f'Static map generation failed: {ex}' )
-		
-		map_url = st.session_state.get( 'maps_last_url', '' )
-		if map_url:
-			blue_divider( )
-			st.markdown( '##### Static Map Result' )
-			st.image( map_url )
-			st.code( map_url )
-
-# ==============================================================================
-# TIME ZONE MODE
-# ==============================================================================
-elif mode == 'Time Zones':
-	left, center, right = st.columns( [ 0.025, 0.95, 0.025 ] )
-	with center:
-		st.subheader( 'Time Zone Lookup' )
-		st.divider( )
-		global_location = get_default_location( )
-		location_state = get_location_state( )
-		has_global_coords = has_valid_global_coordinates( )
-		status_c1, status_c2, status_c3 = st.columns( 3, border=True )
-		status_c1.metric( 'Location', compose_location_from_state( ) or global_location )
-		status_c2.metric( 'Latitude', f'{float( location_state[ "latitude" ] ):.4f}' )
-		status_c3.metric( 'Longitude', f'{float( location_state[ "longitude" ] ):.4f}' )
-		
-		blue_divider( )
-		
-		tz_c1, tz_c2 = st.columns( [ 0.50, 0.50 ], border=True )
-		with tz_c1:
-			use_global_coordinates = st.checkbox( 'User Location', value=has_global_coords,
-				key='timezone_use_global_coordinates' )
-			
-			if use_global_coordinates:
-				lat_tz = float( location_state[ 'latitude' ] )
-				lng_tz = float( location_state[ 'longitude' ] )
-				
-				coord_c1, coord_c2 = st.columns( 2 )
-				with coord_c1:
-					st.number_input( 'Latitude', value=lat_tz, format='%.6f',
-						key='timezone_global_latitude_display', disabled=True )
-				
-				with coord_c2:
-					st.number_input( 'Longitude', value=lng_tz, format='%.6f',
-						key='timezone_global_longitude_display', disabled=True )
-			
-			else:
-				manual_default_lat = (
-						float( location_state[ 'latitude' ] ) if has_global_coords else 0.0)
-				
-				manual_default_lng = (
-						float( location_state[ 'longitude' ] ) if has_global_coords else 0.0)
-				
-				coord_c1, coord_c2 = st.columns( 2 )
-				with coord_c1:
-					lat_tz = st.number_input( 'Latitude', value=manual_default_lat, format='%.6f',
-						key='timezone_manual_latitude' )
-				
-				with coord_c2:
-					lng_tz = st.number_input( 'Longitude', value=manual_default_lng, format='%.6f',
-						key='timezone_manual_longitude' )
-		
-		with tz_c2:
-			save_coordinates = st.checkbox( 'Save Coordinates to Global State', value=True,
-				key='timezone_save_coordinates' )
-			
-			run_timezone = st.button( 'Lookup Time Zone', key='timezone_lookup', icon='🔍',
-				width='content' )
-		
-		if run_timezone:
-			if use_global_coordinates and not has_global_coords:
-				st.warning(
-					'Global coordinates are not set. Resolve a location first or enter manually.' )
-			elif not has_valid_coordinates( lat_tz, lng_tz ):
-				st.warning( 'Provide valid coordinates before looking up a time zone.' )
-			else:
-				try:
-					if save_coordinates:
-						set_coordinates( lat_tz, lng_tz )
-					
-					result = timezone.lookup( float( lat_tz ), float( lng_tz ) )
-					st.session_state[ 'timezone_last_result' ] = result or { }
-					st.session_state[ 'timezone_last_latitude' ] = float( lat_tz )
-					st.session_state[ 'timezone_last_longitude' ] = float( lng_tz )
-					st.success( 'Time zone lookup completed.' )
-				
-				except Exception as ex:
-					st.error( f'Time zone lookup failed: {ex}' )
-		
-		result = st.session_state.get( 'timezone_last_result', { } )
-		
-		if result:
-			
-			blue_divider( )
-			
-			st.markdown( '##### Time Zone Result' )
-			lat_c, lng_c = st.columns( 2 )
-			with lat_c:
-				st.metric( 'Latitude',
-					f'{float( st.session_state.get( "timezone_last_latitude", 0.0 ) ):.6f}' )
-			with lng_c:
-				st.metric( 'Longitude',
-					f'{float( st.session_state.get( "timezone_last_longitude", 0.0 ) ):.6f}' )
-			
 			st.json( result )
 
 # =============================================================================
