@@ -987,7 +987,7 @@ class SQLiteDatabase( ):
 			List[ str ]: Result of the list tables operation.
 		"""
 		with self.create_read_connection( ) as conn:
-			_query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+			_query = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
 			rows = conn.execute( _query ).fetchall( )
 			return [ r[ 0 ] for r in rows ]
 	
@@ -1533,9 +1533,10 @@ class SQLiteDatabase( ):
 			columns = [ ]
 			for col in self.df_input.columns:
 				sql_type = self.get_sqlite_type( self.df_input[ col ].dtype )
-				safe_col = col.replace( ' ', '_' )
+				safe_col = '"' + col.replace( '"', '""' ) + '"'
 				columns.append( f'{safe_col} {sql_type}' )
-			create_stmt = f'CREATE TABLE IF NOT EXISTS {self.table_name} ({", ".join( columns )});'
+			quoted_table = '"' + self.table_name.replace( '"', '""' ) + '"'
+			create_stmt = f'CREATE TABLE IF NOT EXISTS {quoted_table} ({", ".join( columns )});'
 			with self.create_connection( ) as conn:
 				conn.execute( create_stmt )
 				conn.commit( )
@@ -1569,9 +1570,10 @@ class SQLiteDatabase( ):
 			self.table_name = table_name
 			self.df_input = df
 			df = self.df_input.copy( )
-			df.columns = [ c.replace( ' ', '_' ) for c in df.columns ]
+			quoted_table = '"' + self.table_name.replace( '"', '""' ) + '"'
+			quoted_columns = ', '.join( '"' + col.replace( '"', '""' ) + '"' for col in df.columns )
 			placeholders = ', '.join( [ '?' ] * len( df.columns ) )
-			stmt = f'INSERT INTO {self.table_name} VALUES ({placeholders});'
+			stmt = f'INSERT INTO {quoted_table} ({quoted_columns}) VALUES ({placeholders});'
 			with self.create_connection( ) as conn:
 				conn.executemany( stmt, df.values.tolist( ) )
 				conn.commit( )
