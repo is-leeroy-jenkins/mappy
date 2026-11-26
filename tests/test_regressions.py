@@ -158,5 +158,34 @@ class SourceContractTests( unittest.TestCase ):
 		inspect_blocks( tree )
 
 
+
+	def test_mapping_mode_consolidation( self ) -> None:
+		"""Verify the consolidated routing, provider calls, and map widget isolation."""
+		application = (ROOT / 'app.py').read_text( encoding='utf-8' )
+		configuration = ast.parse( (ROOT / 'config.py').read_text( encoding='utf-8' ) )
+		modes = next( ast.literal_eval( node.value ) for node in configuration.body
+			if isinstance( node, ast.Assign ) and any(
+				isinstance( target, ast.Name ) and target.id == 'MODES'
+				for target in node.targets ) )
+		self.assertEqual( modes[ 0 ], 'Mapping' )
+		self.assertIn( 'Distances', modes )
+		for name in ( 'Geocoding', 'Interactive Map', 'Static Maps', 'Time Zones', 'Places' ):
+			self.assertNotIn( name, modes )
+		tree = ast.parse( application )
+		mapping = next( node for node in tree.body if isinstance( node, ast.If )
+			and ast.unparse( node.test ) == "mode == 'Mapping'" )
+		tab_assignment = mapping.body[ 0 ]
+		self.assertEqual( ast.literal_eval( tab_assignment.value.args[ 0 ] ),
+			[ 'Interactive Map', 'Geocoding', 'Static Maps', 'Time Zones', 'Places',
+				'Street View', 'Satellite' ] )
+		source = ast.unparse( mapping )
+		for marker in ( 'geocoder.freeform', 'places.text_to_location', 'static_maps.pin',
+			'timezone.lookup', 'create_reports_map', 'components.iframe', 'components.html',
+			'geocoding_reports_map', 'mapping_geocoding_query', 'mapping_places_result' ):
+			self.assertIn( marker, source )
+		self.assertIn( "key=f'{key_prefix}_chart'", application )
+		self.assertIn( 'maps = Map( qps=qps, )', application )
+
+
 if __name__ == '__main__':
 	unittest.main( )
