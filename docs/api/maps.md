@@ -1,1 +1,3 @@
-::: maps
+# Google Maps
+
+::: mapping.Map
