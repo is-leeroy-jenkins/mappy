@@ -1315,7 +1315,7 @@ class Place( ):
 			exception.method = "place_details( self, place_id: str ) -> Dict[ str, Any ] | None"
 			raise exception
 	
-	def text_to_location( self, query: str, country: str = 'US' ) -> Dict[ str, Any ] | None:
+	def text_to_location( self, query: str, country: str = 'US', latitude: Optional[ float ] = None, longitude: Optional[ float ] = None ) -> Dict[ str, Any ] | None:
 		"""
 
 			Purpose:
@@ -1327,6 +1327,8 @@ class Place( ):
 					Arbitrary human-entered text such as "Newcastle, NSW, AU".
 				country (str):
 					ISO-2 region bias such as "AU" or "US".
+				latitude (Optional[float]): Latitude for optional local search bias.
+				longitude (Optional[float]): Longitude for optional local search bias.
 
 			Returns:
 				Dict[str, Any] | None:
@@ -1341,14 +1343,28 @@ class Place( ):
 			throw_if( 'query', query )
 			self.query = query.strip( )
 			self.country = str( country or '' ).strip( )
-			self.key = self.key_for( 'places', [ self.query, self.country.upper( ) ] )
+			self.latitude = latitude
+			self.longitude = longitude
+			if (self.latitude is None) != (self.longitude is None):
+				raise ValueError( 'Both location-bias coordinates must be supplied.' )
+			self.params = { 'query': self.query }
+			if self.country:
+				self.params[ 'region' ] = self.country.upper( )
+			if self.latitude is not None:
+				if (isinstance( self.latitude, bool ) or isinstance( self.longitude, bool )
+						or not isinstance( self.latitude, (int, float) )
+						or not isinstance( self.longitude, (int, float) )
+						or not -90 <= self.latitude <= 90
+						or not -180 <= self.longitude <= 180):
+					raise ValueError( 'Invalid location-bias coordinates.' )
+				self.params[ 'location' ] = f'{self.latitude},{self.longitude}'
+				self.params[ 'radius' ] = 50000
+			self.key = self.key_for( 'places', [ self.query, self.country.upper( ),
+				str( self.latitude ), str( self.longitude ) ] )
 			if self.cache:
 				self.hit = self.cache.get( self.key )
 				if self.hit:
 					return self.hit
-			self.params = { 'query': self.query }
-			if self.country:
-				self.params[ 'region' ] = self.country.upper( )
 			self.search = self.maps.request( 'place/textsearch/json', self.params )
 			self.results = self.search.get( 'results' ) or [ ]
 			if not self.results:
