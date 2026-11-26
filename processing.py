@@ -33,7 +33,7 @@ from embedders import EmbeddingFactory
 from excel import Excel
 from fetchers import WebFetcher
 from loaders import DocumentLoaderFactory
-from vector import ChromaStore, PineconeStore, create_document_ids
+from storage import ChromaStore, PineconeStore
 
 DOCUMENT_LOADERS: Dict[ str, Dict[ str, object ] ] = {
 		'Text': { 'label': 'Text Loader', 'icon': '📝', 'types': [ 'txt', 'text', 'log' ],

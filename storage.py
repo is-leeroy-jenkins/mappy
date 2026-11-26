@@ -50,7 +50,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import re
-from embedders import vector_document_ids
 from pathlib import Path
 from typing import Any, List, Dict, Optional, Tuple
 from boogr import Error, Logger

@@ -37,9 +37,7 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any, List
-
 from langchain_core.embeddings import Embeddings
-
 from boogr import Error, Logger
 
 

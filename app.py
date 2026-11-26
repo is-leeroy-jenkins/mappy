@@ -3735,7 +3735,7 @@ with st.sidebar:
 			st.session_state.xai_api_key = xai_key
 			os.environ[ 'XAI_API_KEY' ] = xai_key
 	
-	maps = Maps( qps=qps, )
+	maps = Map( qps=qps, )
 	distances = DistanceMatrix( maps )
 	timezone = Timezone( maps )
 	geocoder = Geocoder( maps, cache=cache )

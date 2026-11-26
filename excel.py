@@ -43,26 +43,9 @@
   '''
 from typing import Optional, Dict, List
 import pandas as pd
-if __package__:
-	from .caches import BaseCache
-else:
-	from caches import BaseCache
-if __package__:
-	from .geocode import Geocoder
-else:
-	from geocode import Geocoder
-if __package__:
-	from .maps import Maps
-else:
-	from maps import Maps
-if __package__:
-	from .places import Place
-else:
-	from places import Place
-if __package__:
-	from .boogr import Error, Logger
-else:
-	from boogr import Error, Logger
+from storage import BaseCache
+from boogr import Error, Logger
+from mapping import Geocoder, Map, Place
 
 def throw_if( name: str, value: object ) -> None:
 	"""Validate that a required Excel workflow value is present.
@@ -115,7 +98,7 @@ class Excel:
 		country: Country column name or current country value used by enrichment.
 	"""
 	api_key: str
-	maps: Optional[ Maps ]
+	maps: Optional[ Map ]
 	geocoder: Optional[ Geocoder ]
 	places: Optional[ Place ]
 	input_path: Optional[ str ]
