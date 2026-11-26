@@ -1430,7 +1430,7 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 			
 			df_target[ 'MapSummary' ] = df_target[ 'Summary' ].fillna( '' ).astype( str ).str.slice( 0, 300 )
 			df_target[ 'MapName' ] = df_target[ 'Name' ].fillna( '' )
-			df_target[ 'MapCapacity' ] = df_target[ 'GeneratingCapacity(MW)' ].fillna( '' )
+			df_target[ 'MapCapacity' ] = df_target[ 'GeneratingCapacity(MW)' ].astype( object ).fillna( '' )
 			df_target[ 'Position' ] = df_target.apply(
 				lambda row: [ float( row[ 'Longitude' ] ), float( row[ 'Latitude' ] ) ], axis=1 )
 		
@@ -1692,6 +1692,8 @@ def get_geocode_expressions( table_name: str ) -> Tuple[ str, str, str, str ]:
 	country_fields = [ f"""NULLIF(TRIM("{field}"), '')""" for field in
 		( 'CountryName', 'Country', 'CountryCode' ) if field in columns ]
 	country = f"COALESCE({', '.join( country_fields )}, '')" if country_fields else "''"
+	if table_name == 'Military':
+		country = "'United States'"
 	missing = """("Latitude" IS NULL OR "Longitude" IS NULL
 		OR typeof("Latitude") NOT IN ('real', 'integer')
 		OR typeof("Longitude") NOT IN ('real', 'integer')
@@ -2587,10 +2589,11 @@ def convert_dataframe( table_name: str, df: pd.DataFrame ) -> None:
 	columns = [ ]
 	for col in df.columns:
 		sql_type = get_sqlite_type( df[ col ].dtype )
-		safe_col = col.replace( ' ', '_' )
+		safe_col = '"' + col.replace( '"', '""' ) + '"'
 		columns.append( f'{safe_col} {sql_type}' )
 	
-	create_stmt = f'CREATE TABLE IF NOT EXISTS {table_name} ({", ".join( columns )});'
+	quoted_table = '"' + table_name.replace( '"', '""' ) + '"'
+	create_stmt = f'CREATE TABLE IF NOT EXISTS {quoted_table} ({", ".join( columns )});'
 	with create_connection( ) as conn:
 		conn.execute( create_stmt )
 		conn.commit( )
@@ -2606,9 +2609,10 @@ def insert_data( table_name: str, df: pd.DataFrame ) -> None:
 		df: pd.DataFrame value used by the `insert_data` workflow.
 	"""
 	df = df.copy( )
-	df.columns = [ c.replace( ' ', '_' ) for c in df.columns ]
+	quoted_table = '"' + table_name.replace( '"', '""' ) + '"'
+	quoted_columns = ', '.join( '"' + col.replace( '"', '""' ) + '"' for col in df.columns )
 	placeholders = ', '.join( [ '?' ] * len( df.columns ) )
-	stmt = f'INSERT INTO {table_name} VALUES ({placeholders});'
+	stmt = f'INSERT INTO {quoted_table} ({quoted_columns}) VALUES ({placeholders});'
 	with create_connection( ) as conn:
 		conn.executemany( stmt, df.values.tolist( ) )
 		conn.commit( )
@@ -8915,6 +8919,8 @@ elif mode == 'Data Management':
 				# ------------------------------------------------------------------
 				with insert_col:
 					st.markdown( '##### Insert Row' )
+					if any( 'BLOB' in col_type for col_type in type_map.values( ) ):
+						st.caption( 'Binary values are not editable through this form.' )
 					insert_data = { }
 					for column, col_type in writable_types.items( ):
 						if 'INT' in col_type:
