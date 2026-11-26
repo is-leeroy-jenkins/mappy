@@ -1502,7 +1502,6 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 	
 	except Exception as e:
 		st.error( f'Interactive map failed: {e}' )
-
 # ------------ GIS MAPPING UTILITIES
 
 def compose_location_query( city: object, state: object, country: object ) -> str:
@@ -1642,7 +1641,6 @@ def list_spatial_tables( ) -> List[ str ]:
 	return [ table for table in list_tables( ) if { 'Latitude', 'Longitude' }.issubset(
 		{ column[ 1 ] for column in create_schema( table ) } ) ]
 
-
 def get_geocode_expressions( table_name: str ) -> Tuple[ str, str, str, str ]:
 	"""Return quoted SQL expressions for the selected spatial table.
 
@@ -1687,7 +1685,6 @@ def get_geocode_expressions( table_name: str ) -> Tuple[ str, str, str, str ]:
 		OR "Latitude" NOT BETWEEN -90 AND 90 OR "Longitude" NOT BETWEEN -180 AND 180
 		OR ("Latitude" = 0 AND "Longitude" = 0))"""
 	return city, state, country, missing
-
 
 def count_missing_report_coordinate_rows( table_name: str ) -> int:
 	"""Handle the count missing report coordinate rows workflow.
