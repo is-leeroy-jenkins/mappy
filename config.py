@@ -237,7 +237,7 @@ XAI_API_KEY = os.getenv( 'XAI_API_KEY' )
 
 # -------------- SETTINGS
 
-MODES = [ 'Geocoding', 'Interactive Map', 'Distances', 'Static Maps', 'Time Zones', 'Web Scraper',
+MODES = [ 'Mapping', 'Distances', 'Web Scraper',
           'Weather', 'Environmental', 'Geological', 'Astronomical', 'Celestial Map', 'Generative',
           'Data Upload', 'Data Management' ]
 
