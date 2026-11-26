@@ -2,82 +2,102 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/architecture/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/development/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/user-guide/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/app/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/caches/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/config/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/core/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/distances/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/Mappy/api/embedders/</loc>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/excel/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/exceptions/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/fetchers/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/generators/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/geocode/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/Mappy/api/loaders/</loc>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/maps/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/places/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/Mappy/api/processing/</loc>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/rates/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/staticmaps/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/Mappy/api/storage/</loc>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://is-leeroy-jenkins.github.io/Mappy/api/timezones/</loc>
-         <lastmod>2026-06-15</lastmod>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/Mappy/api/vector/</loc>
+         <lastmod>2026-11-26</lastmod>
     </url>
 </urlset>
