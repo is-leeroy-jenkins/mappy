@@ -1266,6 +1266,19 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 	try:
 		st.subheader( 'Locations' )
 		df_source = pd.DataFrame( ) if df is None else df.copy( )
+		if 'CountryName' in df_source.columns:
+			df_source[ 'Country' ] = df_source[ 'CountryName' ].replace( '', pd.NA )
+			if 'CountryCode' in df_source.columns:
+				df_source[ 'Country' ] = df_source[ 'Country' ].fillna( df_source[ 'CountryCode' ] )
+		if 'State' not in df_source.columns:
+			for field in ( 'StateCode', 'State/Region' ):
+				if field in df_source.columns:
+					df_source[ 'State' ] = df_source[ field ]
+					break
+		if 'CalendarDate' not in df_source.columns and { 'Year', 'Month', 'Day' }.issubset(
+				df_source.columns ):
+			df_source[ 'CalendarDate' ] = df_source[ [ 'Year', 'Month', 'Day' ] ].fillna(
+				'' ).astype( str ).agg( '-'.join, axis=1 )
 		df_overlay_source = pd.DataFrame( ) if df_overlay is None else df_overlay.copy( )
 		required_cols = [ 'Latitude', 'Longitude' ]
 		
@@ -1349,54 +1362,19 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 			return
 		
 		if not df_base_map.empty:
-			filter_c1, filter_c2, filter_c3, filter_c4 = st.columns( [ 0.25, 0.25, 0.25, 0.25 ],
-				border=True )
-			
-			with filter_c1:
-				if 'Year' in df_base_map.columns:
-					year_options = sorted(
-						[ str( value ) for value in df_base_map[ 'Year' ].dropna( ).unique( ) ] )
-					selected_years = st.multiselect( 'Year', year_options,
-						key=f'{key_prefix}_years' )
-					
-					if selected_years:
-						df_base_map = df_base_map[
-							df_base_map[ 'Year' ].astype( str ).isin( selected_years ) ]
-			
-			with filter_c2:
-				if 'Country' in df_base_map.columns:
-					country_options = sorted(
-						[ str( value ) for value in df_base_map[ 'Country' ].dropna( ).unique( )
-						  ] )
-					selected_countries = st.multiselect( 'Country', country_options,
-						key=f'{key_prefix}_countries' )
-					
-					if selected_countries:
-						df_base_map = df_base_map[
-							df_base_map[ 'Country' ].astype( str ).isin( selected_countries ) ]
-			
-			with filter_c3:
-				if 'State' in df_base_map.columns:
-					state_options = sorted(
-						[ str( value ) for value in df_base_map[ 'State' ].dropna( ).unique( ) ] )
-					selected_states = st.multiselect( 'State', state_options,
-						key=f'{key_prefix}_states' )
-					
-					if selected_states:
-						df_base_map = df_base_map[
-							df_base_map[ 'State' ].astype( str ).isin( selected_states ) ]
-			
-			with filter_c4:
-				if 'Shape' in df_base_map.columns:
-					shape_options = sorted(
-						[ str( value ) for value in df_base_map[ 'Shape' ].dropna( ).unique( ) ] )
-					selected_shapes = st.multiselect( 'Shape', shape_options,
-						key=f'{key_prefix}_shapes' )
-					
-					if selected_shapes:
-						df_base_map = df_base_map[
-							df_base_map[ 'Shape' ].astype( str ).isin( selected_shapes ) ]
-		
+			filter_fields = [ field for field in ( 'Year', 'Country', 'State', 'Shape',
+				'Name', 'Component', 'Identifier', 'Type', 'Agency', 'GeneratingCapacity(MW)' )
+				if field in df_base_map.columns ]
+			for index in range( 0, len( filter_fields ), 4 ):
+				filter_columns = st.columns( 4, border=True )
+				for offset, field in enumerate( filter_fields[ index:index + 4 ] ):
+					with filter_columns[ offset ]:
+						options = sorted( df_source[ field ].dropna( ).astype( str ).unique( ) )
+						selected = st.multiselect( field, options, key=f'{key_prefix}_{field}' )
+						if selected:
+							df_base_map = df_base_map.loc[
+								df_base_map[ field ].astype( str ).isin( selected ) ].copy( )
+
 		if df_base_map.empty and df_overlay_map.empty and df_user_map.empty:
 			st.info( 'No mapped records match the selected filters.' )
 			return
@@ -1445,11 +1423,14 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 			if df_target.empty:
 				continue
 			
-			for col in [ 'ID', 'CalendarDate', 'City', 'State', 'Country', 'Shape', 'Summary' ]:
+			for col in [ 'ID', 'CalendarDate', 'City', 'State', 'Country', 'Shape', 'Summary',
+				'Name', 'Identifier', 'Component', 'GeneratingCapacity(MW)', 'Elevation' ]:
 				if col not in df_target.columns:
 					df_target[ col ] = ''
 			
-			df_target[ 'MapSummary' ] = df_target[ 'Summary' ].astype( str ).str.slice( 0, 300 )
+			df_target[ 'MapSummary' ] = df_target[ 'Summary' ].fillna( '' ).astype( str ).str.slice( 0, 300 )
+			df_target[ 'MapName' ] = df_target[ 'Name' ].fillna( '' )
+			df_target[ 'MapCapacity' ] = df_target[ 'GeneratingCapacity(MW)' ].astype( object ).fillna( '' )
 			df_target[ 'Position' ] = df_target.apply(
 				lambda row: [ float( row[ 'Longitude' ] ), float( row[ 'Latitude' ] ) ], axis=1 )
 		
@@ -1490,7 +1471,12 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 				pickable=True ) )
 		
 		tooltip = { 'html': ('<b>ID:</b> {ID}<br/>'
+		                     '<b>Name:</b> {MapName}<br/>'
 		                     '<b>Date:</b> {CalendarDate}<br/>'
+		                     '<b>Identifier:</b> {Identifier}<br/>'
+		                     '<b>Component:</b> {Component}<br/>'
+		                     '<b>Capacity (MW):</b> {MapCapacity}<br/>'
+		                     '<b>Elevation:</b> {Elevation}<br/>'
 		                     '<b>Location:</b> {City}, {State}, {Country}<br/>'
 		                     '<b>Coordinates:</b> {Latitude}, {Longitude}<br/>'
 		                     '<b>Shape:</b> {Shape}<br/>'
@@ -1518,9 +1504,11 @@ def create_reports_map( df: pd.DataFrame, df_overlay: Optional[ pd.DataFrame ] =
 					st.info( 'No base mapped records are available to display.' )
 			
 			else:
-				display_cols = [ 'ID', 'Year', 'Month', 'Day', 'CalendarDate', 'City', 'State',
-				                 'Country', 'Latitude', 'Longitude', 'Shape', 'Summary' ]
-				display_cols = [ col for col in display_cols if col in df_base_map.columns ]
+				display_cols = [ 'ID', 'Name', 'Identifier', 'Component', 'GeneratingCapacity(MW)',
+					'Elevation', 'Year', 'Month', 'Day', 'CalendarDate', 'City', 'State',
+					'StateCode', 'State/Region', 'Country', 'CountryName', 'CountryCode',
+					'Latitude', 'Longitude', 'Shape', 'Summary', 'Type', 'Agency' ]
+				display_cols = [ col for col in display_cols if col in df_source.columns ]
 				
 				st.data_editor( df_base_map[ display_cols ], key=f'{key_prefix}_table',
 					use_container_width=True, disabled=True )
@@ -1655,6 +1643,65 @@ def extract_coordinates( result: object ) -> Tuple[ Optional[ float ], Optional[
 	
 	return latitude, longitude
 
+def list_spatial_tables( ) -> List[ str ]:
+	"""Return database tables containing both geographic coordinate columns.
+
+	Purpose:
+		Exclude reference, instruction, conversation, and embedding tables from GIS selectors.
+
+	Returns:
+		List[str]: Existing spatial table names.
+	"""
+	return [ table for table in list_tables( ) if { 'Latitude', 'Longitude' }.issubset(
+		{ column[ 1 ] for column in create_schema( table ) } ) ]
+
+
+def get_geocode_expressions( table_name: str ) -> Tuple[ str, str, str, str ]:
+	"""Return quoted SQL expressions for the selected spatial table.
+
+	Purpose:
+		Use identical location grouping and missing-coordinate criteria for count, preview,
+		and update operations. Named facilities are resolved by name and available locality.
+
+	Args:
+		table_name (str): Existing spatial database table name.
+
+	Returns:
+		Tuple[str, str, str, str]: Locality, state, country, and missing-coordinate expressions.
+
+	Raises:
+		ValueError: When the table has no supported location or coordinate fields.
+	"""
+	throw_if( 'table_name', table_name )
+	if table_name not in list_tables( ):
+		raise ValueError( 'Unknown database table.' )
+	columns = { column[ 1 ] for column in create_schema( table_name ) }
+	if not { 'Latitude', 'Longitude' }.issubset( columns ):
+		raise ValueError( 'The table does not contain geographic coordinates.' )
+	if not columns.intersection( { 'City', 'Name', 'Location' } ):
+		raise ValueError( 'The table does not contain a geocodable location.' )
+	city = """TRIM(COALESCE("City", ''))""" if 'City' in columns else "''"
+	if 'Name' in columns:
+		name = """TRIM(COALESCE("Name", ''))"""
+		city = f"CASE WHEN {name} <> '' AND {city} <> '' THEN {name} || ', ' || {city} ELSE {name} || {city} END"
+	elif 'Location' in columns:
+		city = f"""COALESCE(NULLIF({city}, ''), NULLIF(TRIM("Location"), ''), '')"""
+	state = next( ( field for field in ( 'State', 'StateCode', 'State/Region' )
+		if field in columns ), '' )
+	state = f"""TRIM(COALESCE("{state}", ''))""" if state else "''"
+	country_fields = [ f"""NULLIF(TRIM("{field}"), '')""" for field in
+		( 'CountryName', 'Country', 'CountryCode' ) if field in columns ]
+	country = f"COALESCE({', '.join( country_fields )}, '')" if country_fields else "''"
+	if table_name == 'Military':
+		country = "'United States'"
+	missing = """("Latitude" IS NULL OR "Longitude" IS NULL
+		OR typeof("Latitude") NOT IN ('real', 'integer')
+		OR typeof("Longitude") NOT IN ('real', 'integer')
+		OR "Latitude" NOT BETWEEN -90 AND 90 OR "Longitude" NOT BETWEEN -180 AND 180
+		OR ("Latitude" = 0 AND "Longitude" = 0))"""
+	return city, state, country, missing
+
+
 def count_missing_report_coordinate_rows( table_name: str ) -> int:
 	"""Handle the count missing report coordinate rows workflow.
 	
@@ -1672,23 +1719,9 @@ def count_missing_report_coordinate_rows( table_name: str ) -> int:
 	"""
 	try:
 		throw_if( 'table_name', table_name )
-		query = f"""
-			SELECT COUNT(*) AS RowCount
-			FROM "{table_name}"
-			WHERE (
-			          Latitude IS NULL
-			          OR Longitude IS NULL
-			          OR Latitude < -90
-			          OR Latitude > 90
-			          OR Longitude < -180
-			          OR Longitude > 180
-			          OR (Latitude = 0 AND Longitude = 0)
-			      )
-			  AND City IS NOT NULL
-			  AND TRIM(City) <> ''
-			  AND Country IS NOT NULL
-			  AND TRIM(Country) <> '';
-		"""
+		city, state, country, missing = get_geocode_expressions( table_name )
+		query = f"""SELECT COUNT(*) FROM "{table_name}"
+			WHERE {missing} AND ({city}) <> ''"""
 		with create_connection( ) as conn:
 			row = conn.execute( query ).fetchone( )
 			return int( row[ 0 ] or 0 )
@@ -1716,29 +1749,11 @@ def read_missing_report_locations( table_name: str, limit: Optional[ int ] = Non
 	"""
 	try:
 		throw_if( 'table_name', table_name )
-		query = f"""
-			SELECT
-			    TRIM(City) AS City,
-			    TRIM(COALESCE(State, '')) AS State,
-			    TRIM(Country) AS Country,
-			    COUNT(*) AS RowCount
-			FROM "{table_name}"
-			WHERE (
-			          Latitude IS NULL
-			          OR Longitude IS NULL
-			          OR Latitude < -90
-			          OR Latitude > 90
-			          OR Longitude < -180
-			          OR Longitude > 180
-			          OR (Latitude = 0 AND Longitude = 0)
-			      )
-			  AND City IS NOT NULL
-			  AND TRIM(City) <> ''
-			  AND Country IS NOT NULL
-			  AND TRIM(Country) <> ''
-			GROUP BY TRIM(City), TRIM(COALESCE(State, '')), TRIM(Country)
-			ORDER BY RowCount DESC, City, State, Country
-		"""
+		city, state, country, missing = get_geocode_expressions( table_name )
+		query = f"""SELECT {city} AS City, {state} AS State, {country} AS Country,
+			COUNT(*) AS RowCount FROM "{table_name}"
+			WHERE {missing} AND ({city}) <> ''
+			GROUP BY 1, 2, 3 ORDER BY RowCount DESC, City, State, Country"""
 		if limit:
 			query += f' LIMIT {int( limit )}'
 		
@@ -1897,6 +1912,7 @@ def apply_report_coordinate_updates( table_name: str, df_updates: pd.DataFrame )
 		if df_apply.empty:
 			return 0
 		
+		city, state, country, missing = get_geocode_expressions( table_name )
 		updated_count = 0
 		cursor = None
 		
@@ -1911,13 +1927,8 @@ def apply_report_coordinate_updates( table_name: str, df_updates: pd.DataFrame )
 						UPDATE "{table_name}"
 						SET Latitude = ?,
 						    Longitude = ?
-						WHERE
-							(Latitude IS NULL OR Longitude IS NULL
-							 OR Latitude = '' OR Longitude = ''
-							 OR Latitude = 0 OR Longitude = 0)
-							AND COALESCE(City, '') = COALESCE(?, '')
-							AND COALESCE(State, '') = COALESCE(?, '')
-							AND COALESCE(Country, '') = COALESCE(?, '');
+						WHERE {missing}
+							AND ({city}) = ? AND ({state}) = ? AND ({country}) = ?;
 						""", (float( row.Latitude ), float( row.Longitude ),
 					          '' if pd.isna( row.City ) else str( row.City ),
 					          '' if pd.isna( row.State ) else str( row.State ),
@@ -1994,82 +2005,26 @@ def append_geocoding_map_result( query: str, source: str, result: object ) -> No
 # ------------ DATABASE UTILITIES
 
 def initialize_database( ) -> None:
-	"""Handle the initialize database workflow.
-	
+	"""Initialize application support tables without altering existing data.
+
 	Purpose:
-		Supports the Mappy Streamlit application by executing the initialize database
-		workflow. The function preserves the existing UI behavior, session-state
-		interactions, dataframe handling, database access, and service integrations
-		defined by the application code.
+		Create only missing application support tables using the current SQLite schema.
+		Existing databases and records are retained.
+
+	Returns:
+		None: Creates missing tables through the managed database connection.
 	"""
-	Path( 'stores/sqlite' ).mkdir( parents=True, exist_ok=True )
-	with create_connection( ) as connection:
-		conn.execute( """
-                      CREATE TABLE IF NOT EXISTS chat_history
-                      (
-                          id
-                          INTEGER
-                          PRIMARY
-                          KEY
-                          AUTOINCREMENT,
-                          role
-                          TEXT,
-                          content
-                          TEXT
-                      )
-		              """ )
-		
-		conn.execute( """
-                      CREATE TABLE IF NOT EXISTS embeddings
-                      (
-                          id
-                          INTEGER
-                          PRIMARY
-                          KEY
-                          AUTOINCREMENT,
-                          chunk
-                          TEXT,
-                          vector
-                          BLOB
-                      )
-		              """ )
-		
-		conn.execute( """
-                      CREATE TABLE IF NOT EXISTS Prompts
-                      (
-                          PromptsId
-                          INTEGER
-                          NOT
-                          NULL
-                          PRIMARY
-                          KEY
-                          AUTOINCREMENT,
-                          Caption
-                          TEXT,
-                          Name
-                          TEXT
-                      (
-                          80
-                      ),
-                          Text TEXT,
-                          Version TEXT
-                      (
-                          80
-                      ),
-                          ID TEXT
-                      (
-                          80
-                      )
-                          )
-		              """ )
-		
-		prompt_columns = [ row[ 1 ] for row in
-		                   conn.execute( 'PRAGMA table_info("Prompts");' ).fetchall( ) ]
-		
-		if 'Caption' not in prompt_columns:
-			conn.execute( 'ALTER TABLE "Prompts" ADD COLUMN "Caption" TEXT;' )
-		
-		conn.commit( )
+	Path( cfg.DB_PATH ).parent.mkdir( parents=True, exist_ok=True )
+	with create_connection( ) as conn:
+		conn.execute( """CREATE TABLE IF NOT EXISTS "Conversations"
+			("id" INTEGER NOT NULL UNIQUE, "role" TEXT(80), "content" TEXT(1000000),
+			PRIMARY KEY("id" AUTOINCREMENT))""" )
+		conn.execute( """CREATE TABLE IF NOT EXISTS "Embeddings"
+			("id" INTEGER NOT NULL UNIQUE, "chunk" TEXT(1000000), "vector" BLOB,
+			PRIMARY KEY("id" AUTOINCREMENT))""" )
+		conn.execute( """CREATE TABLE IF NOT EXISTS "Instructions"
+			("PromptsId" INTEGER NOT NULL UNIQUE, "Caption" TEXT, "Name" TEXT(80),
+			"Text" TEXT(1000000), PRIMARY KEY("PromptsId" AUTOINCREMENT))""" )
 
 class ManagedConnection( sqlite3.Connection ):
 	"""Represent the Managed Connection component for the Mappy Streamlit application.
@@ -2159,7 +2114,7 @@ def list_tables( ) -> List[ str ]:
 		List[str]: Result produced by the `list_tables` workflow.
 	"""
 	with create_connection( ) as conn:
-		_query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+		_query = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
 		rows = conn.execute( _query ).fetchall( )
 		return [ r[ 0 ] for r in rows ]
 
@@ -2634,10 +2589,11 @@ def convert_dataframe( table_name: str, df: pd.DataFrame ) -> None:
 	columns = [ ]
 	for col in df.columns:
 		sql_type = get_sqlite_type( df[ col ].dtype )
-		safe_col = col.replace( ' ', '_' )
+		safe_col = '"' + col.replace( '"', '""' ) + '"'
 		columns.append( f'{safe_col} {sql_type}' )
 	
-	create_stmt = f'CREATE TABLE IF NOT EXISTS {table_name} ({", ".join( columns )});'
+	quoted_table = '"' + table_name.replace( '"', '""' ) + '"'
+	create_stmt = f'CREATE TABLE IF NOT EXISTS {quoted_table} ({", ".join( columns )});'
 	with create_connection( ) as conn:
 		conn.execute( create_stmt )
 		conn.commit( )
@@ -2653,9 +2609,10 @@ def insert_data( table_name: str, df: pd.DataFrame ) -> None:
 		df: pd.DataFrame value used by the `insert_data` workflow.
 	"""
 	df = df.copy( )
-	df.columns = [ c.replace( ' ', '_' ) for c in df.columns ]
+	quoted_table = '"' + table_name.replace( '"', '""' ) + '"'
+	quoted_columns = ', '.join( '"' + col.replace( '"', '""' ) + '"' for col in df.columns )
 	placeholders = ', '.join( [ '?' ] * len( df.columns ) )
-	stmt = f'INSERT INTO {table_name} VALUES ({placeholders});'
+	stmt = f'INSERT INTO {quoted_table} ({quoted_columns}) VALUES ({placeholders});'
 	with create_connection( ) as conn:
 		conn.executemany( stmt, df.values.tolist( ) )
 		conn.commit( )
@@ -3540,8 +3497,7 @@ with st.sidebar:
                                                    ORDER BY name;
 					                               """, connection )
 					
-					table_options = df_tables[ 'name' ].tolist( )[
-						:3 ] if 'name' in df_tables.columns else [ ]
+					table_options = df_tables[ 'name' ].tolist( ) if 'name' in df_tables.columns else [ ]
 					
 					if table_options:
 						selected_table = st.selectbox( label='Select Database Table',
@@ -3867,7 +3823,7 @@ if mode == 'Mapping':
 		with center:
 			st.subheader( 'Interactive Map' )
 			st.divider( )
-			tables = list_tables( )
+			tables = list_spatial_tables( )
 			if not tables:
 				st.info( 'No tables available.' )
 			else:
@@ -3898,7 +3854,8 @@ if mode == 'Mapping':
 				if include_overlay:
 					df_overlay = st.session_state.get( 'df_geocoding_map_results', pd.DataFrame( ) )
 			
-				create_reports_map( df_map_source, df_overlay=df_overlay )
+				create_reports_map( df_map_source, df_overlay=df_overlay,
+					key_prefix=f'reports_map_{table}' )
 				if include_overlay and df_overlay is not None and not df_overlay.empty:
 					with st.expander( 'Geocoded Overlay Records', expanded=False ):
 						st.data_editor( df_overlay, key='map_mode_overlay_records',
@@ -8868,7 +8825,7 @@ elif mode == 'Data Management':
 			with upl_c1:
 				uploaded_file = st.file_uploader( 'Upload Excel File', type=[ 'xlsx' ] )
 			with upl_c2:
-				overwrite = st.checkbox( 'Overwrite existing tables', value=True )
+				overwrite = st.checkbox( 'Overwrite existing tables', value=False )
 			
 			if uploaded_file:
 				try:
@@ -8878,6 +8835,10 @@ elif mode == 'Data Management':
 						for sheet_name, df in sheets.items( ):
 							table_name = create_identifier( sheet_name )
 							if overwrite:
+								if table_name.casefold( ) in { name.casefold( ) for name in
+									( 'UAP', 'Pollution', 'Military', 'Nuclear', 'Airports', 'Country',
+										'States', 'Instructions', 'Conversations', 'Embeddings' ) }:
+									raise ValueError( 'Schema-managed tables cannot be overwritten by Excel import.' )
 								conn.execute( f'DROP TABLE IF EXISTS "{table_name}"' )
 							
 							# --- Create Table ---
@@ -8940,6 +8901,8 @@ elif mode == 'Data Management':
 				schema = create_schema( table )
 				
 				type_map = { col[ 1 ]: col[ 2 ].upper( ) for col in schema if col[ 1 ] != 'rowid' }
+				writable_types = { col[ 1 ]: col[ 2 ].upper( ) for col in schema
+					if col[ 1 ] != 'rowid' and not col[ 5 ] and 'BLOB' not in col[ 2 ].upper( ) }
 				
 				with crud_header_c2:
 					st.metric( 'Rows', len( df.index ) )
@@ -8956,8 +8919,10 @@ elif mode == 'Data Management':
 				# ------------------------------------------------------------------
 				with insert_col:
 					st.markdown( '##### Insert Row' )
+					if any( 'BLOB' in col_type for col_type in type_map.values( ) ):
+						st.caption( 'Binary values are not editable through this form.' )
 					insert_data = { }
-					for column, col_type in type_map.items( ):
+					for column, col_type in writable_types.items( ):
 						if 'INT' in col_type:
 							insert_data[ column ] = st.number_input( column, step=1,
 								key=f'ins_{table}_{column}' )
@@ -8996,7 +8961,7 @@ elif mode == 'Data Management':
 					
 					update_data = { }
 					
-					for column, col_type in type_map.items( ):
+					for column, col_type in writable_types.items( ):
 						if 'INT' in col_type:
 							val = st.number_input( column, step=1, key=f'upd_{table}_{column}' )
 							update_data[ column ] = val
@@ -9131,7 +9096,7 @@ elif mode == 'Data Management':
 		with tabs[ 7 ]:
 			st.markdown( '#### Geocode Missing Report Coordinates' )
 			
-			tables = list_tables( )
+			tables = list_spatial_tables( )
 			
 			if not tables:
 				st.info( 'No tables available.' )
@@ -9162,10 +9127,16 @@ elif mode == 'Data Management':
 						value=100, step=25, key='reports_geocode_limit' )
 				
 				location_limit = int( limit ) if limit_enabled else None
-				required_cols = [ 'City', 'State', 'Country', 'Latitude', 'Longitude' ]
+				required_cols = [ 'Latitude', 'Longitude' ]
 				schema = create_schema( table )
 				table_cols = [ row[ 1 ] for row in schema ]
 				missing_cols = [ col for col in required_cols if col not in table_cols ]
+				if not set( table_cols ).intersection( { 'City', 'Name', 'Location' } ):
+					missing_cols.append( 'City, Name or Location' )
+				if st.session_state.get( 'reports_geocode_preview_source' ) != table:
+					st.session_state[ 'reports_geocode_preview_source' ] = table
+					st.session_state[ 'df_reports_geocode_preview' ] = pd.DataFrame( )
+					st.session_state[ 'reports_geocode_last_update' ] = { }
 				
 				if missing_cols:
 					st.warning(
@@ -9306,8 +9277,8 @@ elif mode == 'Data Management':
 						
 						st.warning(
 							'Apply Updates writes Latitude and Longitude values back to SQLite '
-							'for all missing-coordinate rows matching the previewed City, State, '
-							'and Country combinations. Review the preview before applying.' )
+							'for all missing-coordinate rows matching the previewed location, state, '
+							'and country combinations. Review the preview before applying.' )
 						
 						apply_c1, apply_c2 = st.columns( [ 0.25, 0.75 ] )
 						
